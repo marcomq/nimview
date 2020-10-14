@@ -26,9 +26,6 @@ This project is not intended to have any kind of additional helpers to create th
 - npm run build --prefix ui
 - nim c -r --app:gui -d:release main.nim
 ```
-### Related projects
-
-
 
 ### Why Nim?
 Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules but creates plain C Code that can be compiled by any generic C compiler to optimized machine code. You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can run python code or can be compiled to a python library by using "pynim" (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
@@ -36,6 +33,9 @@ Nim is actually some great "batteries included" helper. It is similar readable a
 ### Why Vue?
 I used to work with React and Redux during some previous job. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux. Even if it solved some major problems of Javascript development, it felt like a major step back when comparing to the simplicity of jQuery. In fact, I just wanted to have some template engine with some little reactivity helpers. Svelte was really close, but I had issues made it running on Webview. Vue.js was the next candidate.
 I'm still new to Vue, there are probably a lot of people out there who are much better in Vue.js.
+
+### Can I use some other JS library
+Sure. The main logic is in main.nim and ui/src/nimCall.js. Make sure to include nimCall.js either in your JS library or as HTML include. 
 
 ### Why not Electron?
 Electron is a great Framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate as it requires WebAssemply and the output binary is usually more than 100 MB.
