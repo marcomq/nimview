@@ -5,15 +5,19 @@ import system
 import jester
 import re
 import uri
+import strutils
+
+proc getUiDir(): string =
+  result = getCurrentDir() 
 
 proc dispatchRequest(jsonMessage: JsonNode): string = 
   var value = $jsonMessage["value"].getStr() 
   let request = $jsonMessage["request"].getStr()
   case request:
     of "\"\"":
-      result = value & "evaluated by nim"
+      result = value & " evaluated by nim"
     of "":
-      result = value & "modified by nim" 
+      result = value & " modified by nim" 
     of "404":
       result = "404" 
     else:
@@ -24,7 +28,12 @@ router myrouter:
   get re"^\/(.*)$":
     var jsonMessage: JsonNode
     try:
-      jsonMessage = parseJson(uri.decodeUrl(request.matches[0]))
+      var requestContent: string = request.matches[0]
+      var potentialFilename = getUiDir() & "/" & requestContent.replace("..", "")
+      if existsFile(potentialFilename):
+        sendFile(potentialFilename)
+      else:
+        jsonMessage = parseJson(uri.decodeUrl(requestContent))
     except:
       jsonMessage = parseJson("""{"request":"404","value":"","resultId":0}""")
     resp dispatchRequest(jsonMessage)
@@ -33,7 +42,7 @@ router myrouter:
 
 proc startJester() {.thread.} =
   let port = 8000
-  let settings = jester.newSettings(port=Port(port))
+  let settings = jester.newSettings(port=Port(port), staticDir = getUiDir())
   var jester = jester.initJester(myrouter, settings=settings)
   jester.serve()
 

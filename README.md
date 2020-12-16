@@ -24,7 +24,9 @@ This project is not intended to have any kind of additional helpers to create th
 - install node > 12.19  (https://nodejs.org/en/download/)
 - run "cd ui", "npm install" and "cd .." 
 - npm run build --prefix ui
-- nim c -r --app:gui -d:release main.nim
+- nim c -r --app:gui -d:release main.nim 
+# alternatively for debugging
+- nim c -r --threads:on --debuginfo  --debugger:native  --verbosity:2 -d:debug main.nim
 ```
 
 ### Why Nim?
