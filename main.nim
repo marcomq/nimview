@@ -10,35 +10,48 @@ import strutils
 proc getUiDir(): string =
   result = getCurrentDir() 
 
-proc dispatchRequest(jsonMessage: JsonNode): string = 
-  var value = $jsonMessage["value"].getStr() 
-  let request = $jsonMessage["request"].getStr()
+proc dispatchRequest(request, value: string): string = 
+  # request might contain model & action
+  # value may contain json with further actions
   case request:
-    of "\"\"":
-      result = value & " evaluated by nim"
+    of "appendSomething":
+      result = value & " modified by nim"
     of "":
-      result = value & " modified by nim" 
-    of "404":
-      result = "404" 
+      result = value & " evaluated by nim" 
     else:
       # echo "'" , value , '"'
-      result = value & " applied by nim"
+      result = "404" 
 
+# main dispatcher
+# used by webview AND jester
+proc dispatchJsonRequest(jsonMessage: JsonNode): string = 
+  let value = $jsonMessage["value"].getStr() 
+  let request = $jsonMessage["request"].getStr()
+  result = dispatchRequest(request, value)
+
+#required for jester web server
 router myrouter:
   get re"^\/(.*)$":
     var jsonMessage: JsonNode
     try:
       var requestContent: string = request.matches[0]
+      var response: string
+      if (requestContent == ""): 
+        requestContent = "/index.html"
       var potentialFilename = getUiDir() & "/" & requestContent.replace("..", "")
+      echo potentialFilename
       if existsFile(potentialFilename):
-        sendFile(potentialFilename)
+        jester.sendFile(potentialFilename)
+        return
       else:
         jsonMessage = parseJson(uri.decodeUrl(requestContent))
+        response = dispatchJsonRequest(jsonMessage)
+      var jsonresponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
+      resp jsonresponse
     except:
-      jsonMessage = parseJson("""{"request":"404","value":"","resultId":0}""")
-    resp dispatchRequest(jsonMessage)
+      resp """{"request":"500","value":"request doesn't contain valid json","resultId":0}"""
   post "/":
-    resp dispatchRequest(parseJson(request.body))
+    resp dispatchJsonRequest(parseJson(request.body))
 
 proc startJester() {.thread.} =
   let port = 8000
@@ -46,35 +59,25 @@ proc startJester() {.thread.} =
   var jester = jester.initJester(myrouter, settings=settings)
   jester.serve()
 
-
-proc main() =
-  # startJester()
-  var thread: Thread[void]
-  createThread(thread, startJester)
-  
-  let folder = os.getCurrentDir() / "ui/dist/" / "index.html"
-  # let folder = os.getCurrentDir() / "ui/public/" / "index2.html"
-  os.setCurrentDir(folder.parentDir())
-  # let myView = cast[webview.Webview](alloc0(sizeof(webview.WebviewObj)))
+proc startWebview(folder: string) = 
   let myView = newWebView("test", "file://" / folder)
-  # const localJs = system.staticRead("D:/apps/testNimWebview/svelte/public/build/bundle.js")
 
- # myView.run()
   var fullScreen = true
   myView.bindProcs("nim"): 
-      proc open() = echo myView.dialogOpen()
-      proc save() = echo myView.dialogSave()
-      proc opendir() = echo myView.dialogOpen(flag=dFlagDir)
-      proc message() = myView.msg("hello", "message")
       proc alert(message: string) = myView.info("alert", message)
       proc call(message: string) = 
         echo message
         let jsonMessage = json.parseJson(message)
         let resonseId = jsonMessage["responseId"].getInt()
-        let response = dispatchRequest(jsonMessage)
+        let response = dispatchJsonRequest(jsonMessage)
         let evalJsCode = "window.ui.applyResponse('" & response  & "'," & $resonseId & ");"
         let responseCode =  myView.eval(evalJsCode)
         discard responseCode
+      # just sample functions without current real functionality
+      proc open() = echo myView.dialogOpen()
+      proc save() = echo myView.dialogSave()
+      proc opendir() = echo myView.dialogOpen(flag=dFlagDir)
+      proc message() = myView.msg("hello", "message")
       proc warn() = myView.warn("hello", "warn")
       proc error() = myView.error("hello", "error")
       proc changeTitle(title: string) = myView.setTitle(title)
@@ -86,6 +89,18 @@ proc main() =
   # discard myView.eval(clientSideJavascript)
   myView.run()
   myView.exit()
+
+
+proc main() =
+  # startJester()
+  let folder = os.getCurrentDir() / "ui/dist/" / "index.html"
+  os.setCurrentDir(folder.parentDir())
+
+  var thread: Thread[void]
+  createThread(thread, startJester)
+  startWebview(folder)
+  
+  
 
 when isMainModule:
   main()

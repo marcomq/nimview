@@ -41,7 +41,6 @@
 </template>
 
 <script>
-// import axios from "axios";
 export default {
   data() {
     return {
@@ -51,9 +50,10 @@ export default {
   },
   methods: {
     runSearch() {
-      this.nimCall(this.search, this, 'search')
+      this.nimCall("appendSomething", this, 'search')
     }
   },/* 
+// import axios from "axios";
   mounted() {
     axios
       .get("https://www.themealdb.com/api/json/v1/1/categories.php")
