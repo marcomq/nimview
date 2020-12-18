@@ -70,7 +70,7 @@ proc startWebview(folder: string) =
         let jsonMessage = json.parseJson(message)
         let resonseId = jsonMessage["responseId"].getInt()
         let response = dispatchJsonRequest(jsonMessage)
-        let evalJsCode = "window.ui.applyResponse('" & response  & "'," & $resonseId & ");"
+        let evalJsCode = "window.nimUi.applyResponse('" & response  & "'," & $resonseId & ");"
         let responseCode =  myView.eval(evalJsCode)
         discard responseCode
       # just sample functions without current real functionality
