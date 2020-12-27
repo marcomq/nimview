@@ -29,12 +29,14 @@ var req {.threadvar.}: RequestCallbacks
 # var requestMap {.threadvar.}: Table[string, proc(value: string): string]
 # var requestMap = tables.toTable({"appendSomething": appendSomething})
 
-proc addRequest(request: string, callback: proc(value: string): string {.gcsafe.} ) = 
+## TODO: https://github.com/yglukhov/nimpy/blob/2f10e5da6a81c3c5445b10b1b672de0471229c1c/tests/nimfrompy.nim#L93
+## 
+proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe.} ) {.exportc, dynlib, exportpy.} = 
+  if (isNil(req)):
+    req = new RequestCallbacks
   req.map[request] = callback
 
-proc initRequestFunctions() = 
-  # requestMap = tables.toTable({"appendSomething": appendSomething})
-  req = new RequestCallbacks
+proc initRequestFunctions*() {.exportc, dynlib, exportpy.} = 
   nimvue.addRequest("appendSomething", nimvue.appendSomething)
 
 proc dispatchRequest(request, value: string): string {.gcsafe.} = 
@@ -103,7 +105,7 @@ proc startWebviewInt(folder: string) =
   let myView = newWebView("NimVue", "file://" / folder)
 
   var fullScreen = true
-  myView.bindProcs("nim"): 
+  myView.bindProcs("backend"): 
       proc alert(message: string) = myView.info("alert", message)
       proc call(message: string) = 
         echo message
@@ -111,7 +113,7 @@ proc startWebviewInt(folder: string) =
         let resonseId = jsonMessage["responseId"].getInt()
         let emptyHeaders = jester.newHttpHeaders([("Content-Type","application/json")])
         let response = dispatchJsonRequest(jsonMessage, emptyHeaders)
-        let evalJsCode = "window.nimUi.applyResponse('" & response  & "'," & $resonseId & ");"
+        let evalJsCode = "window.ui.applyResponse('" & response  & "'," & $resonseId & ");"
         let responseCode =  myView.eval(evalJsCode)
         discard responseCode
       # just sample functions without current real functionality
@@ -136,7 +138,7 @@ proc startWebview*(folder: string) {.exportc, dynlib, exportpy.} =
   NimMain()
   startWebviewInt(folder)
 
-when system.appType == "lib":
+when declared(Thread):
   proc startJesterThread(folder: string) {.thread.} =
     var thread: Thread[string]
     createThread(thread, startJesterInt, folder)

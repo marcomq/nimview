@@ -50,7 +50,7 @@ export default {
   },
   methods: {
     runSearch() {
-      this.nimCall("appendSomething", this, 'search')
+      this.backend("appendSomething", this, 'search')
     }
   },/* 
 // import axios from "axios";
