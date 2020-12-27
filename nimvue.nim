@@ -21,6 +21,7 @@ proc NimMain() {.importc.}
 proc appendSomething(value: string): string {.noSideEffect, gcsafe.} =
    result = value & " modified by nim"
 
+type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = ref object of RootObj
   map: Table[string, proc(value: string): string {.gcsafe.} ]
 # var requestMap = tables.toTable({"appendSomething": appendSomething})
@@ -29,8 +30,6 @@ var req {.threadvar.}: RequestCallbacks
 # var requestMap {.threadvar.}: Table[string, proc(value: string): string]
 # var requestMap = tables.toTable({"appendSomething": appendSomething})
 
-## TODO: https://github.com/yglukhov/nimpy/blob/2f10e5da6a81c3c5445b10b1b672de0471229c1c/tests/nimfrompy.nim#L93
-## 
 proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe.} ) {.exportc, dynlib, exportpy.} = 
   if (isNil(req)):
     req = new RequestCallbacks
@@ -44,13 +43,14 @@ proc dispatchRequest(request, value: string): string {.gcsafe.} =
     let callback = req.map[request]
     result = callback(value) 
   else :
-    result = "404" 
+    raise newException(ReqUnknownException, "404 - Request unknown")
 
 # main dispatcher
 # used by webview AND jester
-proc dispatchJsonRequest(jsonMessage: JsonNode, headers: HttpHeaders): string = 
+proc dispatchJsonRequest(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
   let value = $jsonMessage["value"].getStr() 
   let request = $jsonMessage["request"].getStr()
+  # optional - check credentials from header information
   result = dispatchRequest(request, value)
 
 # required for jester web server - it is not recommended to modify this, use "dispatchRequest" to add functionality
@@ -61,23 +61,26 @@ router myrouter:
       var response: string
       if (requestContent == ""): 
         requestContent = "/index.html"
-      # var potentialFilename = settings.staticDir & "/" & requestContent.replace("..", "")
       var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
       echo potentialFilename
-      if existsFile(potentialFilename):
+      if fileExists(potentialFilename):
         jester.sendFile(potentialFilename)
         return
       else:
         let jsonMessage = parseJson(uri.decodeUrl(requestContent))
         try:
           response = dispatchJsonRequest(jsonMessage, request.headers)
+        except ReqUnknownException:
+          var errorResponse =  %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": $jsonMessage["responseId"] } 
+          resp errorResponse
         except:
-          var errorResponse =  %* { "request":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
+          var errorResponse =  %* { "error":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
           resp errorResponse
         let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
         resp jsonResponse
     except:
-      resp """{"request":"500","value":"request doesn't contain valid json","resultId":0}"""
+      var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
+      resp errorResponse
   post "/":
     try:
       var jsonMessage = parseJson(request.body)
@@ -85,7 +88,7 @@ router myrouter:
       let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
       resp jsonResponse
     except:
-      var errorResponse =  %* { "request":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
+      var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
       resp errorResponse
 
 proc startJesterInt(folder: string) =
