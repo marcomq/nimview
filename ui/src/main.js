@@ -4,9 +4,10 @@ import BootstrapVue from 'bootstrap-vue'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-import ui from 'webview-backend-helper' // "import from" doesn't seem to work with webview here... Let me know if you find some better solution
+import'./backend-helper' // "import from" doesn't seem to work with webview here... Let me know if you find some better solution
+// import ui from 'webview-backend-helper' 
+// window.ui = ui;
 
-ui.register();
 Vue.use(BootstrapVue)
 Vue.config.productionTip = false
 

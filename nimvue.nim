@@ -60,7 +60,7 @@ router myrouter:
       var requestContent: string = request.matches[0]
       var response: string
       if (requestContent == ""): 
-        requestContent = "/index.html"
+        requestContent = "index.html"
       var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
       echo potentialFilename
       if fileExists(potentialFilename):
