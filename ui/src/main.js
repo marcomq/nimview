@@ -4,13 +4,14 @@ import BootstrapVue from 'bootstrap-vue'
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-import './webviewBackend' // "import from" doesn't seem to work with webview here... Let me know if you find some better solution
+import ui from 'webview-backend-helper' // "import from" doesn't seem to work with webview here... Let me know if you find some better solution
 
+ui.register();
 Vue.use(BootstrapVue)
 Vue.config.productionTip = false
 
 
-// make this.nimCall() available for Vue
+// make this.backend() available for Vue
 Vue.mixin({
   methods: {
     alert: str => window.ui.alert(str + ""),
