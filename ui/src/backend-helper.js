@@ -63,8 +63,8 @@ ui.applyResponse = function(value, responseId) {
 }
 
 
-// There seems to be some issue on second start of webview - nim seems to be defined on second start - so check if this is webview and avoid loading specific javascript
-if (typeof nim === "undefined" && (navigator.userAgent.indexOf("Trident") == -1) && (navigator.userAgent.indexOf("Edg") == -1)) {
+// There are some strange issues detecting webview in a clean way. So we just check if this is Chrom(e/ium) or Firefox and assume that we need ajax for those.
+if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf("Firefox") != -1)) {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
@@ -92,7 +92,7 @@ if (typeof nim === "undefined" && (navigator.userAgent.indexOf("Trident") == -1)
 }
 else {
   // This function is intendend to interact directly with webview. No HTTP server involved.
-  // There will be an async call on the nim server, which is then triggering to call javascript from webview.
+  // There will be an async call on the backend server, which is then triggering to call javascript from webview.
   // This callback function will be stored in a container ui.responseStorage. Nim Webview had issues calling javascript on Windows
   // at the time of development and therefore required an async approach.
   /*global backend*/
