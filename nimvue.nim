@@ -86,25 +86,27 @@ router myrouter:
       if (requestContent == ""): 
         requestContent = "index.html"
       var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
-      echo potentialFilename
       if fileExists(potentialFilename):
+        echo "Sending " & potentialFilename
         jester.sendFile(potentialFilename)
         return
-      else:
+      else: # TODO: only if string starts with "{"
+        echo "Parsing " & potentialFilename
         let jsonMessage = parseJson(uri.decodeUrl(requestContent))
         try:
           response = dispatchJsonRequest(jsonMessage, request.headers)
         except ReqUnknownException:
           var errorResponse =  %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": $jsonMessage["responseId"] } 
-          resp errorResponse
+          resp Http404, $errorResponse
         except:
           var errorResponse =  %* { "error":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
           resp errorResponse
         let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
         resp jsonResponse
     except:
+      echo "Error " & getCurrentExceptionMsg()
       var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-      resp errorResponse
+      resp Http500, $errorResponse
   post "/":
     try:
       var jsonMessage = parseJson(request.body)
@@ -113,7 +115,7 @@ router myrouter:
       resp jsonResponse
     except:
       var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-      resp errorResponse
+      resp Http500, $errorResponse
 
 proc startJesterBySetting*(settings: Settings) =
   var jester = jester.initJester(myrouter, settings=settings)
@@ -179,8 +181,8 @@ when declared(Thread):
 
 proc main() =
   when system.appType != "lib":
-    let folder = os.getCurrentDir() / "ui/dist/" / "index.html"
-    # startJesterThread(folder)
+    let folder = os.getCurrentDir() / "ui/dist/index.html"
+    # startJesterInt(folder)
     startWebview(folder)
   
   

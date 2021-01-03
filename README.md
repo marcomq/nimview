@@ -21,6 +21,9 @@ This project is not intended to have any kind of additional helpers to create th
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
 - nimble install webview (version 0.1.1)
+- nimble install jester
+- nimble install nimpy
+- (linux) install gtk (yum install gcc, npm, webkit2gtk3-devel) (apt install gcc, npm, libwebkit2gtk-4.0-dev)
 - install node > 12.19  (https://nodejs.org/en/download/)
 - run "cd ui", "npm install" and "cd .." 
 - npm run build --prefix ui
