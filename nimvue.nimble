@@ -7,7 +7,7 @@ license     = "MIT"
 
 # Dependencies
 
-requires "nim >= 0.17.0"
+requires "nim >= 0.17.0", "nimpy >= 0.1.1", "webview >= 0.1.0", "jester >= 0.5.0"
 
 import oswalkdir, os, strutils
 
@@ -51,7 +51,8 @@ proc runTests(nimFlags = "") =
     # Compile all nim modules, except those starting with "t"
     let sf = f.path.splitFile()
     if sf.ext == ".nim" and not sf.name.startsWith("t"):
-      exec "nim c --threads:on --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
+      exec "nim c --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
+      # exec "nim c --threads:on --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
 
   let
     pythonExes = calcPythonExecutables()

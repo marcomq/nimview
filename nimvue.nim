@@ -1,13 +1,16 @@
-import webview
 import os
 import json
 import system
-import jester
 import re
 import uri
 import strutils
-import nimpy
 import tables
+import std/compilesettings
+
+import webview
+import jester
+from jester/private/utils import Settings 
+import nimpy
 
 # nim c -r --threads:on --debuginfo  --debugger:native -d:useStdLib --verbosity:2 -d:debug nimvue.nim 
 # nim c --verbosity:2 -d:release -d:useStdLib --app:lib --out:nimvue.pyd --nimcache=./generated_c nimvue.nim
@@ -16,7 +19,8 @@ import tables
 # >>> nimvue.startWebview("E:/apps/nimvue/ui/dist/index.html")
 # >>> nimvue.startJester("E:/apps/nimvue/ui/dist/index.html")
 
-proc NimMain() {.importc.}
+when (querySetting(backend) == "c"):
+  proc NimMain() {.importc.}
 
 proc appendSomething(value: string): string {.noSideEffect, gcsafe.} =
    result = value & " modified by nim"
@@ -25,7 +29,7 @@ type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = ref object of RootObj
   map: Table[string, proc(value: string): string {.gcsafe.} ]
 # var requestMap = tables.toTable({"appendSomething": appendSomething})
-var req {.threadvar.}: RequestCallbacks
+var req* {.threadvar.}: RequestCallbacks
 
 # var requestMap {.threadvar.}: Table[string, proc(value: string): string]
 # var requestMap = tables.toTable({"appendSomething": appendSomething})
@@ -38,7 +42,7 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
 proc initRequestFunctions*() {.exportc, dynlib, exportpy.} = 
   nimvue.addRequest("appendSomething", nimvue.appendSomething)
 
-proc dispatchRequest(request, value: string): string {.gcsafe.} = 
+proc dispatchRequest*(request, value: string): string {.gcsafe.} = 
   if req.map.hasKey(request):
     let callback = req.map[request]
     result = callback(value) 
@@ -47,11 +51,31 @@ proc dispatchRequest(request, value: string): string {.gcsafe.} =
 
 # main dispatcher
 # used by webview AND jester
-proc dispatchJsonRequest(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
+proc dispatchJsonRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
   let value = $jsonMessage["value"].getStr() 
   let request = $jsonMessage["request"].getStr()
   # optional - check credentials from header information
   result = dispatchRequest(request, value)
+
+proc dispatchCommandLineArg*(escapedArgv: string): string = 
+  try:
+    let jsonMessage = parseJson(escapedArgv)
+    let emptyHeaders = jester.newHttpHeaders([("Content-Type","application/json")])
+    result = dispatchJsonRequest(jsonMessage, emptyHeaders)
+  except ReqUnknownException:
+    echo "Request is unknown in " & escapedArgv
+  except: 
+    echo "Couldn't parse specific line arg: " & escapedArgv
+
+proc readAndParseFile*(filename: string) = 
+   if (os.fileExists(filename)):
+      echo "opening file for parsing: " & filename
+      let file = system.open(filename, system.FileMode.fmRead)
+      var line: TaintedString
+      while (file.readLine(line)):
+        # TODO: escape line if source file cannot be trusted
+        echo nimvue.dispatchCommandLineArg(line.string)
+      close(file)
 
 # required for jester web server - it is not recommended to modify this, use "dispatchRequest" to add functionality
 router myrouter:
@@ -91,19 +115,20 @@ router myrouter:
       var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
       resp errorResponse
 
-proc startJesterInt(folder: string) =
-  initRequestFunctions()
-  let port = 8000
-  let settings = jester.newSettings(port=Port(port), staticDir = folder.parentDir())
+proc startJesterBySetting*(settings: Settings) =
   var jester = jester.initJester(myrouter, settings=settings)
   jester.serve()
 
-proc startJester*(folder: string) {.exportc, dynlib, exportpy.} =
-  NimMain()
-  startJesterInt(folder)
+proc startJester*(folder: string, port: int) =
+  let settings = jester.newSettings(port=Port(port), staticDir = folder.parentDir())
+  startJesterBySetting(settings)
+  
+proc startJesterExt*(folder: string, port: int) {.exportc, dynlib, exportpy.} =
+  when (querySetting(backend) == "c"):
+    NimMain()
+  startJester(folder, port)
 
-proc startWebviewInt(folder: string) =
-  initRequestFunctions() 
+proc startWebview*(folder: string) =
   os.setCurrentDir(folder.parentDir())
   let myView = newWebView("NimVue", "file://" / folder)
 
@@ -137,14 +162,16 @@ proc startWebviewInt(folder: string) =
   myView.exit()
 
 
-proc startWebview*(folder: string) {.exportc, dynlib, exportpy.} = 
-  NimMain()
-  startWebviewInt(folder)
+proc startWebviewExt*(folder: string) {.exportc, dynlib, exportpy.} = 
+  when (querySetting(backend) == "c"):
+    NimMain()
+  startWebview(folder)
 
 when declared(Thread):
   proc startJesterThread(folder: string) {.thread.} =
     var thread: Thread[string]
-    createThread(thread, startJesterInt, folder)
+    # TODO: initRequestFunctions()
+    createThread(thread, startJester, folder, 8000)
 
 
 #proc startWebviewThread(folder: string) {.thread.} =
@@ -154,9 +181,10 @@ proc main() =
   when system.appType != "lib":
     let folder = os.getCurrentDir() / "ui/dist/" / "index.html"
     # startJesterThread(folder)
-    startWebviewInt(folder)
+    startWebview(folder)
   
   
 
 when isMainModule:
+  initRequestFunctions() 
   main()
