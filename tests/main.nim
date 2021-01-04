@@ -9,7 +9,7 @@ proc main() =
 
   let argv = os.commandLineParams()
   for arg in argv:
-    nimvue.readAndParseFile(arg)
+    nimvue.readAndParseJsonCmdFile(arg)
   let folder = os.getCurrentDir() / "../ui/dist/index.html"
   # nimvue.startWebview(folder)
   nimvue.startJester(folder, 8000)

@@ -6,8 +6,16 @@ description = "Nim / Python library to run webview with Vue.js as UI"
 license     = "MIT"
 
 # Dependencies
+# you may skip jester, nimpy and webview when compiling with nim c -d:just_core
 
-requires "nim >= 0.17.0", "nimpy >= 0.1.1", "webview >= 0.1.0", "jester >= 0.5.0"
+requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview >= 0.1.0"
+
+when defined(nimdistros):
+  import distros
+  if detectOs(Ubuntu):
+    foreignDep "libwebkit2gtk-4.0-dev"
+  elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
+    foreignDep "webkit2gtk3-devel"
 
 import oswalkdir, os, strutils
 
