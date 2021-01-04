@@ -111,8 +111,10 @@ when not defined(just_core):
           echo "Sending " & potentialFilename
           jester.sendFile(potentialFilename)
           return
-        else: # TODO: only if string starts with "{"
-          echo "Parsing " & potentialFilename
+        else:
+          if (potentialFilename.isValidFilename()):
+            raise newException(ReqUnknownException, "404 - File not found")
+          echo "Parsing " & requestContent
           let jsonMessage = parseJson(uri.decodeUrl(requestContent))
           try:
             response = dispatchHttpRequest(jsonMessage, request.headers)
@@ -124,6 +126,8 @@ when not defined(just_core):
             resp errorResponse
           let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
           resp jsonResponse
+      except ReqUnknownException:
+        resp Http404, "File not found"
       except:
         echo "Error " & getCurrentExceptionMsg()
         var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
@@ -142,7 +146,13 @@ when not defined(just_core):
     var jester = jester.initJester(myrouter, settings=settings)
     jester.serve()
 
+  proc copyBackendHelper (folder: string) =
+    let targetJs =  folder.parentDir() / "backend-helper.js"
+    if (not os.fileExists(targetJs)):
+      system.writeFile(targetJs, backendHelperJs)
+
   proc startJester*(folder: string, port: int = 8000) =
+    copyBackendHelper(folder)
     let settings = jester.newSettings(port=Port(port), staticDir = folder.parentDir())
     startJesterBySetting(settings)
     
@@ -151,9 +161,7 @@ when not defined(just_core):
     startJester(folder, port)
 
   proc startWebview*(folder: string) =
-    let target =  folder.parentDir() / "backend-helper.js"
-    if (not os.fileExists(target)):
-      system.writeFile(target, backendHelperJs)
+    copyBackendHelper(folder)
     os.setCurrentDir(folder.parentDir())
     let myView = newWebView("NimVue", "file://" / folder)
 
