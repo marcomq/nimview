@@ -1,7 +1,6 @@
-// uses axios in case of debugging or when using HTTP server instead of webview
-import axios from "axios"
+// This file is supposed to be copied automatically to the UI folder, if it doesn't exists there yet
 
-export let ui = {};
+let ui = {};
 ui.responseStorage = {};
 ui.responseCounter = 0;
 /***
@@ -16,7 +15,7 @@ ui.responseCounter = 0;
  *  callbackFunction: is also optional and required if there is no automated Vue action when changing an object
  ***/
 ui.createRequest = function(request, data, key, responseKey, callbackFunction) {
-  let inputValue = ""
+  let inputValue = "";
   if (typeof data === 'object') {
     if (key in data) {
       inputValue = data[key];
@@ -39,7 +38,7 @@ ui.createRequest = function(request, data, key, responseKey, callbackFunction) {
                                                  'outputValueIndex': key, 'callbackFunction': callbackFunction}); // outputValueObj is stored as reference to apply modifications
   var jsonRequest = {'request': request, 'value': inputValue, 'responseId': storageIndex, 'responseKey': responseKey};
   return jsonRequest;
-}
+};
 
 /***
  * Generalized request post-processing
@@ -60,7 +59,7 @@ ui.applyResponse = function(value, responseId) {
     }
   }
   delete ui.responseStorage[responseId];
-}
+};
 
 
 // There are some strange issues detecting webview in a clean way. So we just check if this is Chrom(e/ium) or Firefox and assume that we need ajax for those.
@@ -74,21 +73,28 @@ if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf
   ui.backend = function (request, inputValue, outputValueObj, outputValueIndex, responseKey, callbackFunction) {
     var jsonRequest = ui.createRequest(request, inputValue, outputValueObj, outputValueIndex, responseKey, callbackFunction);
     var stringRequest = JSON.stringify(jsonRequest);
-    axios
-    .get("/" + stringRequest)
-    .then(response => {
+
+    var opts = {
+      method: 'GET',      
+      mode: 'same-origin',
+      cache: 'no-cache',
+      headers: {'Content-Type': 'application/json'}
+    };
+    fetch("/" + stringRequest, opts).then(function(response) { 
+      return response.json();
+    }).then(function(response) {
       responseKey = jsonRequest.responseKey;
-      if ((typeof response.data === "object") && (responseKey in response.data)) {
-        ui.applyResponse(response.data[responseKey], jsonRequest.responseId);
+      if ((typeof response === "object") && (responseKey in response)) {
+        ui.applyResponse(response[responseKey], jsonRequest.responseId);
       }
       else {
-        ui.applyResponse(response.data, jsonRequest.responseId);
+        ui.applyResponse(response, jsonRequest.responseId);
       }
     })
-    .catch(err => {
+    .catch(function(err) {
       console.log(err);
     });
-  }
+  };
 }
 else {
   // This function is intendend to interact directly with webview. No HTTP server involved.

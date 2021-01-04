@@ -13,6 +13,7 @@ when not defined(just_core):
   import nimpy
   import webview
 else:
+  # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
 
@@ -90,6 +91,7 @@ proc readAndParseJsonCmdFile*(filename: string) =
     echo "File does not exist: " & filename
 
 when not defined(just_core):
+  const backendHelperJs = system.staticRead("backend-helper.js")
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
     # optional - check credentials from header
     result = dispatchJsonRequest(jsonMessage)
@@ -102,6 +104,8 @@ when not defined(just_core):
         var response: string
         if (requestContent == ""): 
           requestContent = "index.html"
+        if (requestContent == "backend-helper.js"):
+          resp backendHelperJs
         var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
         if fileExists(potentialFilename):
           echo "Sending " & potentialFilename
@@ -138,7 +142,7 @@ when not defined(just_core):
     var jester = jester.initJester(myrouter, settings=settings)
     jester.serve()
 
-  proc startJester*(folder: string, port: int) =
+  proc startJester*(folder: string, port: int = 8000) =
     let settings = jester.newSettings(port=Port(port), staticDir = folder.parentDir())
     startJesterBySetting(settings)
     
@@ -147,6 +151,9 @@ when not defined(just_core):
     startJester(folder, port)
 
   proc startWebview*(folder: string) =
+    let target =  folder.parentDir() / "backend-helper.js"
+    if (not os.fileExists(target)):
+      system.writeFile(target, backendHelperJs)
     os.setCurrentDir(folder.parentDir())
     let myView = newWebView("NimVue", "file://" / folder)
 
@@ -172,9 +179,8 @@ when not defined(just_core):
         proc close() = myView.terminate()
         proc changeColor() = myView.setColor(210,210,210,100)
         proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen)
-    # let responseCode = myView.eval("alert('got it');")
-    # const clientSideJavascript = system.staticRead("ui/src/callAndStore.js")
-    # discard myView.eval(clientSideJavascript)
+    # const backendHelper = system.staticRead("backend-helper.js")
+    # discard myView.eval(backendHelper)
     myView.run()
     myView.exit()
 
@@ -199,8 +205,8 @@ proc main() =
     readAndParseJsonCmdFile(arg)
   when system.appType != "lib" and not defined(just_core):
     let folder = os.getCurrentDir() / "ui/dist/index.html"
-    # startJesterInt(folder)
-    startWebview(folder)
+    startJester(folder)
+    # startWebview(folder)
   
   
   
