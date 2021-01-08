@@ -1,2 +1,2 @@
-import sys, pathlib
+import nimporter, sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).parent))

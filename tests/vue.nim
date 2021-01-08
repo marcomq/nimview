@@ -1,5 +1,5 @@
 import os
-import ../src/nimvue
+import ../nimvue
 
 proc appendSomethingNew(value: string): string {.noSideEffect, gcsafe.} =
   result = value & " modified by main"

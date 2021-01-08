@@ -59,8 +59,8 @@ proc runTests(nimFlags = "") =
     # Compile all nim modules, except those starting with "t"
     let sf = f.path.splitFile()
     if sf.ext == ".nim" and not sf.name.startsWith("t"):
-      exec "nim c --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
-      # exec "nim c --threads:on --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
+      # exec "nim c --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
+      exec "nim c --threads:on --app:lib " & nimFlags & " --out:" & f.path.changeFileExt(pluginExtension) & " " & f.path
 
   let
     pythonExes = calcPythonExecutables()
@@ -84,7 +84,7 @@ proc runTests(nimFlags = "") =
 task test, "Run tests":
   runTests()
   runTests("--gc:arc --passc:-g") # Arc
-  exec "npm run build --prefix ui"
+  exec "npm run build --prefix tests/vue"
 
 task test_arc, "Run tests with --gc:arc":
   runTests("--gc:arc --passc:-g")

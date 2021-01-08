@@ -40,7 +40,7 @@ I used to work with React and Redux during some previous job. I really liked the
 I'm still new to Vue, there are probably a lot of people out there who are much better in Vue.js.
 
 ### Can I use some other JS library
-Sure. The main logic is in main.nim and ui/src/nimCall.js. Make sure to include nimCall.js either in your JS library or as HTML include. 
+Sure. The main logic is in nimvue.nim and backend-helper.js. Make sure to include backend-helper.js either in HTML include. 
 
 ### Why not Electron?
 Electron is a great Framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate as it requires WebAssemply and the output binary is usually more than 100 MB.

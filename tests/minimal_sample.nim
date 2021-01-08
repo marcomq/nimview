@@ -1,4 +1,4 @@
-import ../src/nimvue
+import ../nimvue
 import os
 
 nimvue.addRequest("echoAndModify", proc (value: string): string =
