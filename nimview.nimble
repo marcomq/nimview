@@ -2,7 +2,7 @@
 
 version     = "0.1.0"
 author      = "Marco Mengelkoch"
-description = "Nim / Python library to run webview with Vue.js as UI"
+description = "Nim / Python library to run webview with HTML/JS as UI"
 license     = "MIT"
 
 # Dependencies

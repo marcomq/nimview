@@ -1,3 +1,2 @@
-import ../nimvue
-import os
-nimvue.startJester(os.getCurrentDir() & "/vue/dist/index.html")
+import ../nimview
+nimview.startJester("vue/dist/index.html")

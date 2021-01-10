@@ -18,18 +18,18 @@ else:
   macro exportpy(def: untyped): untyped =
     result = def
 
-# nim c -r --threads:on -d:debug --debuginfo  --debugger:native -d:useStdLib --verbosity:2 nimvue.nim
-# cp .\generated_c\nimvue.h .
-# nim c --verbosity:2 -d:release -d:useStdLib --header:nimvue.h --app:lib --out:nimvue.dll --nimcache=./tmp_c nimvue.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --header:nimvue.h --nimcache=./tmp_c nimvue.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimvue.h --gc:arc --nimcache=./tmp_c nimvue.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on  --header:nimvue.h --nimcache=./tmp_c --gc:arc nimvue.nim    
+# nim c -r --threads:on -d:debug --debuginfo  --debugger:native -d:useStdLib --verbosity:2 nimview.nim
+# cp .\generated_c\nimview.h .
+# nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --app:lib --out:nimview.dll --nimcache=./tmp_c nimview.nim
+# nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --nimcache=./tmp_c nimview.nim
+# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimview.h --gc:arc --nimcache=./tmp_c nimview.nim
+# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on  --header:nimview.h --nimcache=./tmp_c --gc:arc nimview.nim    
 # gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
 # gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
 # python
-# >>> import nimvue
-# >>> nimvue.startWebview("E:/apps/nimvue/ui/dist/index.html")
-# >>> nimvue.startJester("E:/apps/nimvue/ui/dist/index.html")
+# >>> import nimview
+# >>> nimview.startWebview("E:/apps/nimview/ui/dist/index.html")
+# >>> nimview.startJester("E:/apps/nimview/ui/dist/index.html")
 
 #when (querySetting(backend) == "c"):
 #  proc NimMain() {.importc.}
@@ -55,10 +55,10 @@ proc addRequest*(request: string, callback: proc(value: string): string ) {.expo
 
 proc free_c(somePtr: pointer) {.cdecl,importc: "free".}
 
-proc nimvue_addRequest*(request: cstring, callback: proc(value: cstring): cstring {.cdecl.}, freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} = 
-# proc nimvue_addRequest*(request: cstring,  callback: proc(value: cstring): cstring {.cdecl.}) {.exportc.} = 
+proc nimview_addRequest*(request: cstring, callback: proc(value: cstring): cstring {.cdecl.}, freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} = 
+# proc nimview_addRequest*(request: cstring,  callback: proc(value: cstring): cstring {.cdecl.}) {.exportc.} = 
   
-  nimvue.addRequest($request, proc (nvalue: string): string =
+  nimview.addRequest($request, proc (nvalue: string): string =
     echo "b " & nvalue
     let resultPtr = callback(nvalue)
     result = $resultPtr
@@ -72,7 +72,7 @@ proc nimvue_addRequest*(request: cstring, callback: proc(value: cstring): cstrin
   #  echo `nameOrProc`
 
 proc initRequestFunctions*() = 
-  nimvue.addRequest("ping", proc (value: string): string {.noSideEffect, gcsafe.} = result = value)
+  nimview.addRequest("ping", proc (value: string): string {.noSideEffect, gcsafe.} = result = value)
 
 proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} = 
   {.cast(gcsafe).}:
@@ -82,7 +82,7 @@ proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} =
     else :
       raise newException(ReqUnknownException, "404 - Request unknown")
 
-proc nimvue_dispatchRequest*(request, value: cstring): cstring {.gcsafe, exportc.} = 
+proc nimview_dispatchRequest*(request, value: cstring): cstring {.gcsafe, exportc.} = 
   result = $dispatchRequest($request, $value)
 
 # main dispatcher
@@ -102,7 +102,7 @@ proc dispatchCommandLineArg*(escapedArgv: string): string =
   except: 
     echo "Couldn't parse specific line arg: " & escapedArgv
 
-proc nimvue_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} = 
+proc nimview_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} = 
   result = $dispatchCommandLineArg($escapedArgv)
 
 proc readAndParseJsonCmdFile*(filename: string) = 
@@ -112,12 +112,12 @@ proc readAndParseJsonCmdFile*(filename: string) =
     var line: TaintedString
     while (file.readLine(line)):
       # TODO: escape line if source file cannot be trusted
-      echo nimvue.dispatchCommandLineArg(line.string)
+      echo nimview.dispatchCommandLineArg(line.string)
     close(file)
   else:
     echo "File does not exist: " & filename
 
-proc nimvue_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} = 
+proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} = 
   readAndParseJsonCmdFile($filename)
 
 when not defined(just_core):
@@ -214,7 +214,7 @@ when not defined(just_core):
     var jester = jester.initJester(myrouter, settings=settings)
     jester.serve()
     
-  proc nimvue_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
+  proc nimview_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
     # NimMain()
     startJester($folder, int(port), $bindAddr)
 
@@ -228,7 +228,7 @@ when not defined(just_core):
         absFolder = os.getAppDir() / folder
     copyBackendHelper(absFolder)
     os.setCurrentDir(absFolder.parentDir())
-    let myView = newWebView("NimVue", "file://" / absFolder)
+    let myView = newWebView("nimview", "file://" / absFolder)
     var fullScreen = true
     myView.bindProcs("backend"): 
         proc alert(message: string) = myView.info("alert", message)
@@ -254,7 +254,7 @@ when not defined(just_core):
     myView.run()
     myView.exit()
 
-  proc nimvue_startWebview*(folder: cstring) {.exportc.} = 
+  proc nimview_startWebview*(folder: cstring) {.exportc.} = 
     # NimMain()
     echo "starting C webview"
     let cFolder = $folder

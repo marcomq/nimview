@@ -1,11 +1,11 @@
-# in case of issues with nimporter, just compile nimvue manually in parent folder. 
-# nimble c --app:lib -d:release -d:noMain --out:tests/nimvue.so nimvue.nim 
-# nimble c --app:lib -d:release -d:noMain --out:tests/nimvue.pyd nimvue.nim # windows
-import nimporter, nimvue
+# in case of issues with nimporter, just compile nimview manually in parent folder. 
+# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.so nimview.nim 
+# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.pyd nimview.nim # windows
+import nimporter, nimview
 def echoAndModify(value):
     print (value)
     return (value + " appended")
 
-nimvue.addRequest("echoAndModify", echoAndModify)
-nimvue.startWebview("minimal_ui_sample/index.html")
-nimvue.startJester("minimal_ui_sample/index.html")
+nimview.addRequest("echoAndModify", echoAndModify)
+nimview.startWebview("minimal_ui_sample/index.html")
+nimview.startJester("minimal_ui_sample/index.html")
