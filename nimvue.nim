@@ -23,7 +23,7 @@ else:
 # nim c --verbosity:2 -d:release -d:useStdLib --header:nimvue.h --app:lib --out:nimvue.dll --nimcache=./tmp_c nimvue.nim
 # nim c --verbosity:2 -d:release -d:useStdLib --header:nimvue.h --nimcache=./tmp_c nimvue.nim
 # nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimvue.h --gc:arc --nimcache=./tmp_c nimvue.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:cTarget --noLinking:on  --header:nimvue.h --nimcache=./tmp_c --gc:arc nimvue.nim    
+# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on  --header:nimvue.h --nimcache=./tmp_c --gc:arc nimvue.nim    
 # gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
 # gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
 # python
@@ -126,6 +126,10 @@ when not defined(just_core):
     # optional - check credentials from header
     result = dispatchJsonRequest(jsonMessage)
 
+  template corsResp(code, message: untyped): untyped =
+    mixin resp
+    resp code, {"Access-Control-Allow-Origin": "*"}, message
+
   # required for jester web server - it is not recommended to modify this, use "dispatchRequest" to add functionality
   router myrouter:
     get re"^\/(.*)$":
@@ -136,11 +140,12 @@ when not defined(just_core):
         if (requestContent == ""): 
           requestContent = "index.html"
         if (requestContent == "backend-helper.js"):
-          resp backendHelperJs
+          corsResp Http200, backendHelperJs
         var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
         if fileExists(potentialFilename):
           echo "Sending " & potentialFilename
-          jester.sendFile(potentialFilename)
+          # jester.sendFile(potentialFilename)
+          corsResp Http200, system.readFile(potentialFilename)
           return
         else:
           if (potentialFilename.isValidFilename()):
@@ -152,18 +157,18 @@ when not defined(just_core):
             response = dispatchHttpRequest(jsonMessage, request.headers)
           except ReqUnknownException:
             var errorResponse =  %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": $jsonMessage["responseId"] } 
-            resp Http404, $errorResponse
+            corsResp Http404, $errorResponse
           except:
             var errorResponse =  %* { "error":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
-            resp errorResponse
+            corsResp Http200, $errorResponse
           let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
-          resp jsonResponse
+          corsResp Http200, $jsonResponse
       except ReqUnknownException:
-        resp Http404, "File not found"
+        corsResp Http404, "File not found"
       except:
         echo "Error " & getCurrentExceptionMsg()
         var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-        resp Http500, $errorResponse
+        corsResp Http500, $errorResponse
 
     post re"^\/(.*)$":
       try:
@@ -171,12 +176,16 @@ when not defined(just_core):
         var jsonMessage = parseJson(request.body)
         let response = dispatchHttpRequest(jsonMessage, request.headers)
         let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
-        resp jsonResponse
+        corsResp Http200, $jsonResponse
       except ReqUnknownException:
-        resp Http404, "Request not found"
+        corsResp Http404, "Request not found"
       except:
         var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-        resp Http500, $errorResponse
+        corsResp Http500, $errorResponse
+    options re"^\/(.*)$":
+      corsResp Http404, "404 not found!!"
+    error Http404:
+      corsResp Http404, "404 not found!"
 
   proc copyBackendHelper (folder: string) =
     let targetJs =  folder.parentDir() / "backend-helper.js"
@@ -193,20 +202,33 @@ when not defined(just_core):
       echo "backend-helper.js not copied" 
     echo "backend-helper.js finalized" 
 
-  proc startJester*(folder: string, port: int = 8000, bindAddr: string = "127.0.0.1") {.exportpy.}=
-    copyBackendHelper(folder)
-    let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = folder.parentDir())
+  proc startJester*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.exportpy.} =
+    var absFolder = folder
+    if (not os.isAbsolute(folder)): 
+      if (os.getAppFilename().startsWith("python")):
+        absFolder = os.getCurrentDir() / folder
+      else:
+        absFolder = os.getAppDir() / folder
+    copyBackendHelper(absFolder)
+    let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
     var jester = jester.initJester(myrouter, settings=settings)
     jester.serve()
     
-  proc nimvue_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "127.0.0.1") {.exportc.} =
+  proc nimvue_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
     # NimMain()
     startJester($folder, int(port), $bindAddr)
 
-  proc startWebview*(folder: string) {.exportpy.}=
-    copyBackendHelper(folder)
-    os.setCurrentDir(folder.parentDir())
-    let myView = newWebView("NimVue", "file://" / folder)
+  proc startWebview*(folder: string) {.exportpy.} =
+    var absFolder = folder
+    if (not os.isAbsolute(folder)):
+      echo os.getAppFilename().extractFilename()
+      if (os.getAppFilename().extractFilename().startsWith("python")):
+        absFolder = os.getCurrentDir() / folder
+      else:
+        absFolder = os.getAppDir() / folder
+    copyBackendHelper(absFolder)
+    os.setCurrentDir(absFolder.parentDir())
+    let myView = newWebView("NimVue", "file://" / absFolder)
     var fullScreen = true
     myView.bindProcs("backend"): 
         proc alert(message: string) = myView.info("alert", message)
@@ -260,7 +282,7 @@ proc main() =
       result = "'" & value & "' modified by Nim Backend")
     startWebview(folder)
 
-when isMainModule and not defined(cTarget):
+when isMainModule and not defined(noMain):
   initRequestFunctions() 
   main()
 else: 

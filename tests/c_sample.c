@@ -15,27 +15,20 @@
 // #include <iostream>
 // extern void startWebviewC(char*);
 
-char* str_concat(const char *s1, const char *s2)
-{
-    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+char* appendSomething(char* something) {
+    const char* appendString = " modified by C";
+    char* result = malloc(strlen(something) + strlen(appendString) + 1); // +1 for the null-terminator
     if (result) {
-        strcpy(result, s1); // safe
-        strcat(result, s2); // safe
+        strcpy(result, something); // safe
+        strcat(result, appendString); // safe
     }
     return result;
-}
-
-char* appendSomething(char* something) {
-    return str_concat(something, " modified by C");
 }
 int main(int argc, char* argv[]) {
     printf(" starting c code\n");
     NimMain();
     
     nimvue_addRequest("appendSomething", appendSomething, free);
-    printf(" 3 ... \n");
-    nimvue_startWebview("E:/apps/nimvue/tests/vue/dist/index.html");
-    printf(" 4 ... \n");
-    nimvue_startJester("E:/apps/nimvue/tests/vue/dist/index.html", 8000, "127.0.0.1");
-    printf(" ... finished \n");
+    nimvue_startWebview("vue/dist/index.html");
+    // nimvue_startJester("vue/dist/index.html", 8000, "localhost");
 }

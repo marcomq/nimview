@@ -1,5 +1,5 @@
 {
-  "name": "bootstrapvue-demo",
+  "name": "nimvue-bootstrapvue",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,8 +12,7 @@
     "bootstrap": "^4.5.2",
     "bootstrap-vue": "^2.16.0",
     "core-js": "^3.6.5",
-    "vue": "^2.6.11",
-    "webview-backend-helper": "^1.0.1"
+    "vue": "^2.6.11"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

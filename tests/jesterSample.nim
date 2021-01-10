@@ -1,3 +1,6 @@
 import ../nimvue
-import os
-nimvue.startWebview(os.getCurrentDir() & "/vue/dist/index.html")
+
+nimvue.addRequest("appendSomething", proc (value: string): string =
+    echo value
+    result = "'" & value & "' modified by Jester Backend")
+nimvue.startJester("vue/dist/index.html")

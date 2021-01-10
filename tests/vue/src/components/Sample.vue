@@ -52,18 +52,6 @@ export default {
     runSearch() {
       this.backend("appendSomething", this, 'search')
     }
-  },/* 
-// import axios from "axios";
-  mounted() {
-    axios
-      .get("https://www.themealdb.com/api/json/v1/1/categories.php")
-      .then(response => {
-        this.search = response.data.categories;
-      })
-      .catch(err => {
-        console.log(err);
-      });
-      
-  }*/
+  }
 };
 </script>

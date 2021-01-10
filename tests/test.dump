@@ -1,0 +1,3 @@
+{"request":"appendSomething","value":"gg","responseId":0,"responseKey":"search"}
+{"request":"appendSomething","value":"ff","responseId":1,"responseKey":"search"}
+{"request":"appendSomething","value":"vv","responseId":2,"responseKey":"search"}

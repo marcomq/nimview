@@ -2,16 +2,16 @@
 <template>
   <div id="app">
     <Navbar />
-    <Main/>
+    <Sample/>
   </div>
 </template>
 <script>
  import Navbar from './components/Navbar.vue'
- import Main from './components/Main.vue'
+ import Sample from './components/Sample.vue'
   export default {
     name: 'navbar',
     components: {
-      Main,
+      Sample,
       Navbar
     }
   }

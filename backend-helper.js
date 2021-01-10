@@ -2,6 +2,7 @@
 
 let ui = {};
 let defaultPostTarget = "";
+let host = ""; // might cause "cors" errors if defined
 ui.responseStorage = {};
 ui.responseCounter = 0;
 /***
@@ -83,7 +84,7 @@ if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf
 
     var opts = {
       method: 'POST',      
-      mode: 'same-origin',
+      mode: 'cors',
       cache: 'no-cache',
       headers: {'Content-Type': 'application/json'},
       body: stringRequest
@@ -94,7 +95,7 @@ if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf
     else {
       var url = defaultPostTarget; 
     }
-    fetch("/" + url, opts).then(function(response) { 
+    fetch(host + "/" + url, opts).then(function(response) { 
       return response.json();
     }).then(function(response) {
       responseKey = jsonRequest.responseKey;
