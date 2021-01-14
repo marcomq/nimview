@@ -1,9 +1,9 @@
 # nimview
-A Nim based helper for Nim/C/C++ or Python to create Desktop or Server applications with Nim/C/C++ and HTML/CSS
+A lightwight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of Desktop applications based on a HTML/CSS/JS layer that is displayed with Webview.
 
 # About
 
-The target of this project is to have a UI Layer based on HTML/CSS with a backend based on Nim, C++ or Python. The UI layer will be completely JS / HTML / CSS based and the backend should be using either Nim, C/C++ or Python code directly with Nim as "glue". The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. Android is a bit complicated and will need an additional project. But if desired, you can just turn on the webserver to access the application from remote. Make sure to add some form of authentication in such a case, or anyone can run the application from remote.
+The target of this project is to have a simple, lightweight UI layer for Desktop applications that have just a few MB in static executable size. The UI layer will be completely HTML/CSS/JS based and the backend should be using either Nim, C/C++ or Python code directly with Nim as "glue". The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. Running remote server applications might are possible and too, but require an additional authentication layer. Android will need an additional project. 
 
 The recommended frontend library would be Vue and Bootstrap code to quickly build an reactive interface. I tried to use Svelte, as this is easier to learn as Vue, but Svelte had some issues running on Webview that I couldn't resolve easily.
 
@@ -29,6 +29,25 @@ This project is not intended to have any kind of additional helpers to create th
 - nim c -r --app:gui -d:release nimvue.nim 
 # alternatively for debugging
 - nim c -r --threads:on --debuginfo  --debugger:native --verbosity:2 -d:debug main.nim
+```
+
+## minimal nim sample
+```
+import nimview
+nimview.addRequest("echoAndModify", proc (value: string): string =
+  echo "From Frontend: " & value
+  result = "'" & value & "' modified by Backend")
+nimview.startJester("minimal_ui_sample/index.html")
+```
+## minimal python sample
+```
+import nimporter, nimview
+def echoAndModify(value):
+    print ("From Frontend: " + value)
+    return (value + " appended")
+
+nimview.addRequest("echoAndModify", echoAndModify)
+nimview.startWebview("minimal_ui_sample/index.html")
 ```
 
 ### Why Nim?
