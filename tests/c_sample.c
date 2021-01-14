@@ -29,6 +29,6 @@ int main(int argc, char* argv[]) {
     NimMain();
     
     nimview_addRequest("appendSomething", appendSomething, free);
-    nimview_startWebview("vue/dist/index.html");
+    nimview_start("vue/dist/index.html");
     // nimview_startJester("vue/dist/index.html", 8000, "localhost");
 }

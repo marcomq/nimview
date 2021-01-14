@@ -6,13 +6,12 @@ import uri
 import strutils
 import tables
 import macros
-import std/compilesettings
+import logging
 
 when not defined(just_core):
   import jester
-  from jester/private/utils import Settings 
   import nimpy
-  import webview
+  import webview except debug
 else:
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
@@ -31,6 +30,7 @@ else:
 # >>> nimview.startWebview("E:/apps/nimview/ui/dist/index.html")
 # >>> nimview.startJester("E:/apps/nimview/ui/dist/index.html")
 
+# import std/compilesettings
 #when (querySetting(backend) == "c"):
 #  proc NimMain() {.importc.}
   
@@ -45,39 +45,34 @@ type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = ref object of RootObj
   map: Table[string, proc(value: string): string ]
   
-var t_req* : RequestCallbacks
+var req* : RequestCallbacks
+var useJester* = defined(debug)
+var logger = newConsoleLogger()
+logging.addHandler(logger)
 
 proc addRequest*(request: string, callback: proc(value: string): string ) {.exportpy.} = 
-  if (isNil(t_req)):
-    t_req = new RequestCallbacks
-    echo "new map created"
-  t_req.map[request] = callback
+  if (isNil(req)):
+    req = new RequestCallbacks
+    debug "new map created"
+  req.map[request] = callback
 
 proc free_c(somePtr: pointer) {.cdecl,importc: "free".}
 
 proc nimview_addRequest*(request: cstring, callback: proc(value: cstring): cstring {.cdecl.}, freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} = 
-# proc nimview_addRequest*(request: cstring,  callback: proc(value: cstring): cstring {.cdecl.}) {.exportc.} = 
-  
   nimview.addRequest($request, proc (nvalue: string): string =
-    echo "b " & nvalue
+    debug "calling nim with " & nvalue
     let resultPtr = callback(nvalue)
     result = $resultPtr
     free_c(resultPtr)
   )
-
-# macro backendRequest*(nameOrProc: untyped): untyped =  
-#  expectKind(nameOrProc, {nnkProcDef, nnkFuncDef, nnkIteratorDef})
-  # echo nameOrProc.name
-  #quote do:
-  #  echo `nameOrProc`
 
 proc initRequestFunctions*() = 
   nimview.addRequest("ping", proc (value: string): string {.noSideEffect, gcsafe.} = result = value)
 
 proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} = 
   {.cast(gcsafe).}:
-    if t_req.map.hasKey(request):
-      let callbackFunc = t_req.map[request]
+    if req.map.hasKey(request):
+      let callbackFunc = req.map[request]
       result = callbackFunc(value) 
     else :
       raise newException(ReqUnknownException, "404 - Request unknown")
@@ -98,24 +93,25 @@ proc dispatchCommandLineArg*(escapedArgv: string): string =
     let jsonMessage = parseJson(escapedArgv)
     result = dispatchJsonRequest(jsonMessage)
   except ReqUnknownException:
-    echo "Request is unknown in " & escapedArgv
+    warn "Request is unknown in " & escapedArgv
   except: 
-    echo "Couldn't parse specific line arg: " & escapedArgv
+    warn "Couldn't parse specific line arg: " & escapedArgv
 
 proc nimview_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} = 
   result = $dispatchCommandLineArg($escapedArgv)
 
 proc readAndParseJsonCmdFile*(filename: string) = 
   if (os.fileExists(filename)):
-    echo "opening file for parsing: " & filename
+    debug "opening file for parsing: " & filename
     let file = system.open(filename, system.FileMode.fmRead)
     var line: TaintedString
     while (file.readLine(line)):
       # TODO: escape line if source file cannot be trusted
-      echo nimview.dispatchCommandLineArg(line.string)
+      let retVal = nimview.dispatchCommandLineArg(line.string)
+      debug retVal
     close(file)
   else:
-    echo "File does not exist: " & filename
+    logging.error "File does not exist: " & filename
 
 proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} = 
   readAndParseJsonCmdFile($filename)
@@ -143,7 +139,7 @@ when not defined(just_core):
           corsResp Http200, backendHelperJs
         var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
         if fileExists(potentialFilename):
-          echo "Sending " & potentialFilename
+          debug "Sending " & potentialFilename
           # jester.sendFile(potentialFilename)
           corsResp Http200, system.readFile(potentialFilename)
           return
@@ -151,7 +147,7 @@ when not defined(just_core):
           if (potentialFilename.isValidFilename()):
             raise newException(ReqUnknownException, "404 - File not found")
           # if not a file, assume this is a json request 
-          echo "Parsing " & requestContent
+          debug "Parsing " & requestContent
           let jsonMessage = parseJson(uri.decodeUrl(requestContent))
           try:
             response = dispatchHttpRequest(jsonMessage, request.headers)
@@ -166,7 +162,7 @@ when not defined(just_core):
       except ReqUnknownException:
         corsResp Http404, "File not found"
       except:
-        echo "Error " & getCurrentExceptionMsg()
+        warn "Error " & getCurrentExceptionMsg()
         var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
         corsResp Http500, $errorResponse
 
@@ -192,15 +188,15 @@ when not defined(just_core):
     try:
       when (system.hostOS == "windows"):
         if (not os.fileExists(targetJs) or defined(debug)):
-            echo "writing to " & targetJs
+            debug "writing to " & targetJs
             system.writeFile(targetJs, backendHelperJs)
       else:
         if (not os.fileExists(targetJs)):
-            echo "symlinking to " & targetJs
+            debug "symlinking to " & targetJs
             os.createSymlink(system.currentSourcePath.parentDir() / "backend-helper.js", target)
     except:
-      echo "backend-helper.js not copied" 
-    echo "backend-helper.js finalized" 
+      logging.error "backend-helper.js not copied" 
+    debug "backend-helper.js finalized" 
 
   proc startJester*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.exportpy.} =
     var absFolder = folder
@@ -221,7 +217,7 @@ when not defined(just_core):
   proc startWebview*(folder: string) {.exportpy.} =
     var absFolder = folder
     if (not os.isAbsolute(folder)):
-      echo os.getAppFilename().extractFilename()
+      debug os.getAppFilename().extractFilename()
       if (os.getAppFilename().extractFilename().startsWith("python")):
         absFolder = os.getCurrentDir() / folder
       else:
@@ -233,7 +229,7 @@ when not defined(just_core):
     myView.bindProcs("backend"): 
         proc alert(message: string) = myView.info("alert", message)
         proc call(message: string) = 
-          echo message
+          info message
           let jsonMessage = json.parseJson(message)
           let resonseId = jsonMessage["responseId"].getInt()
           let response = dispatchJsonRequest(jsonMessage)
@@ -241,9 +237,9 @@ when not defined(just_core):
           let responseCode =  myView.eval(evalJsCode)
           discard responseCode
         # just sample functions without current real functionality
-        proc open() = echo myView.dialogOpen()
-        proc save() = echo myView.dialogSave()
-        proc opendir() = echo myView.dialogOpen(flag=dFlagDir)
+        proc open() = info myView.dialogOpen()
+        proc save() = info myView.dialogSave()
+        proc opendir() = info myView.dialogOpen(flag=dFlagDir)
         proc message() = myView.msg("hello", "message")
         proc warn() = myView.warn("hello", "warn")
         proc error() = myView.error("hello", "error")
@@ -256,10 +252,10 @@ when not defined(just_core):
 
   proc nimview_startWebview*(folder: cstring) {.exportc.} = 
     # NimMain()
-    echo "starting C webview"
+    debug "starting C webview"
     let cFolder = $folder
     startWebview(cFolder)
-    echo "leaving C webview"
+    debug "leaving C webview"
 
   when declared(Thread):
     proc startJesterThread(folder: string) {.thread.} =
@@ -267,11 +263,24 @@ when not defined(just_core):
       # TODO: initRequestFunctions()
       # createThread(thread, startJester, folder, 8000)
 
+  proc nimview_start*(folder: cstring) {.exportc.} = 
+    if useJester:
+      nimview_startJester(folder)
+    else:
+      nimview_startWebview(folder)
+      
+
+  proc start*(folder: string) {.exportpy.} = 
+    if useJester:
+      startJester(folder)
+    else:
+      startWebview(folder)
+
 #proc startWebviewThread(folder: string) {.thread.} =
 #  startWebview(folder)
 
 proc main() =
-  echo "starting nim main"
+  debug "starting nim main"
   let argv = os.commandLineParams()
   for arg in argv:
     readAndParseJsonCmdFile(arg)

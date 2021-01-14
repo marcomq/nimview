@@ -12,32 +12,13 @@ This also means - the JS / HTML UI code will also be runnable in any browser.
 
 This project is not intended to have any kind of additional helpers to create the UI. If you need some HTML generators or helpers, check the Vue (https://vuejs.org/) or the Vue-Bootstrap (https://bootstrap-vue.org/) library.
 
-
-
-## Project setup
-```
-- install nim version 1.2 (https://nim-lang.org/install.html)
-    avoid whitespace in nim install folder name when using windows
-    add path by running nim "finish" in the nim install directory, so you have nimble available
-    restart or open new shell to have nimble available
-- nimble install webview (version 0.1.1)
-- nimble install jester, nimpy
-- (linux) install gtk (yum install gcc, npm, webkit2gtk3-devel) (apt install gcc, npm, libwebkit2gtk-4.0-dev)
-- install node > 12.19  (https://nodejs.org/en/download/)
-- run "cd tests/vue", "npm install" and "cd .." 
-- npm run build --prefix tests/vue
-- nim c -r --app:gui -d:release nimvue.nim 
-# alternatively for debugging
-- nim c -r --threads:on --debuginfo  --debugger:native --verbosity:2 -d:debug main.nim
-```
-
 ## minimal nim sample
 ```
 import nimview
 nimview.addRequest("echoAndModify", proc (value: string): string =
   echo "From Frontend: " & value
   result = "'" & value & "' modified by Backend")
-nimview.startJester("minimal_ui_sample/index.html")
+nimview.start("minimal_ui_sample/index.html")
 ```
 ## minimal python sample
 ```
@@ -47,7 +28,7 @@ def echoAndModify(value):
     return (value + " appended")
 
 nimview.addRequest("echoAndModify", echoAndModify)
-nimview.startWebview("minimal_ui_sample/index.html")
+nimview.start("minimal_ui_sample/index.html")
 ```
 
 ### Why Nim?
@@ -67,8 +48,25 @@ The Output of this tool here can be less than 2MB. Getting started might just ta
 ### Difference to Eel and Neel
 There are some similar frameworks - eel (https://github.com/ChrisKnott/Eel)  for python and neel (https://github.com/Niminem/Neel) for nim
 There are 2 major differences here: 
-- Both neel and eel trigger javascript code in the nim/python backend as response. So the server has a major impact on the frontend feedback as it decides, how the frondend will continue. With nimvue, the backend only receives json and sends back json. The frontend will handle this json and will decide which callback will be run. You may use multiple frontends for the same backend without worrying about any callback on the server side.
+- Both neel and eel trigger javascript code in the nim/python backend as response. So the server has a major impact on the frontend feedback as it decides, how the frondend will continue. With nimview, the backend only receives json and sends back json. The frontend will handle this json and will decide which callback will be run. You may use multiple frontends for the same backend without worrying about any callback on the server side.
 - With Nimview, you don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts
+
+## Project setup
+```
+- install nim version 1.2 (https://nim-lang.org/install.html)
+    avoid whitespace in nim install folder name when using windows
+    add path by running nim "finish" in the nim install directory, so you have nimble available
+    restart or open new shell to have nimble available
+- nimble install webview (version 0.1.1)
+- nimble install jester, nimpy
+- (linux) install gtk (yum install gcc, npm, webkit2gtk3-devel) (apt install gcc, npm, libwebkit2gtk-4.0-dev)
+- install node > 12.19  (https://nodejs.org/en/download/)
+- run "cd tests/vue", "npm install" and "cd .." 
+- npm run build --prefix tests/vue
+- nim c -r --app:gui -d:release nimview.nim 
+# alternatively for debugging, will start jester instead of webview
+- nim c -r --threads:on --debuginfo  --debugger:native --verbosity:2 -d:debug nimview.nim
+```
 
 ### Compiles and hot-reloads for development
 ```

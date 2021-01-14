@@ -7,5 +7,4 @@ def echoAndModify(value):
     return (value + " appended")
 
 nimview.addRequest("echoAndModify", echoAndModify)
-nimview.startWebview("minimal_ui_sample/index.html")
-nimview.startJester("minimal_ui_sample/index.html")
+nimview.start("minimal_ui_sample/index.html")
