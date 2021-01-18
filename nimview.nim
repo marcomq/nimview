@@ -12,6 +12,7 @@ when not defined(just_core):
   import jester
   import nimpy
   import webview except debug
+  import browsers
 else:
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
@@ -21,9 +22,9 @@ else:
 # cp .\generated_c\nimview.h .
 # nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --app:lib --out:nimview.dll --nimcache=./tmp_c nimview.nim
 # nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --nimcache=./tmp_c nimview.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimview.h --gc:arc --nimcache=./tmp_c nimview.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on  --header:nimview.h --nimcache=./tmp_c --gc:arc nimview.nim    
-# gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
+# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimview.h --nimcache=./tmp_c nimview.nim
+# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --nimcache=./tmp_c nimview.nim    
+# gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
 # gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
 # python
 # >>> import nimview
@@ -31,15 +32,13 @@ else:
 # >>> nimview.startJester("E:/apps/nimview/ui/dist/index.html")
 
 # import std/compilesettings
-#when (querySetting(backend) == "c"):
-#  proc NimMain() {.importc.}
-  
-#elif (querySetting(backend) == "cpp"):
-#  proc NimMain() {.importcpp.}
-
-#else:
-#  proc NimMain() =
- #   discard
+# when (querySetting(backend) == "c"):
+#   proc NimMain() {.importc.}
+# elif (querySetting(backend) == "cpp"):
+#   proc NimMain() {.importcpp.}
+# else:
+#   proc NimMain() =
+#     discard
 
 type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = ref object of RootObj
@@ -53,7 +52,7 @@ logging.addHandler(logger)
 proc addRequest*(request: string, callback: proc(value: string): string ) {.exportpy.} = 
   if (isNil(req)):
     req = new RequestCallbacks
-    debug "new map created"
+    debug "new request map initialized"
   req.map[request] = callback
 
 proc free_c(somePtr: pointer) {.cdecl,importc: "free".}
@@ -61,9 +60,13 @@ proc free_c(somePtr: pointer) {.cdecl,importc: "free".}
 proc nimview_addRequest*(request: cstring, callback: proc(value: cstring): cstring {.cdecl.}, freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} = 
   nimview.addRequest($request, proc (nvalue: string): string =
     debug "calling nim with " & nvalue
-    let resultPtr = callback(nvalue)
-    result = $resultPtr
-    free_c(resultPtr)
+    var resultPtr: cstring = ""
+    try:
+      resultPtr = callback(nvalue)
+      result = $resultPtr
+    finally:
+      if (resultPtr != ""):
+        freeFunc(resultPtr)
   )
 
 proc initRequestFunctions*() = 
@@ -85,7 +88,6 @@ proc nimview_dispatchRequest*(request, value: cstring): cstring {.gcsafe, export
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string {.gcsafe.} = 
   let value = $jsonMessage["value"].getStr() 
   let request = $jsonMessage["request"].getStr()
-  # optional - check credentials from header information
   result = dispatchRequest(request, value)
 
 proc dispatchCommandLineArg*(escapedArgv: string): string = 
@@ -118,8 +120,9 @@ proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} =
 
 when not defined(just_core):
   const backendHelperJs = system.staticRead("backend-helper.js")
+
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
-    # optional - check credentials from header
+    # optional but not implemented yet - check credentials from header information
     result = dispatchJsonRequest(jsonMessage)
 
   template corsResp(code, message: untyped): untyped =
@@ -193,7 +196,7 @@ when not defined(just_core):
       else:
         if (not os.fileExists(targetJs)):
             debug "symlinking to " & targetJs
-            os.createSymlink(system.currentSourcePath.parentDir() / "backend-helper.js", target)
+            os.createSymlink(system.currentSourcePath.parentDir() / "backend-helper.js", targetJs)
     except:
       logging.error "backend-helper.js not copied" 
     debug "backend-helper.js finalized" 
@@ -208,10 +211,11 @@ when not defined(just_core):
     copyBackendHelper(absFolder)
     let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
     var jester = jester.initJester(myrouter, settings=settings)
+    debug "open default browser"
+    browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
     jester.serve()
     
   proc nimview_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
-    # NimMain()
     startJester($folder, int(port), $bindAddr)
 
   proc startWebview*(folder: string) {.exportpy.} =
@@ -260,7 +264,7 @@ when not defined(just_core):
   when declared(Thread):
     proc startJesterThread(folder: string) {.thread.} =
       var thread: Thread[string]
-      # TODO: initRequestFunctions()
+      # TODO: potentially re-initialize function map for each thread
       # createThread(thread, startJester, folder, 8000)
 
   proc nimview_start*(folder: cstring) {.exportc.} = 
@@ -275,9 +279,6 @@ when not defined(just_core):
       startJester(folder)
     else:
       startWebview(folder)
-
-#proc startWebviewThread(folder: string) {.thread.} =
-#  startWebview(folder)
 
 proc main() =
   debug "starting nim main"

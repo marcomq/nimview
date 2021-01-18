@@ -2,11 +2,13 @@
 
 version     = "0.1.0"
 author      = "Marco Mengelkoch"
-description = "Nim / Python library to run webview with HTML/JS as UI"
+description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
 
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core
+
+# Currently, Webview requires gcc and doesn't work with vcc or clang
 
 requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview >= 0.1.0"
 
@@ -18,6 +20,23 @@ when defined(nimdistros):
     foreignDep "webkit2gtk3-devel"
 
 import oswalkdir, os, strutils
+
+proc buildLibs() = 
+  let pyDllExtension = when defined(windows): "pyd" else: "so"
+  let cDllExtension = when defined(windows): "dll" else: "so"
+  let externalLibs = when defined(windows): 
+    "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
+  else: 
+    " -lnimview -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
+  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --out:tests/nimview." & pyDllExtension & " --nimcache=./tmp_c --app:lib nimview.nim"
+  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --nimcache=./tmp_c nimview.nim"
+  exec "gcc -shared -o tests/nimview." & cDllExtension & " -Wl,--out-implib,tests/libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
+  when defined(windows): 
+    exec "cmd /c \"copy /Y tmp_c\\nimview.h tests\\msvc \""
+  else:
+    exec "cp tmp_c/nimview.h tests/msvc/"
+
+
 
 proc calcPythonExecutables() : seq[string] =
   ## Calculates which Python executables to use for testing
@@ -80,6 +99,9 @@ proc runTests(nimFlags = "") =
     if sf.ext == ".nim" and sf.name.startsWith("t"):
       for libPython in libPythons:
         exec "nim c -d:nimpyTestLibPython=" & libPython & " -r " & nimFlags & " " & f.path
+
+task buildLibs, "Build Libs":
+  buildLibs()
 
 task test, "Run tests":
   runTests()
