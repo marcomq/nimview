@@ -35,6 +35,6 @@ int main(int argc, char* argv[]) {
 #ifdef _DEBUG
     nimview_startJester("minimal_ui_sample/index.html", 8000, "localhost");
 #else
-    $(OutDir)cpp_sample_debug.exe("minimal_ui_sample/index.html");
+    nimview_startWebview("minimal_ui_sample/index.html");
 #endif
 }
