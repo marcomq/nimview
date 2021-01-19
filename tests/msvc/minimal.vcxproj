@@ -89,7 +89,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir)</IncludePath>
+    <IncludePath>$(IncludePath);$(ProjectDir);$(ProjectDir)../</IncludePath>
     <LibraryPath>$(ProjectDir)/../../;/;$(ProjectDir)/../;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)/../</OutDir>
   </PropertyGroup>

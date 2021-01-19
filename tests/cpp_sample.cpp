@@ -13,79 +13,24 @@
 //         gcc -shared -o nimview.dll -Wl,--out-implib,libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 
 // cmd /c "gcc -shared -o tests/nimview.dll -Wl,--out-implib,tests/libnimview.a-Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32"
 #include <iostream>
-#include <stdio.h>
-#include <string.h>
 
-extern "C" {
-#include "../tmp_c/nimview.h"
-}
-#include<type_traits>
-#include<utility>
-#include<functional>
+#include "nimview.hpp"
 
-template<typename Lambda>
-union FunctionStorage {
-    FunctionStorage() {}
-    std::decay_t<Lambda> callable = NULL;
-};
-
-template<size_t, typename Lambda, typename Ret, typename... Args>
-auto FunctionPointerWrapper(Lambda&& c, Ret(*)(Args...)) {
-    static bool used = false;
-    static FunctionStorage<Lambda> s;
-    using type = decltype(s.callable);
-
-    if (used) {
-        s.callable.~type();
-    }
-    new (&s.callable) type(std::forward<Lambda>(c));
-    used = true;
-
-    return [](Args... args) -> Ret {
-        return Ret(s.callable(std::forward<Args>(args)...));
-    };
-}
-
-template<typename Fn, size_t N = 0, typename Lambda>
-Fn* castToFunctionImp(Lambda&& memberFunction) {
-    return FunctionPointerWrapper<N>(std::forward<Lambda>(memberFunction), (Fn*) nullptr);
-}
-
-#ifdef _MSC_VER 
-#define strdup _strdup
-#endif
-#define  nimview_addRequest(a,b) addRequestImpl<__COUNTER__>(a,b)
-
-char* echoAndModify(char* cInput) {
-    std::string input(cInput);
-    std::string result = input + " appended to string";
-    return strdup(result.c_str());
-}
-
-std::string echoAndModifyPP(const std::string& something) {
+std::string echoAndModify(const std::string& something) {
     return (std::string(something) + " appended to string");
 }
-std::string echoAndModifyPP2(const std::string& something) {
+
+std::string echoAndModify2(const std::string& something) {
     return (std::string(something) + " appended 2 string");
 }
 
-template <size_t INCREMENTING_COUNTER>
-void addRequestImpl(const std::string& request, std::string(callback)(const std::string&)) {
-    auto i = 1;
-    auto lambda = castToFunction<char* (char*), INCREMENTING_COUNTER>([&, callback](char* input) {
-        return strdup(callback(input).c_str());
-        });
-    nimview_addRequest(const_cast<char*>(request.c_str()), lambda, free);
-}
-
-
 int main(int argc, char* argv[]) {
-    NimMain();
-    nimview_addRequest("echoAndModify", echoAndModifyPP);
-    nimview_addRequest("echoAndModify2", echoAndModifyPP2);
+    nimview::initGc();
+    nimview::addRequest("echoAndModify", echoAndModify);
+    nimview::addRequest("echoAndModify2", echoAndModify2);
 #ifdef _DEBUG
-    nimview_startJester("minimal_ui_sample/index.html", 8000, "localhost");
+    nimview::startJester("minimal_ui_sample/index.html", 8000, "localhost");
 #else
-    nimview_startWebview("minimal_ui_sample/index.html");
+    nimview::startWebview("minimal_ui_sample/index.html");
 #endif
 }
