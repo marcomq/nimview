@@ -19,19 +19,70 @@
 extern "C" {
 #include "../tmp_c/nimview.h"
 }
+#include<type_traits>
+#include<utility>
+#include<functional>
+
+template<typename Lambda>
+union FunctionStorage {
+    FunctionStorage() {}
+    std::decay_t<Lambda> callable = NULL;
+};
+
+template<size_t, typename Lambda, typename Ret, typename... Args>
+auto FunctionPointerWrapper(Lambda&& c, Ret(*)(Args...)) {
+    static bool used = false;
+    static FunctionStorage<Lambda> s;
+    using type = decltype(s.callable);
+
+    if (used) {
+        s.callable.~type();
+    }
+    new (&s.callable) type(std::forward<Lambda>(c));
+    used = true;
+
+    return [](Args... args) -> Ret {
+        return Ret(s.callable(std::forward<Args>(args)...));
+    };
+}
+
+template<typename Fn, size_t N = 0, typename Lambda>
+Fn* castToFunctionImp(Lambda&& memberFunction) {
+    return FunctionPointerWrapper<N>(std::forward<Lambda>(memberFunction), (Fn*) nullptr);
+}
 
 #ifdef _MSC_VER 
 #define strdup _strdup
 #endif
+#define  nimview_addRequest(a,b) addRequestImpl<__COUNTER__>(a,b)
 
-char* echoAndModify(char* something) {
-    std::string result = std::string(something) + " appended to string";
+char* echoAndModify(char* cInput) {
+    std::string input(cInput);
+    std::string result = input + " appended to string";
     return strdup(result.c_str());
 }
 
+std::string echoAndModifyPP(const std::string& something) {
+    return (std::string(something) + " appended to string");
+}
+std::string echoAndModifyPP2(const std::string& something) {
+    return (std::string(something) + " appended 2 string");
+}
+
+template <size_t INCREMENTING_COUNTER>
+void addRequestImpl(const std::string& request, std::string(callback)(const std::string&)) {
+    auto i = 1;
+    auto lambda = castToFunction<char* (char*), INCREMENTING_COUNTER>([&, callback](char* input) {
+        return strdup(callback(input).c_str());
+        });
+    nimview_addRequest(const_cast<char*>(request.c_str()), lambda, free);
+}
+
+
 int main(int argc, char* argv[]) {
     NimMain();
-    nimview_addRequest("echoAndModify", echoAndModify, free);
+    nimview_addRequest("echoAndModify", echoAndModifyPP);
+    nimview_addRequest("echoAndModify2", echoAndModifyPP2);
 #ifdef _DEBUG
     nimview_startJester("minimal_ui_sample/index.html", 8000, "localhost");
 #else
