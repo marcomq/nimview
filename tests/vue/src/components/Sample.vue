@@ -1,5 +1,6 @@
 //src/components/Sample.vue
 <template>
+<div>
   <b-container>
   <b-nav-form>
     <b-form-input 
@@ -38,6 +39,7 @@
       <h5>No data available yet ??</h5>
     </div>
   </b-container>
+</div>
 </template>
 
 <script>
@@ -50,7 +52,7 @@ export default {
   },
   methods: {
     runSearch() {
-      this.backend("appendSomething", this, 'search')
+      this.backend("appendSomething", this, 'search'); // calling the backend
     }
   }
 };

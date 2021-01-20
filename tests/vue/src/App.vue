@@ -9,7 +9,6 @@
  import Navbar from './components/Navbar.vue'
  import Sample from './components/Sample.vue'
   export default {
-    name: 'navbar',
     components: {
       Sample,
       Navbar

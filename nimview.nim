@@ -1,3 +1,8 @@
+# Nimview UI Library 
+# Copyright (C) 2020, 2021, by Marco Mengelkoch
+# Licensed under MIT License, see License file for more details
+# git clone https://github.com/marcomq/nimview
+
 import os
 import json
 import system
@@ -160,7 +165,7 @@ when not defined(just_core):
           except:
             var errorResponse =  %* { "error":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
             corsResp Http200, $errorResponse
-          let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
+          let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response }
           corsResp Http200, $jsonResponse
       except ReqUnknownException:
         corsResp Http404, "File not found"
@@ -174,7 +179,7 @@ when not defined(just_core):
         # post data is always asumed to be a request
         var jsonMessage = parseJson(request.body)
         let response = dispatchHttpRequest(jsonMessage, request.headers)
-        let jsonResponse = %* { ($jsonMessage["responseKey"]).unescape(): response }
+        let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response }
         corsResp Http200, $jsonResponse
       except ReqUnknownException:
         corsResp Http404, "Request not found"

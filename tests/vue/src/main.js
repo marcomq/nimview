@@ -1,3 +1,8 @@
+/** Nimview UI Library 
+ * Copyright (C) 2020, 2021, by Marco Mengelkoch
+ * Licensed under MIT License, see License file for more details
+ * git clone https://github.com/marcomq/nimview
+**/
 import Vue from 'vue'
 import App from './App.vue'
 import BootstrapVue from 'bootstrap-vue'

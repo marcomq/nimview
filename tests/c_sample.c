@@ -1,3 +1,8 @@
+/** Nimview UI Library 
+ * Copyright (C) 2020, 2021, by Marco Mengelkoch
+ * Licensed under MIT License, see License file for more details
+ * git clone https://github.com/marcomq/nimview
+**/
 // Important Notice: You must use --threads:on AND you need to avoid --gc:arc ; I had crashes on windows otherwise with NIM 1.4 when starting webview
 
 // nim c --verbosity:2  --threads:on -d:release -d:useStdLib --noMain --noLinking --header:nimview.h --nimcache=./tmp_c nimview.nim
