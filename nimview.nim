@@ -91,7 +91,9 @@ proc nimview_dispatchRequest*(request, value: cstring): cstring {.gcsafe, export
 # main dispatcher
 # used by webview AND jester
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string {.gcsafe.} = 
-  let value = $jsonMessage["value"].getStr() 
+  var value = $jsonMessage["value"].getStr() 
+  if (value.isEmptyOrWhitespace()):
+    value = $jsonMessage["value"]
   let request = $jsonMessage["request"].getStr()
   result = dispatchRequest(request, value)
 

@@ -15,10 +15,10 @@ ui.responseCounter = 0;
  *  inputValue: is optional and may be used set the inputvalue manually instead of using data[key] 
  ***/
 ui.createRequest = function(request, data, key, callbackFunction, inputValue) {
-  if (typeof typeof inputValue === 'undefined') {
+  if (typeof inputValue === 'undefined') {
     inputValue = "";
-    if (typeof data === 'object') {
-      if ((typeof key !== 'undefined') && (key in data)) {
+    if ((typeof data === 'object') && (typeof key !== 'undefined') && (key !== '')) {
+      if (key in data) {
         inputValue = data[key];
       }
       else {
@@ -35,10 +35,10 @@ ui.createRequest = function(request, data, key, callbackFunction, inputValue) {
   if ((typeof key === 'undefined') || (key === "")) {
     key = request;
   }
-  var storageIndex = ui.responseCounter++;
-  if (storageIndex >= Number.MAX_SAFE_INTEGER-1) {
-    storageIndex = 0;
+  if (ui.responseCounter >= Number.MAX_SAFE_INTEGER-1) {
+    ui.responseCounter = 0;
   }
+  var storageIndex = ui.responseCounter++;
   ui.responseStorage[storageIndex] = new Object({'request': request, 'responseId': storageIndex, 'key': key, 'outputValueObj': data, 
                                                  'callbackFunction': callbackFunction}); // outputValueObj is stored as reference to apply modifications
   var jsonRequest = {'request': request, 'value': inputValue, 'responseId': storageIndex, 'key': key};
@@ -66,16 +66,21 @@ ui.applyResponse = function(value, responseId) {
 };
 
 
-// There are some strange issues detecting webview in a clean way. So we just check if this is Chrom(e/ium) or Firefox and assume that we need ajax for those.
-if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf("Firefox") != -1)) {
+/*global backend*/
+ui.alert = function (str) {
+  if (typeof backend === 'undefined') {
+    alert(str);
+  }
+  else {
+    backend.alert(str)
+  }
+}
+ui.backend = function (request, data, key, callbackFunction, inputValue) {
+  if (typeof backend === 'undefined') {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
-  ui.alert = function (str) {
-    alert(str)
-  }
-  ui.backend = function (request, data, key, callbackFunction, responseKey) {
-    var jsonRequest = ui.createRequest(request, data, key, callbackFunction, responseKey);
+    var jsonRequest = ui.createRequest(request, data, key, callbackFunction, inputValue);
     var stringRequest = JSON.stringify(jsonRequest);
 
     var opts = {
@@ -94,9 +99,9 @@ if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf
     fetch(host + "/" + url, opts).then(function(response) { 
       return response.json();
     }).then(function(response) {
-      responseKey = jsonRequest.responseKey;
-      if ((typeof response === "object") && (responseKey in response)) {
-        ui.applyResponse(response[responseKey], jsonRequest.responseId);
+      var key = jsonRequest.key;
+      if ((typeof response === "object") && (key in response)) {
+        ui.applyResponse(response[key], jsonRequest.responseId);
       }
       else {
         ui.applyResponse(response, jsonRequest.responseId);
@@ -105,23 +110,20 @@ if ((navigator.userAgent.indexOf("Chrom") != -1) || (navigator.userAgent.indexOf
     .catch(function(err) {
       console.log(err);
     });
-  };
-}
-else {
-  // This function is intendend to interact directly with webview. No HTTP server involved.
-  // There will be an async call on the backend server, which is then triggering to call javascript from webview.
-  // This callback function will be stored in a container ui.responseStorage. Nim Webview had issues calling javascript on Windows
-  // at the time of development and therefore required an async approach.
-  /*global backend*/
-  ui.backend = function(request, data, key, callbackFunction, responseKey) {
-    var jsonRequest = ui.createRequest(request, data, key, callbackFunction, responseKey);
-    var stringRequest = JSON.stringify(jsonRequest);
-    backend.call(stringRequest);
   }
-  ui.alert = function (str) {
-    backend.alert(str)
+  else {
+    // This function is intendend to interact directly with webview. No HTTP server involved.
+    // There will be an async call on the backend server, which is then triggering to call javascript from webview.
+    // This callback function will be stored in a container ui.responseStorage. Nim Webview had issues calling javascript on Windows
+    // at the time of development and therefore required an async approach.
+      var jsonRequest = ui.createRequest(request, data, key, callbackFunction, inputValue);
+      var stringRequest = JSON.stringify(jsonRequest);
+      backend.call(stringRequest);
+    }
+    ui.alert = function (str) {
+      backend.alert(str)
+    }
   }
-}
 
 // "import from" doesn't seem to work with webview here... So add this as global variable
 window.ui = ui;
