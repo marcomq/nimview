@@ -3,6 +3,7 @@
  * Licensed under MIT License, see License file for more details
  * git clone https://github.com/marcomq/nimview
 **/
+
 // nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --app:lib --out:nimview.dll --nimcache=./generated_c nimview.nim
 // cp .\generated_c\nimview.h . 
 // cd tests
@@ -18,8 +19,7 @@
 //         gcc -shared -o nimview.dll -Wl,--out-implib,libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 
 // cmd /c "gcc -shared -o tests/nimview.dll -Wl,--out-implib,tests/libnimview.a-Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32"
 #include <iostream>
-
-#include "nimview.hpp"
+#include "../nimview.hpp"
 
 std::string echoAndModify(const std::string& something) {
     return (std::string(something) + " appended to string");
@@ -30,7 +30,7 @@ std::string echoAndModify2(const std::string& something) {
 }
 
 int main(int argc, char* argv[]) {
-    nimview::initGc();
+    nimview::nimMain();
     nimview::addRequest("echoAndModify", echoAndModify);
     nimview::addRequest("echoAndModify2", echoAndModify2);
 #ifdef _DEBUG

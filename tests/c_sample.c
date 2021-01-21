@@ -3,7 +3,7 @@
  * Licensed under MIT License, see License file for more details
  * git clone https://github.com/marcomq/nimview
 **/
-// Important Notice: You must use --threads:on AND you need to avoid --gc:arc ; I had crashes on windows otherwise with NIM 1.4 when starting webview
+// Important Notice: You should use --threads:on AND you need to avoid --gc:arc ; I had crashes on windows otherwise with NIM 1.4 when starting webview
 
 // nim c --verbosity:2  --threads:on -d:release -d:useStdLib --noMain --noLinking --header:nimview.h --nimcache=./tmp_c nimview.nim
 // gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
@@ -22,23 +22,26 @@
 #include "../tmp_c/nimview.h"
 #include <stdio.h>
 #include <stdlib.h>
-// #include <iostream>
-// extern void startWebviewC(char*);
 
-char* appendSomething(char* something) {
+char* echoAndModify(char* something) {
     const char* appendString = " modified by C";
     char* result = malloc(strlen(something) + strlen(appendString) + 1); // +1 for the null-terminator, strlen is unchecked! "something" needs 0 termination
     if (result) {
         strcpy(result, something); // safe, result just created
         strcat(result, appendString); // safe, result just created with len
     }
+    else {
+        return ""; // "" will not be freed
+    }
     return result;
 }
 int main(int argc, char* argv[]) {
     printf(" starting c code\n");
     NimMain();
-    
-    nimview_addRequest("appendSomething", appendSomething, free);
-    nimview_start("vue/dist/index.html");
-    // nimview_startJester("vue/dist/index.html", 8000, "localhost");
+    nimview_addRequest("echoAndModify", echoAndModify, free);
+#ifdef _DEBUG
+    nimview_startJester("minimal_ui_sample/index.html", 8000, "localhost");
+#else
+    nimview_startWebview("minimal_ui_sample/index.html");
+#endif
 }

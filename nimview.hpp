@@ -1,5 +1,4 @@
-/**
- * Nimview UI Library 
+/** Nimview UI Library 
  * Copyright (C) 2020, 2021, by Marco Mengelkoch
  * Licensed under MIT License, see License file for more details
  * git clone https://github.com/marcomq/nimview
@@ -12,6 +11,7 @@ extern "C" {
 #include<type_traits>
 #include<utility>
 #include<functional>
+#include <variant>
 
 #ifdef _MSC_VER 
 #define strdup _strdup
@@ -24,18 +24,20 @@ template<typename Lambda>
 union FunctionStorage {
     FunctionStorage() {}
     std::decay_t<Lambda> lambdaFunction = NULL;
+    ~FunctionStorage() {}
 };
 
+
 template<size_t COUNTER, typename Lambda, typename Result, typename... Args>
-auto FunctionPointerWrapper(Lambda&& c, Result(*)(Args...)) {
-    static bool used = false;
+auto FunctionPointerWrapper(Lambda&& callback, Result(*)(Args...)) {
     static FunctionStorage<Lambda> storage;
     using type = decltype(storage.lambdaFunction);
 
+    static bool used = false;
     if (used) {
-        storage.lambdaFunction.~type();
+        storage.lambdaFunction.~type(); // overwrite
     }
-    new (&storage.lambdaFunction) type(std::forward<Lambda>(c));
+    new (&storage.lambdaFunction) type(std::forward<Lambda>(callback));
     used = true;
 
     return [](Args... args)->Result {
@@ -50,15 +52,26 @@ Fn* castToFunction(Lambda&& memberFunction) {
 
 namespace nimview {
     template<size_t COUNTER>
-    void addRequestImpl(const std::string& request, std::string(callback)(const std::string&)) {
-        auto i = 1;
+    void addRequestImpl(const std::string& request, const std::function<std::string(const std::string&)> &callback) {
         auto lambda = [&, callback](char* input) {
-            return strdup(callback(input).c_str());
+            std::string result;
+            result.swap(callback(input));
+            if (result == "") {
+                return const_cast<char*>(result.c_str()); // "" will not be freed
+            }
+            else {
+                return strdup(result.c_str());
+            }
         };
         auto cFunc = castToFunction<COUNTER>(lambda);
         nimview_addRequest(const_cast<char*>(request.c_str()), cFunc, free);
     }
+    auto nimMain = NimMain;
+    auto start = nimview_start;
     auto startJester = nimview_startJester;
     auto startWebview = nimview_startWebview;
-    auto initGc = NimMain;
+    auto dispatchRequest = nimview_dispatchRequest;
+    auto dispatchCommandLineArg = nimview_dispatchCommandLineArg;
+    auto readAndParseJsonCmdFile = nimview_readAndParseJsonCmdFile;
+    
 }
