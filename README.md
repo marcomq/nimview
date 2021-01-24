@@ -3,7 +3,7 @@ A lightwight cross platform UI library for Nim, C, C++ or Python. The main purpo
 
 # About
 
-The target of this project is to have a simple, ultra lightweight UI layer for Desktop applications that have just a few MB in static executable size. The UI layer will be completely HTML/CSS/JS based and the backend should be using either Nim, C/C++ or Python code directly with Nim as "glue". The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. Running remote server applications might are possible too, but might require an additional authentication layer. Android is technically possible too but will need an additional project. 
+The target of this project is to have a simple, ultra lightweight UI layer for Desktop and Cloud applications that have just a few MB in static executable size. The UI layer will be completely HTML/CSS/JS based and the backend should be using either Nim, C/C++ or Python code directly. Nim also acts as a "glue" layer as it makes it very easy to create python libs and can also create c libraries easily. The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. Running remote server applications might require an additional authentication and security reverse proy layer. Android is technically possible too but will need an additional project. 
 
 The recommended frontend library is Vue with CSS Bootstrap to quickly build a reactive user interface. Svelte would have been an option too, as Svelte is easier to learn as Vue, but trying Svelte had some major issues running on Webview that couldn't be resolved easily.
 
@@ -34,31 +34,31 @@ nimview.start("minimal_ui_sample/index.html")
 ### Why Nim?
 Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules but creates plain C Code that can be compiled by gcc compilers to optimized machine code. You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can run python code or can be compiled to a python library by using "pynim" (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
 
-### Why is Vue recommended?
-I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux. Even if it solved some major problems of Javascript development, it felt like a major step back when comparing to the simplicity of jQuery. In fact, I just wanted to have some template engine with some little reactivity helpers and Vue dis this job best until now.
-
-### Can I use some other JS library
-Sure. The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in HTML include. There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library.
+### Which JS framework would be recommended.
+I would recommend Bootstrap and Vue. There is an example for vue and bootstrap in tests/vue.
+I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux. But if you want - you might just use the JS framework of your choice.
+The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in HTML include. There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library. 
+You just might be careful with modern frameworks that create javascript that webview doesn't understand. There have been some problems with Svelte as webview couldn't handle some javascript keywords.
 
 ### Why not Electron?
-Electron is a great Framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate as it requires WebAssemply and the output binary is usually more than 100 MB.
-The Output of this tool here can be less than 2MB. Getting started might just take some minutes and it will consume less RAM and less system ressources than an Electron App.
+Electron is a great framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate in Electron and the output binary is usually more than 100 MB.
+The Output of this tool here can be less than 2MB. Getting started might just take some minutes and it will consume less RAM, less system ressources and will start much quicker than an Electron App.
 
 ### Difference to Eel and Neel
-There are some cool similar frameworks - eel (https://github.com/ChrisKnott/Eel)  for python and neel (https://github.com/Niminem/Neel) for nim
-Compares to Nimview, there are 2 major differences: 
-- Both neel and eel trigger javascript code in the nim/python backend as response. So the server has a major impact on frontend as it decides directly, which frontend function will be executed as response. With nimview, the backend only receives json and sends back json. The frontend will handle this json and will decide which callback will be run. You may use multiple frontends for the same backend without worrying about any callback on the server side with Nimview.
-- With Nimview, you don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
+There are some cool similar frameworks: The very popular framework "eel" (https://github.com/ChrisKnott/Eel) for python and its little brother neel (https://github.com/Niminem/Neel) for nim
+There are 2 major differences: 
+- Both eel and neel make it easy to call backend-server side functions from javascript and also call exposed javascript from backend. This is not any goal here with Nimview. Nimview will just make it easy to trigger backend routes from javascript but will not expose javascript functions to the backend side. If you want to do so, you need to parse the backends response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same server code without worrying about javascript functions.
+- With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ## Project setup
 ```
-- install nim version 1.2 (https://nim-lang.org/install.html)
+- install nim (https://nim-lang.org/install.html or package manager)
     avoid whitespace in nim install folder name when using windows
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
 - nimble install webview (version 0.1.1)
 - nimble install jester, nimpy
-- (linux) install gtk (yum install gcc, npm, webkit2gtk3-devel) (apt install gcc, npm, libwebkit2gtk-4.0-dev)
+- (linux) install gtk (yum install nim, gcc, npm, webkit2gtk3-devel) (apt install nim, gcc, npm, libwebkit2gtk-4.0-dev)
 - install node > 12.19  (https://nodejs.org/en/download/)
 - run "cd tests/vue", "npm install" and "cd .." 
 - npm run build --prefix tests/vue

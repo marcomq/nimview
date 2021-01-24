@@ -19,8 +19,8 @@ Vue.config.productionTip = false
 Vue.mixin({
   methods: {
     alert: str => window.ui.alert(str + ""),
-    backend: function(request, inputValue, outputValueObj, outputValueIndex, responseKey, callbackFunction) {
-      window.ui.backend(request, inputValue, outputValueObj, outputValueIndex, responseKey, callbackFunction);
+    backend: function(request, data, callBackOrKey) {
+      window.ui.backend(request, data , callBackOrKey);
       // alert('called nim');
     },
   }

@@ -10,38 +10,34 @@ ui.responseCounter = 0;
  * Creates a standartized json object to be sent to server and also stores an internal object to handle the response
  * 
  *  request: will be sent to server as json ".request"
- *  callbackFunction: is also optional and required if there is no automated Vue action when changing an object
- *  key: is optional and may be used to re-map the server value; 
- *  inputValue: is optional and may be used set the inputvalue manually instead of using data[key] 
+ *  callbackFunction: 
  ***/
-ui.createRequest = function(request, data, key, callbackFunction, inputValue) {
-  if (typeof inputValue === 'undefined') {
-    inputValue = "";
-    if ((typeof data === 'object') && (typeof key !== 'undefined') && (key !== '')) {
-      if (key in data) {
-        inputValue = data[key];
+ui.createRequest = function(request, data, callbackFunction) {
+  var key = request;
+  switch (typeof data) {
+    case 'object': 
+      if ((typeof callbackFunction !== 'undefined') && (typeof callbackFunction !== 'function') && (callbackFunction in data)) {
+        var key = callbackFunction;
+        var outputValueObj = data;
+        callbackFunction = function(response) { responseObj[key] = response; }; 
+        data = data[key]
       }
       else {
-        // problem - no value in obj - value will be empty string instead of undefined
-        if (console && console.log) {
-          console.log("Key '" + key + "' not found in data of request:'" + request + "'")
-        }
+        data = JSON.stringify(data);
       }
-    }
-    else {
-      inputValue = data;
-    }
-  }
-  if ((typeof key === 'undefined') || (key === "")) {
-    key = request;
+      break;
+    case 'function': 
+        callbackFunction = data; 
+        data = '';
+        break;
+    default: break;
   }
   if (ui.responseCounter >= Number.MAX_SAFE_INTEGER-1) {
     ui.responseCounter = 0;
   }
   var storageIndex = ui.responseCounter++;
-  ui.responseStorage[storageIndex] = new Object({'request': request, 'responseId': storageIndex, 'key': key, 'outputValueObj': data, 
-                                                 'callbackFunction': callbackFunction}); // outputValueObj is stored as reference to apply modifications
-  var jsonRequest = {'request': request, 'value': inputValue, 'responseId': storageIndex, 'key': key};
+  ui.responseStorage[storageIndex] = new Object({'request': request, 'responseId': storageIndex, 'callbackFunction': callbackFunction});
+  var jsonRequest = {'request': request, 'value': data, 'responseId': storageIndex, 'key': key};
   return jsonRequest;
 };
 
@@ -54,17 +50,8 @@ ui.applyResponse = function(value, responseId) {
   if (typeof storedObject.callbackFunction === 'function') {
     storedObject.callbackFunction(value);
   }
-  if (storedObject.key && (typeof storedObject.outputValueObj === 'object') && (storedObject.key in storedObject.outputValueObj)) {
-    storedObject.outputValueObj[storedObject.key] = value;
-  }
-  else {
-    if (console && console.log) {
-      console.log('error in response: ' + JSON.stringify(value) + ' of ' + JSON.stringify(storedObject));
-    }
-  }
   delete ui.responseStorage[responseId];
 };
-
 
 /*global backend*/
 ui.alert = function (str) {
@@ -75,12 +62,12 @@ ui.alert = function (str) {
     backend.alert(str)
   }
 }
-ui.backend = function (request, data, key, callbackFunction, inputValue) {
+ui.backend = function (request, data, callbackFunction) {
   if (typeof backend === 'undefined') {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
-    var jsonRequest = ui.createRequest(request, data, key, callbackFunction, inputValue);
+    var jsonRequest = ui.createRequest(request, data, callbackFunction);
     var stringRequest = JSON.stringify(jsonRequest);
 
     var opts = {
@@ -106,8 +93,8 @@ ui.backend = function (request, data, key, callbackFunction, inputValue) {
       else {
         ui.applyResponse(response, jsonRequest.responseId);
       }
-    })
-    .catch(function(err) {
+
+    }).catch(function(err) {
       console.log(err);
     });
   }
@@ -116,7 +103,7 @@ ui.backend = function (request, data, key, callbackFunction, inputValue) {
     // There will be an async call on the backend server, which is then triggering to call javascript from webview.
     // This callback function will be stored in a container ui.responseStorage. Nim Webview had issues calling javascript on Windows
     // at the time of development and therefore required an async approach.
-      var jsonRequest = ui.createRequest(request, data, key, callbackFunction, inputValue);
+      var jsonRequest = ui.createRequest(request, data, callbackFunction);
       var stringRequest = JSON.stringify(jsonRequest);
       backend.call(stringRequest);
     }
