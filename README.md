@@ -3,14 +3,22 @@ A lightwight cross platform UI library for Nim, C, C++ or Python. The main purpo
 
 # About
 
-The target of this project is to have a simple, ultra lightweight UI layer for Desktop and Cloud applications that have just a few MB in static executable size. The UI layer will be completely HTML/CSS/JS based and the backend should be using either Nim, C/C++ or Python code directly. Nim also acts as a "glue" layer as it makes it very easy to create python libs and can also create c libraries easily. The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. Running remote server applications might require an additional authentication and security reverse proy layer. Android is technically possible too but will need an additional project. 
+The target of this project is to have a simple, ultra lightweight cross platform, cross language UI layer for Desktop and Cloud applications that have just a few MB in static executable size. 
+The UI layer will be completely HTML/CSS/JS based and the backend should be using either Nim, C/C++ or Python code directly. 
+Nim also acts as a "glue" layer as it makes it very easy to create python libs and can also create c libraries easily. 
+The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of webserver running. 
+Running remote server applications might require an additional authentication and security reverse proy layer. Android is technically possible too but will need an additional project. 
 
-The recommended frontend library is Vue with CSS Bootstrap to quickly build a reactive user interface. Svelte would have been an option too, as Svelte is easier to learn as Vue, but trying Svelte had some major issues running on Webview that couldn't be resolved easily.
+The recommended frontend library is Vue with CSS Bootstrap to quickly build a reactive user interface. 
+Svelte would have been an option too, as Svelte is easier to learn as Vue, but trying Svelte had some major issues running on Webview that couldn't be resolved easily.
 
-Node.js will be required to build a Vue module. During development, the backend code will also create a simple HTTP server, so you can use all your usual debugging and development tools in Chrome or Firefox. Webview on its own is a mess if you want to debug your javascript issues.
+Node.js will be required to build a Vue module. 
+During development, the backend code will also create a simple HTTP server, so you can use all your usual debugging and development tools in Chrome or Firefox. 
+Webview on its own is a mess if you want to debug your javascript issues.
 This also means - the JS / HTML UI code will also be runnable in normal webbrowsers.
 
-This project is not intended to have any kind of additional helpers to create the UI. If you need some HTML generators or helpers, check the Vue (https://vuejs.org/) or the Vue-Bootstrap (https://bootstrap-vue.org/) library.
+This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
+If you need HTML generators or helpers, check the Vue (https://vuejs.org/) or the Vue-Bootstrap (https://bootstrap-vue.org/) library.
 
 ## minimal nim sample
 ```
@@ -32,7 +40,8 @@ nimview.start("minimal_ui_sample/index.html")
 ```
 
 ### Why Nim?
-Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules but creates plain C Code that can be compiled by gcc compilers to optimized machine code. You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can run python code or can be compiled to a python library by using "pynim" (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
+Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules but creates plain C Code that can be compiled by gcc compilers to optimized machine code. 
+You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can run python code or can be compiled to a python library by using "pynim" (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
 
 ### Which JS framework would be recommended.
 I would recommend Bootstrap and Vue. There is an example for vue and bootstrap in tests/vue.
@@ -47,7 +56,9 @@ The Output of this tool here can be less than 2MB. Getting started might just ta
 ### Difference to Eel and Neel
 There are some cool similar frameworks: The very popular framework "eel" (https://github.com/ChrisKnott/Eel) for python and its little brother neel (https://github.com/Niminem/Neel) for nim
 There are 2 major differences: 
-- Both eel and neel make it easy to call backend-server side functions from javascript and also call exposed javascript from backend. This is not any goal here with Nimview. Nimview will just make it easy to trigger backend routes from javascript but will not expose javascript functions to the backend side. If you want to do so, you need to parse the backends response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same server code without worrying about javascript functions.
+- Both eel and neel make it easy to call backend-server side functions from javascript and also call exposed javascript from backend. This is not any goal here with Nimview. 
+  Nimview will just make it easy to trigger backend routes from javascript but will not expose javascript functions to the backend side. 
+  If you want to do so, you need to parse the backends response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same server code without worrying about javascript functions.
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ## Project setup
