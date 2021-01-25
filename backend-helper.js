@@ -10,16 +10,22 @@ ui.responseCounter = 0;
  * Creates a standartized json object to be sent to server and also stores an internal object to handle the response
  * 
  *  request: will be sent to server as json ".request"
- *  callbackFunction: 
+ *  data: can be either following: 
+ *        1. a normal value, could be even json, which is then transmitted normally 
+ *        2. a json object, which will require the "callbackFunction" to be the key and a non-function value. This will automatically create a callback that sets data[key] = response
+ *        3. a function, in case you don't need to send data
+ *  callbackFunction: will be a generalized callback for success and error. Will have the backend response as parameter. You will need to handle error and success manually.
  ***/
 ui.createRequest = function(request, data, callbackFunction) {
   var key = request;
   switch (typeof data) {
     case 'object': 
-      if ((typeof callbackFunction !== 'undefined') && (typeof callbackFunction !== 'function') && (callbackFunction in data)) {
+      if ((typeof callbackFunction !== 'undefined') && 
+          (typeof callbackFunction !== 'function') && 
+          (callbackFunction in data)) {
         var key = callbackFunction;
         var outputValueObj = data;
-        callbackFunction = function(response) { responseObj[key] = response; }; 
+        callbackFunction = function(response) { outputValueObj[key] = response; }; 
         data = data[key]
       }
       else {
@@ -36,7 +42,9 @@ ui.createRequest = function(request, data, callbackFunction) {
     ui.responseCounter = 0;
   }
   var storageIndex = ui.responseCounter++;
-  ui.responseStorage[storageIndex] = new Object({'request': request, 'responseId': storageIndex, 'callbackFunction': callbackFunction});
+  ui.responseStorage[storageIndex] = new Object(
+    {'request': request, 'responseId': storageIndex, 'callbackFunction': callbackFunction}
+  );
   var jsonRequest = {'request': request, 'value': data, 'responseId': storageIndex, 'key': key};
   return jsonRequest;
 };
@@ -62,6 +70,17 @@ ui.alert = function (str) {
     backend.alert(str)
   }
 }
+/***
+ * Send something to backend. Will automatically chose webview if available. * 
+ *  request: will be sent to server as json ".request"
+ *  data: can be either following: 
+ *        1. a normal value, could be even json, which is then transmitted normally 
+ *        2. a json object, which will require the "callbackFunction" to be the key and a non-function value. 
+ *           This will automatically create a callback that sets data[key] = response
+ *        3. a function, in case you don't need to send data
+ *  callbackFunction: will be a generalized callback for success and error. Will have the backend response as parameter.
+ *        You will need to handle error and success manually.
+ ***/
 ui.backend = function (request, data, callbackFunction) {
   if (typeof backend === 'undefined') {
   // Simulate running in Webview, but using a HTTP server

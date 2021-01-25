@@ -56,5 +56,5 @@ N_LIB_PRIVATE N_NIMCALL(void, nimview_start)(NCSTRING folder);
 /* section: NIM_merge_VARS */
 
 /* section: NIM_merge_PROCS */
-N_CDECL(void, NimMain)(void);
+N_LIB_IMPORT N_CDECL(void, NimMain)(void);
 #endif /* __nimview__ */

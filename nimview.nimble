@@ -28,13 +28,14 @@ proc buildLibs() =
     "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
   else: 
     " -lnimview -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
-  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --out:tests/nimview." & pyDllExtension & " --nimcache=./tmp_c --app:lib nimview.nim"
-  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --nimcache=./tmp_c nimview.nim"
+  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/nimview." & pyDllExtension & " --app:lib nimview.nim" #header not usable
+  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on nimview_c.nim" # header not usable, but this creates usable .o files
+  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --compileOnly:off --nimcache=./tmp_c nimview_c.nim" #mostly for header file
   exec "gcc -shared -o tests/nimview." & cDllExtension & " -Wl,--out-implib,tests/libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
   when defined(windows): 
-    exec "cmd /c \"copy /Y tmp_c\\nimview.h tests\\msvc \""
+    exec "cmd /c \"copy /Y tmp_c\\nimview.h . \""
   else:
-    exec "cp tmp_c/nimview.h tests/msvc/"
+    exec "cp tmp_c/nimview.h .m,"
 
 
 

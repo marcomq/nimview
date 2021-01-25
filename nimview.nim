@@ -31,19 +31,6 @@ else:
 # nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --nimcache=./tmp_c nimview.nim    
 # gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
 # gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
-# python
-# >>> import nimview
-# >>> nimview.startWebview("E:/apps/nimview/ui/dist/index.html")
-# >>> nimview.startJester("E:/apps/nimview/ui/dist/index.html")
-
-# import std/compilesettings
-# when (querySetting(backend) == "c"):
-#   proc NimMain() {.importc.}
-# elif (querySetting(backend) == "cpp"):
-#   proc NimMain() {.importcpp.}
-# else:
-#   proc NimMain() =
-#     discard
 
 type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = ref object of RootObj
@@ -60,20 +47,6 @@ proc addRequest*(request: string, callback: proc(value: string): string ) {.expo
     debug "new request map initialized"
   req.map[request] = callback
 
-proc free_c(somePtr: pointer) {.cdecl,importc: "free".}
-
-proc nimview_addRequest*(request: cstring, callback: proc(value: cstring): cstring {.cdecl.}, freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} = 
-  nimview.addRequest($request, proc (nvalue: string): string =
-    debug "calling nim with " & nvalue
-    var resultPtr: cstring = ""
-    try:
-      resultPtr = callback(nvalue)
-      result = $resultPtr
-    finally:
-      if (resultPtr != ""):
-        freeFunc(resultPtr)
-  )
-
 proc initRequestFunctions*() = 
   nimview.addRequest("ping", proc (value: string): string {.noSideEffect, gcsafe.} = result = value)
 
@@ -84,9 +57,6 @@ proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} =
       result = callbackFunc(value) 
     else :
       raise newException(ReqUnknownException, "404 - Request unknown")
-
-proc nimview_dispatchRequest*(request, value: cstring): cstring {.gcsafe, exportc.} = 
-  result = $dispatchRequest($request, $value)
 
 # main dispatcher
 # used by webview AND jester
@@ -106,9 +76,6 @@ proc dispatchCommandLineArg*(escapedArgv: string): string =
   except: 
     warn "Couldn't parse specific line arg: " & escapedArgv
 
-proc nimview_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} = 
-  result = $dispatchCommandLineArg($escapedArgv)
-
 proc readAndParseJsonCmdFile*(filename: string) = 
   if (os.fileExists(filename)):
     debug "opening file for parsing: " & filename
@@ -121,9 +88,6 @@ proc readAndParseJsonCmdFile*(filename: string) =
     close(file)
   else:
     logging.error "File does not exist: " & filename
-
-proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} = 
-  readAndParseJsonCmdFile($filename)
 
 when not defined(just_core):
   const backendHelperJs = system.staticRead("backend-helper.js")
@@ -221,9 +185,6 @@ when not defined(just_core):
     debug "open default browser"
     browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
     jester.serve()
-    
-  proc nimview_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
-    startJester($folder, int(port), $bindAddr)
 
   proc startWebview*(folder: string) {.exportpy.} =
     var absFolder = folder
@@ -261,25 +222,11 @@ when not defined(just_core):
     myView.run()
     myView.exit()
 
-  proc nimview_startWebview*(folder: cstring) {.exportc.} = 
-    # NimMain()
-    debug "starting C webview"
-    let cFolder = $folder
-    startWebview(cFolder)
-    debug "leaving C webview"
-
   when declared(Thread):
     proc startJesterThread(folder: string) {.thread.} =
       var thread: Thread[string]
       # TODO: potentially re-initialize function map for each thread
       # createThread(thread, startJester, folder, 8000)
-
-  proc nimview_start*(folder: cstring) {.exportc.} = 
-    if useJester:
-      nimview_startJester(folder)
-    else:
-      nimview_startWebview(folder)
-      
 
   proc start*(folder: string) {.exportpy.} = 
     if useJester:
@@ -299,8 +246,6 @@ proc main() =
       result = "'" & value & "' modified by Nim Backend")
     startWebview(folder)
 
+initRequestFunctions() 
 when isMainModule and not defined(noMain):
-  initRequestFunctions() 
   main()
-else: 
-  initRequestFunctions() 
