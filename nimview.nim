@@ -9,14 +9,13 @@ import system
 import uri
 import strutils
 import tables
-import macros
 import logging
 
 when not defined(just_core):
   import jester
   import nimpy
   import webview except debug
-  import browsers
+  # import browsers
 else:
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
@@ -167,11 +166,14 @@ when not defined(just_core):
       else:
         absFolder = os.getAppDir() / folder
     copyBackendHelper(absFolder)
-    nimview.responseHttpHeader = { "Access-Control-Allow-Origin": "http://" & bindAddr }
+    var origin = "http://" & bindAddr
+    if (bindAddr == "0.0.0.0"):
+      origin = "*"
+    nimview.responseHttpHeader = { "Access-Control-Allow-Origin": origin }
     let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
     var jester = jester.initJester(handleRequest, settings=settings)
-    debug "open default browser"
-    browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
+    # debug "open default browser"
+    # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
     jester.serve()
 
   proc startWebview*(folder: string) {.exportpy.} =
@@ -196,7 +198,7 @@ when not defined(just_core):
           let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
           let responseCode =  myView.eval(evalJsCode)
           discard responseCode
-        # just sample functions without current real functionality
+#[          # just sample functions without current real functionality
         proc open() = info myView.dialogOpen()
         proc save() = info myView.dialogSave()
         proc opendir() = info myView.dialogOpen(flag=dFlagDir)
@@ -206,7 +208,7 @@ when not defined(just_core):
         proc changeTitle(title: string) = myView.setTitle(title)
         proc close() = myView.terminate()
         proc changeColor() = myView.setColor(210,210,210,100)
-        proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen)
+        proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen) ]#
     myView.run()
     myView.exit()
 

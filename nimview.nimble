@@ -5,38 +5,59 @@ author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
 
+bin = @["nimview"]
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core
 
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
-requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview >= 0.1.0"
+requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview == 0.1.0"
+let vueDir = "tests/vue"
 
 when defined(nimdistros):
   import distros
+  # no foreignDep required for Windows 
   if detectOs(Ubuntu):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
     foreignDep "webkit2gtk3-devel"
 
-import oswalkdir, os, strutils
+import oswalkdir, os, strutils  
 
 proc buildLibs() = 
+  ## creates python and C/C++ libraries
+  rmDir("tmp_py")
+  rmDir("tmp_c")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
   let cDllExtension = when defined(windows): "dll" else: "so"
   let externalLibs = when defined(windows): 
     "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
   else: 
     " -lnimview -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
-  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/nimview." & pyDllExtension & " --app:lib nimview.nim" #header not usable
-  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on nimview_c.nim" # header not usable, but this creates usable .o files
-  exec "nim c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --compileOnly:off --nimcache=./tmp_c nimview_c.nim" #mostly for header file
-  exec "gcc -shared -o tests/nimview." & cDllExtension & " -Wl,--out-implib,tests/libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
+  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/nimview." & pyDllExtension & " --app:lib nimview.nim" # creates python lib, header file not usable
+  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on nimview_c.nim" # header not usable, but this creates .o files we need
+  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --compileOnly:off --nimcache=./tmp_c nimview_c.nim" # just to create usable header file, doesn't create .o files
+  cpFile("tmp_c/nimview.h", thisDir())
   when defined(windows): 
     exec "cmd /c \"copy /Y tmp_c\\nimview.h . \""
   else:
-    exec "cp tmp_c/nimview.h .m,"
+    exec "cp tmp_c/nimview.h ."
+  exec "gcc -shared -o tests/nimview." & cDllExtension & " -Wl,--out-implib,tests/libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
+  echo "Python and shared C libraries build completed. Files have been created in tests folder."
 
+proc buildRelease() =
+  selfExec "c --app:gui -d:release -d:useStdLib --out:nimview nimview.nim"
+  let vueCmd = "npm run build --prefix " & vueDir
+  when defined(windows): 
+    exec "cmd /c \"" & vueCmd & "\""
+  else:
+    exec "vueCmd"
+
+proc buildDebug() =
+  selfExec "c --verbosity:2 --app:console -d:debug --debuginfo  --debugger:native -d:useStdLib --out:nimview_debug  nimview.nim "
+  # cd vueDir
+  # exec "npm install"
+  # cd "../../"
 
 
 proc calcPythonExecutables() : seq[string] =
@@ -99,15 +120,31 @@ proc runTests(nimFlags = "") =
     let sf = f.path.splitFile()
     if sf.ext == ".nim" and sf.name.startsWith("t"):
       for libPython in libPythons:
-        exec "nim c -d:nimpyTestLibPython=" & libPython & " -r " & nimFlags & " " & f.path
+        selfExec "c -d:nimpyTestLibPython=" & libPython & " -r " & nimFlags & " " & f.path
 
-task buildLibs, "Build Libs":
+task libs, "Build Libs":
   buildLibs()
+
+task debug, "Run with jester and npm serve":
+  buildDebug()
+  when defined(windows): 
+    echo "starting windows daemon and vue serve"
+    cd "tests"
+    exec "startNpmDebug.bat"
+  else:
+    exec "./nimview_debug & npm run serve --prefix " & vueDir
+
+    
+task release, "Build npm and Run with webview":
+  buildRelease()
+  var executeableDebug = "nimview"
+  os.normalizeExe(executeableDebug)
+  exec toExe(executeableDebug)
 
 task test, "Run tests":
   runTests()
   runTests("--gc:arc --passc:-g") # Arc
-  exec "npm run build --prefix tests/vue"
+  exec "npm run build --prefix " & vueDir
 
 task test_arc, "Run tests with --gc:arc":
   runTests("--gc:arc --passc:-g")
