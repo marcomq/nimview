@@ -6,7 +6,6 @@
 import os
 import json
 import system
-import re
 import uri
 import strutils
 import tables
@@ -38,6 +37,7 @@ type RequestCallbacks* = ref object of RootObj
   
 var req* : RequestCallbacks
 var useJester* = defined(debug)
+var responseHttpHeader = {"Access-Control-Allow-Origin": "None"} # will be overwritten when starting Jester
 var logger = newConsoleLogger()
 logging.addHandler(logger)
 
@@ -45,12 +45,13 @@ proc addRequest*(request: string, callback: proc(value: string): string ) {.expo
   if (isNil(req)):
     req = new RequestCallbacks
     debug "new request map initialized"
-  req.map[request] = callback
+  {.cast(gcsafe).}:
+    req.map[request] = callback
 
 proc initRequestFunctions*() = 
-  nimview.addRequest("ping", proc (value: string): string {.noSideEffect, gcsafe.} = result = value)
+  nimview.addRequest("ping", proc (value: string): string = result = value)
 
-proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} = 
+proc dispatchRequest*(request, value: string): string {.exportpy.} = 
   {.cast(gcsafe).}:
     if req.map.hasKey(request):
       let callbackFunc = req.map[request]
@@ -60,7 +61,7 @@ proc dispatchRequest*(request, value: string): string {.gcsafe, exportpy.} =
 
 # main dispatcher
 # used by webview AND jester
-proc dispatchJsonRequest*(jsonMessage: JsonNode): string {.gcsafe.} = 
+proc dispatchJsonRequest*(jsonMessage: JsonNode): string = 
   var value = $jsonMessage["value"].getStr() 
   if (value.isEmptyOrWhitespace()):
     value = $jsonMessage["value"]
@@ -92,70 +93,56 @@ proc readAndParseJsonCmdFile*(filename: string) =
 when not defined(just_core):
   const backendHelperJs = system.staticRead("backend-helper.js")
 
-  proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string {.gcsafe.} = 
+  proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string = 
     # optional but not implemented yet - check credentials from header information
     result = dispatchJsonRequest(jsonMessage)
 
-  template corsResp(code, message: untyped): untyped =
+  template respond(code: untyped, message: untyped): untyped =
     mixin resp
-    resp code, {"Access-Control-Allow-Origin": "*"}, message
+    {.cast(gcsafe).}:
+      resp code, nimview.responseHttpHeader, message
+  
+  template respond(message: untyped): untyped =
+      respond Http200, message
 
-  # required for jester web server - it is not recommended to modify this, use "dispatchRequest" to add functionality
-  router myrouter:
-    get re"^\/(.*)$":
-      try:
-        var requestContent: string = request.matches[0]
-        var response: string
-        # send file if exists
-        if (requestContent == ""): 
-          requestContent = "index.html"
-        if (requestContent == "backend-helper.js"):
-          corsResp Http200, backendHelperJs
-        var potentialFilename = request.getStaticDir() & "/" & requestContent.replace("..", "")
-        if fileExists(potentialFilename):
-          debug "Sending " & potentialFilename
-          # jester.sendFile(potentialFilename)
-          corsResp Http200, system.readFile(potentialFilename)
-          return
-        else:
-          if (potentialFilename.isValidFilename()):
-            raise newException(ReqUnknownException, "404 - File not found")
-          # if not a file, assume this is a json request 
-          debug "Parsing " & requestContent
-          let jsonMessage = parseJson(uri.decodeUrl(requestContent))
-          try:
+  proc handleRequest(request: Request): Future[ResponseData] {.async.} =
+    block route:
+      var response: string
+      var requestPath: string = request.pathInfo 
+      var resultId = 0
+      case requestPath
+      of "/backend-helper.js":
+        respond nimview.backendHelperJs
+      else:
+        try:
+          if (requestPath == "/"): 
+            requestPath = "/index.html"
+          
+          var potentialFilename = request.getStaticDir() & "/" & requestPath.replace("..", "")
+          if fileExists(potentialFilename):
+            debug "Sending " & potentialFilename
+            # jester.sendFile(potentialFilename)
+            respond system.readFile(potentialFilename)
+          else:
+            if ((request.body == "") and potentialFilename.isValidFilename()):
+              raise newException(ReqUnknownException, "404 - File not found")
+
+            # if not a file, assume this is a json request 
+            var jsonMessage: JsonNode
+            echo request.body
+            if (request.body != ""):
+              jsonMessage = parseJson(request.body)
+            else:
+              jsonMessage = parseJson(uri.decodeUrl(requestPath))
+            resultId = jsonMessage["responseId"].getInt()
             response = dispatchHttpRequest(jsonMessage, request.headers)
-          except ReqUnknownException:
-            var errorResponse =  %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": $jsonMessage["responseId"] } 
-            corsResp Http404, $errorResponse
-          except:
-            var errorResponse =  %* { "error":"500", "value":"internal error", "resultId": $jsonMessage["responseId"] } 
-            corsResp Http200, $errorResponse
-          let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response }
-          corsResp Http200, $jsonResponse
-      except ReqUnknownException:
-        corsResp Http404, "File not found"
-      except:
-        warn "Error " & getCurrentExceptionMsg()
-        var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-        corsResp Http500, $errorResponse
+            let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response }
+            respond $jsonResponse
 
-    post re"^\/(.*)$":
-      try:
-        # post data is always asumed to be a request
-        var jsonMessage = parseJson(request.body)
-        let response = dispatchHttpRequest(jsonMessage, request.headers)
-        let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response }
-        corsResp Http200, $jsonResponse
-      except ReqUnknownException:
-        corsResp Http404, "Request not found"
-      except:
-        var errorResponse =  %* { "error":"500", "value":"request doesn't contain valid json", "resultId": 0 } 
-        corsResp Http500, $errorResponse
-    options re"^\/(.*)$":
-      corsResp Http404, "404 not found!!"
-    error Http404:
-      corsResp Http404, "404 not found!"
+        except ReqUnknownException:
+          respond Http404, $ %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": resultId }
+        except:
+          respond Http500, $ %* { "error":"500", "value":"request doesn't contain valid json", "resultId": resultId } 
 
   proc copyBackendHelper (folder: string) =
     let targetJs =  folder.parentDir() / "backend-helper.js"
@@ -180,8 +167,9 @@ when not defined(just_core):
       else:
         absFolder = os.getAppDir() / folder
     copyBackendHelper(absFolder)
+    nimview.responseHttpHeader = { "Access-Control-Allow-Origin": "http://" & bindAddr }
     let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
-    var jester = jester.initJester(myrouter, settings=settings)
+    var jester = jester.initJester(handleRequest, settings=settings)
     debug "open default browser"
     browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
     jester.serve()
@@ -244,7 +232,7 @@ proc main() =
     # startJester(folder)
     addRequest("appendSomething", proc (value: string): string =
       result = "'" & value & "' modified by Nim Backend")
-    startWebview(folder)
+    start(folder)
 
 initRequestFunctions() 
 when isMainModule and not defined(noMain):
