@@ -37,11 +37,8 @@ proc buildLibs() =
   selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/nimview." & pyDllExtension & " --app:lib nimview.nim" # creates python lib, header file not usable
   selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on nimview_c.nim" # header not usable, but this creates .o files we need
   selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --compileOnly:off --nimcache=./tmp_c nimview_c.nim" # just to create usable header file, doesn't create .o files
-  cpFile("tmp_c/nimview.h", thisDir())
-  when defined(windows): 
-    exec "cmd /c \"copy /Y tmp_c\\nimview.h . \""
-  else:
-    exec "cp tmp_c/nimview.h ."
+  cpFile(thisDir() & "/tmp_c/nimview.h", thisDir() & "/nimview.h")
+
   exec "gcc -shared -o tests/nimview." & cDllExtension & " -Wl,--out-implib,tests/libnimview.a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
   echo "Python and shared C libraries build completed. Files have been created in tests folder."
 
