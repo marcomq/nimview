@@ -225,16 +225,17 @@ when not defined(just_core):
       startWebview(folder)
 
 proc main() =
-  debug "starting nim main"
-  let argv = os.commandLineParams()
-  for arg in argv:
-    readAndParseJsonCmdFile(arg)
-  when system.appType != "lib" and not defined(just_core):
-    let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
-    # startJester(folder)
-    addRequest("appendSomething", proc (value: string): string =
-      result = "'" & value & "' modified by Nim Backend")
-    start(folder)
+  when not defined(noMain):
+    debug "starting nim main"
+    let argv = os.commandLineParams()
+    for arg in argv:
+      readAndParseJsonCmdFile(arg)
+    when system.appType != "lib" and not defined(just_core):
+      let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
+      # startJester(folder)
+      addRequest("appendSomething", proc (value: string): string =
+        result = "'" & value & "' modified by Nim Backend")
+      start(folder)
 
 initRequestFunctions() 
 when isMainModule and not defined(noMain):

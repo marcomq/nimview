@@ -82,19 +82,19 @@ ui.alert = function (str) {
  *        You will need to handle error and success manually.
  ***/
 ui.backend = function (request, data, callbackFunction) {
+  var jsonRequest = {responseId:0};
   if (typeof backend === 'undefined') {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
-    var jsonRequest = ui.createRequest(request, data, callbackFunction);
-    var stringRequest = JSON.stringify(jsonRequest);
+    jsonRequest = ui.createRequest(request, data, callbackFunction);
 
     var opts = {
-      method: 'POST',      
+      method: 'POST', // always use AJAX post for simplicity with special chars    
       mode: 'cors',
       cache: 'no-cache',
       headers: {'Content-Type': 'application/json'},
-      body: stringRequest
+      body: JSON.stringify(jsonRequest)
     };
     if (defaultPostTarget == "") {
       var url = request; // Not required. Just for easier debugging
@@ -118,18 +118,17 @@ ui.backend = function (request, data, callbackFunction) {
     });
   }
   else {
-    // This function is intendend to interact directly with webview. No HTTP server involved.
+    // This part of the function is intendend to interact directly with webview. No HTTP server involved.
     // There will be an async call on the backend server, which is then triggering to call javascript from webview.
     // This callback function will be stored in a container ui.responseStorage. Nim Webview had issues calling javascript on Windows
-    // at the time of development and therefore required an async approach.
-      var jsonRequest = ui.createRequest(request, data, callbackFunction);
-      var stringRequest = JSON.stringify(jsonRequest);
-      backend.call(stringRequest);
-    }
-    ui.alert = function (str) {
-      backend.alert(str)
+    // at the time of development and therefore required an async approach that doesn't use the async keyword and can't await.
+      jsonRequest = ui.createRequest(request, data, callbackFunction);
+      var response = backend.call(JSON.stringify(jsonRequest));
+      if (typeof response !== "undefined") {
+        
+      }
+ 
     }
   }
-
 // "import from" doesn't seem to work with webview here... So add this as global variable
 window.ui = ui;
