@@ -125,7 +125,13 @@ ui.backend = function (request, data, callbackFunction) {
       jsonRequest = ui.createRequest(request, data, callbackFunction);
       var response = backend.call(JSON.stringify(jsonRequest));
       if (typeof response !== "undefined") {
-        
+        var key = jsonRequest.key;
+        if ((typeof response === "object") && (key in response)) {
+          ui.applyResponse(response[key], jsonRequest.responseId);
+        }
+        else {
+          ui.applyResponse(response, jsonRequest.responseId);
+        }
       }
  
     }
