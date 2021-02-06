@@ -55,10 +55,12 @@ ui.createRequest = function(request, data, callbackFunction) {
  ***/
 ui.applyResponse = function(value, responseId) {
   var storedObject = ui.responseStorage[responseId];
+  var result;
   if (typeof storedObject.callbackFunction === 'function') {
-    storedObject.callbackFunction(value);
+    result = storedObject.callbackFunction(value);
   }
   delete ui.responseStorage[responseId];
+  return result
 };
 
 /*global backend*/
@@ -103,7 +105,7 @@ ui.backend = function (request, data, callbackFunction) {
       var url = defaultPostTarget; 
     }
     fetch(host + "/" + url, opts).then(function(response) { 
-      return response.json();
+      return response && response.json();
     }).then(function(response) {
       var key = jsonRequest.key;
       if ((typeof response === "object") && (key in response)) {
@@ -114,7 +116,9 @@ ui.backend = function (request, data, callbackFunction) {
       }
 
     }).catch(function(err) {
-      console.log(err);
+      if (console && console.log) {
+        console.log(err);
+      }
     });
   }
   else {

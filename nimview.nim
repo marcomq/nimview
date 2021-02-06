@@ -11,10 +11,13 @@ import strutils
 import tables
 import logging
 
+const compileWithWebview = defined(useWebview) or not defined(useJester)
+
 when not defined(just_core):
   import jester
   import nimpy
-  import webview except debug
+  when compileWithWebview:
+    import webview except debug
   # import browsers
 else:
   # Just core features. Disable jester, webview nimpy and exportpy
@@ -35,8 +38,8 @@ type RequestCallbacks* = ref object of RootObj
   map: Table[string, proc(value: string): string ]
   
 var req* : RequestCallbacks
-var useJester* = defined(debug)
 var responseHttpHeader = {"Access-Control-Allow-Origin": "None"} # will be overwritten when starting Jester
+var useJester* = not compileWithWebview or (defined(useJester) or defined(debug) or (fileExists("/.dockerenv")))
 var logger = newConsoleLogger()
 logging.addHandler(logger)
 
@@ -175,42 +178,39 @@ when not defined(just_core):
     # debug "open default browser"
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
     jester.serve()
-
+    
   proc startWebview*(folder: string) {.exportpy.} =
-    var absFolder = folder
-    if (not os.isAbsolute(folder)):
-      debug os.getAppFilename().extractFilename()
-      if (os.getAppFilename().extractFilename().startsWith("python")):
-        absFolder = os.getCurrentDir() / folder
-      else:
-        absFolder = os.getAppDir() / folder
-    copyBackendHelper(absFolder)
-    os.setCurrentDir(absFolder.parentDir())
-    let myView = newWebView("nimview", "file://" / absFolder)
-    var fullScreen = true
-    myView.bindProcs("backend"): 
-        proc alert(message: string) = myView.info("alert", message)
-        proc call(message: string) = 
-          info message
-          let jsonMessage = json.parseJson(message)
-          let resonseId = jsonMessage["responseId"].getInt()
-          let response = dispatchJsonRequest(jsonMessage)
-          let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
-          let responseCode =  myView.eval(evalJsCode)
-          discard responseCode
-#[          # just sample functions without current real functionality
-        proc open() = info myView.dialogOpen()
-        proc save() = info myView.dialogSave()
-        proc opendir() = info myView.dialogOpen(flag=dFlagDir)
-        proc message() = myView.msg("hello", "message")
-        proc warn() = myView.warn("hello", "warn")
-        proc error() = myView.error("hello", "error")
-        proc changeTitle(title: string) = myView.setTitle(title)
-        proc close() = myView.terminate()
-        proc changeColor() = myView.setColor(210,210,210,100)
-        proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen) ]#
-    myView.run()
-    myView.exit()
+    when compileWithWebview: 
+      var absFolder = folder
+      if (not os.isAbsolute(folder)):
+        debug os.getAppFilename().extractFilename()
+        if (os.getAppFilename().extractFilename().startsWith("python")):
+          absFolder = os.getCurrentDir() / folder
+        else:
+          absFolder = os.getAppDir() / folder
+      copyBackendHelper(absFolder)
+      os.setCurrentDir(absFolder.parentDir())
+      let myView = newWebView("nimview", "file://" / absFolder)
+      var fullScreen = true
+      myView.bindProcs("backend"): 
+          proc alert(message: string) = myView.info("alert", message)
+          proc call(message: string) = 
+            info message
+            let jsonMessage = json.parseJson(message)
+            let resonseId = jsonMessage["responseId"].getInt()
+            let response = dispatchJsonRequest(jsonMessage)
+            let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
+            let responseCode =  myView.eval(evalJsCode)
+            discard responseCode
+  #[          # just sample functions without current real functionality
+          proc open() = info myView.dialogOpen()
+          proc save() = info myView.dialogSave()
+          proc opendir() = info myView.dialogOpen(flag=dFlagDir)
+          proc close() = myView.terminate()
+          proc changeColor() = myView.setColor(210,210,210,100)
+          proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen) ]#
+      myView.run()
+      myView.exit()
 
   when declared(Thread):
     proc startJesterThread(folder: string) {.thread.} =
@@ -231,10 +231,11 @@ proc main() =
     for arg in argv:
       readAndParseJsonCmdFile(arg)
     when system.appType != "lib" and not defined(just_core):
-      let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
       # startJester(folder)
       addRequest("appendSomething", proc (value: string): string =
         result = "'" & value & "' modified by Nim Backend")
+      # let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
+      let folder = os.getCurrentDir() / "tests/svelte/public/index.html"
       start(folder)
 
 initRequestFunctions() 

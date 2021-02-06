@@ -7,18 +7,14 @@ The target of this project is to have a simple, ultra lightweight cross platform
 The UI layer will be completely HTML/CSS/JS based and the back-end should be using either Nim, C/C++ or Python code directly. 
 Nim also acts as a "glue" layer as it makes it very easy to create python libs and can also create c libraries easily. 
 The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of web-server running. 
-Running remote server applications might require an additional authentication and security reverse proxy layer. Android is technically possible too but will need an additional project. 
+Running remote (cloud) server applications are possible too, but should use an additional authentication and security reverse proxy layer. An Android Studio setup for nimview is here: ...
 
-My personal recommendation for a front-end library is Vue with CSS Bootstrap to quickly build your user interface. 
-Svelte would have been an option too, as Svelte is easier to learn as Vue, but trying Svelte had some major issues running on Webview that couldn't be resolved easily.
-
-Node.js will be required to build a Vue module. 
-During development in debug mode, the back-end code will also create a simple HTTP server, so you can use all your usual debugging and development tools in Chrome or Firefox. 
+Node.js is recommended if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
+During development in debug mode, the back-end code will also create a simple HTTP server by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
 Webview on its own is a mess if you want to debug your Javascript issues.
-This also means that you have an included webserver, just in case you decide to run your application in some public cloud. 
 
 This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
-If you need HTML generators or helpers, check the Vue (https://vuejs.org/) or the Vue-Bootstrap (https://bootstrap-vue.org/) library.
+If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
 
 ## minimal nim sample
 ```
@@ -42,14 +38,14 @@ nimview.start("minimal_ui_sample/index.html")
 These examples will take the "minimal_ui_sample/index.html" file relative to the binary / python file.
 It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
 
-## on the js client side (only the important part)
+## HTML/JS client side (only the important part)
 ```
 <script src="backend-helper.js"></script>
 <script type="text/javascript">
     function sampleFunction() {
         window.ui.backend('echoAndModify', document.getElementById('sampleInput').value, function(response) { 
-			alert(response); 
-		});
+            alert(response); 
+        });
     }
 </script>
 <input id="sampleInput" type="text" value="Hello World" />
@@ -59,11 +55,14 @@ It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
 `window.ui.backend(request, value, callback)` can take up to 3 parameters:
 - the first one is the request function that is registered on server side.
 - the second one is the value that is sent to the back-end
-- the third value is a callback function
+- the third value is a callback function.
  
 An alternative signature, optimized for Vue.js is following:
 `window.ui.backend(request, object, key)`
-In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the server response
+In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the server response. 
+This is not expected to work with Svelte, as the modification of the object would be hidden for Svelte.
+
+You need to include your own error handler in the callback, as there is no separate error callback function.
 
 ## Does this mean I can only send just 1 value and just receive just 1 value from server?
 Yes and No - you can use Json to encode your values on the client, use a parser on the back-end to read all values and send Json back to the client. This is amazingly easy when using python or Nim as back-end. 
@@ -74,15 +73,15 @@ Nim is actually some great "batteries included" helper. It is similar readable a
 You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can be compiled to a python library easily. (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
 
 ### Which JS framework would be recommended.
-I would recommend Bootstrap and Vue. There is an example for Vue and Bootstrap in tests/vue.
+If you work on Windows, Vue is probably the easiest to setup. There is an example for Vue + Bootstrap in tests/vue and also one example for Svelte in tests/svelte.
+Svelte is probably fastest, easiest to write and best to read, but might create issues with the IE11 engine if you don't setup polyfill and babel correctly.
 I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux. But if you want - you might just use the JS framework of your choice.
-The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in HTML include. There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library. 
-You just might be careful with modern frameworks that create javascript that Webview doesn't understand. There have been some problems with Svelte as Webview couldn't handle some Javascript keywords.
+The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in the static HTML includes. There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library. 
 
 ### Why not Electron or CEF?
 Electron is a great framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate in Electron. In CEF, it is easy to use C++, but the output binary is usually more than 100 MB and getting started with a new project can take some time. So, CEF might be great for large Desktop projects that don't need to care about RAM or Disk, but can be an overkill for small applications.
-The output of this tool here can be less than 2MB. Getting started might just take some minutes and it will consume less RAM, less system resources and will start much quicker than an Electron or CEF App.
-Also, you will have all the included features of nim if you decide to build a C++ Code.
+The output of this tool here can be less than 2MB. It also might just run in the Cloud as there is an included webserver - you might easily run the app in Docker. Getting started might just take some minutes and it will consume less RAM, less system resources and will start much quicker than an Electron or CEF App.
+Also, you will have all the included features of nim if you decide to build a C++ Code. You might write the same Code and the same UI for your Cloud application as for your Desktop App.
 
 ### Difference to Eel and Neel
 There are some cool similar frameworks: The very popular framework "eel" (https://github.com/ChrisKnott/Eel) for python and its little brother neel (https://github.com/Niminem/Neel) for nim
@@ -92,32 +91,23 @@ There are 2 major differences:
   If you want to do so, you need to parse the back-end’s response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same server code without worrying about javascript functions.
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
 
+### Difference to Flask
+Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and nimview/Jester probably cannot compete with Flask for cloud applications. 
+Nimview will also not support server side template engines as flask does. But in case you want your application also running on the Desktop or Mobile, or if you want to use nim or C++ as your primary language, you might get get your application done really quick when using nimview.
+
+### IE 11 
+Unfortunately, the backend-helper.js cannot send AJAX reuqests to a backend, as IE 11 doesn't support fetch. I might add an alternative fetch support for IE 11 in case that IE 11 still exits when nimview gets popular. 
+Feel free to make a PR if you need the IE 11 support sooner for your web engine.
+
 ## Project setup
 ```
 - install nim (https://nim-lang.org/install.html or package manager)
     avoid white-space in nim install folder name when using windows
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
-- nimble install webview (version 0.1.1)
-- nimble install jester, nimpy
-- (linux) install gtk (yum install nim, gcc, npm, webkit2gtk3-devel) (apt install nim, gcc, npm, libwebkit2gtk-4.0-dev)
-- install node > 12.19  (https://nodejs.org/en/download/)
-- run "cd tests/vue", "npm install" and "cd .." 
-- npm run build --prefix tests/vue
-- nim c -r --app:gui -d:release nimview.nim 
-# alternatively for debugging, will start jester instead of webview
-- nim c -r --threads:on --debuginfo  --debugger:native --verbosity:2 -d:debug nimview.nim
+- nimble release
+- (linux, optional if not installed by nimble: yum install nim, gcc, npm, webkit2gtk3-devel <or:> apt install nim, gcc, npm, libwebkit2gtk-4.0-dev
+- install node > 12.19 if using windows  (https://nodejs.org/en/download/)
+- run "cd tests/vue", "npm install" and "cd ../.." 
+- run nimview
 ```
-
-### Compiles and hot-reloads for development
-```
-npm run serve --prefix tests/vue
-```
-
-### Compiles and minifies for production
-```
-npm run build --prefix tests/vue
-```
-
-### Customize Vue configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).

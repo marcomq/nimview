@@ -1,4 +1,5 @@
 //src/components/Sample.vue
+// https://blog.logrocket.com/getting-started-with-bootstrapvue-2d8bf907ef11/
 <template>
 <div>
   <b-container>
@@ -17,23 +18,9 @@
       >Search</b-button>
   </b-nav-form>
     <div v-if="elements.length">
-      <b-row>
-        <div v-bind:key="data.index" v-for="data in elements">
-          <b-col l="4">
-            <b-card
-              v-bind:title="data.strCategory"
-              v-bind:img-src="data.strCategoryThumb"
-              img-alt="Image"
-              img-top
-              tag="article"
-              style="max-width: 20rem;"
-              class="mb-2">
-              <b-card-text>{{ `${data.strCategoryDescription.slice(0,100)}...` }}</b-card-text>
-              <b-button href="#" variant="primary">View data</b-button>
-            </b-card>
-          </b-col>
-        </div>
-      </b-row>
+      <div v-for="item in elements" :key="item.val">
+          <div>{{item.val}}</div>
+      </div>
     </div>
     <div v-else>
       <h5>No data available yet ??</h5>
@@ -53,6 +40,7 @@ export default {
   methods: {
     runSearch() {
       this.backend("appendSomething", this, 'search'); // calling the backend
+      this.elements.push({val: this.search})
     }
   }
 };

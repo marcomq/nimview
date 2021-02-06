@@ -131,8 +131,8 @@ proc runTests(nimFlags = "") =
 task libs, "Build Libs":
   buildLibs()
 
-task serve, "Serve NPM":
-  execCmd("npm run serve --prefix " & vueDir)
+task dev, "Serve NPM":
+  execCmd("npm run dev --prefix " & vueDir)
 
 task debug, "Build nimview debug":
   buildDebug()

@@ -33,7 +33,7 @@ proc nimview_addRequest*(request: cstring, callback: proc(value: cstring): cstri
         freeFunc(resultPtr)
   )
 
-proc nimview_dispatchRequest*(request, value: cstring): cstring {.gcsafe, exportc.} = 
+proc nimview_dispatchRequest*(request, value: cstring): cstring {.exportc.} = 
   result = $dispatchRequest($request, $value)
   
 proc nimview_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} = 
