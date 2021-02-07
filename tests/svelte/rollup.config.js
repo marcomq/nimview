@@ -3,12 +3,10 @@ import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import livereload from 'rollup-plugin-livereload'
 import { terser } from 'rollup-plugin-terser'
-
-// added by angelo
+import dev from 'rollup-plugin-dev'
 import json from 'rollup-plugin-json'
 import babel from 'rollup-plugin-babel'
 
-import dev from 'rollup-plugin-dev'
 
 const production = !process.env.ROLLUP_WATCH
 
@@ -25,7 +23,7 @@ export default {
       // enable run-time checks when not in production
       dev: !production,
       // we'll extract any component CSS out into
-      // a separate file — better for performance
+      // a separate file - better for performance
       css: css => {
         css.write('bundle.css')
       }
@@ -33,23 +31,24 @@ export default {
 
     // If you have external dependencies installed from
     // npm, you'll most likely need these plugins. In
-    // some cases you'll need additional configuration —
+    // some cases you'll need additional configuration 
     // consult the documentation for details:
     // https://github.com/rollup/rollup-plugin-commonjs
     resolve(),
     commonjs(),
     // added by angelo
-    json(),
+    json(), 
 
     // Watch the `public` directory and refresh the
     // browser on changes when not in production
-    !production && livereload('public') && dev({
-		dirs: ['public'],
-		port: 5000, 
-		proxy: { 
-			'/*': 'localhost:8000',
-		}
-	}),
+    !production && livereload('public'),
+    !production && dev({
+      dirs: ['public'],
+      port: 5000, 
+      proxy: { 
+        '*': 'localhost:8000',
+      }
+    }),
 
     // added by angelo
     // compile to good old IE11 compatible ES5
