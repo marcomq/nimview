@@ -30,6 +30,7 @@
   "dependencies": {
     "bootstrap": "^4.6.0",
     "core-js": "3",
-    "d3-dsv": "^1.1.1"
+    "d3-dsv": "^1.1.1",
+    "rollup-plugin-copy": "^3.3.0"
   }
 }

@@ -1,5 +1,8 @@
 // vue.config.js
 module.exports = {
+  devServer: { 
+    port: 5000 
+  },
   publicPath: '.',
   filenameHashing: false,
   devServer: {

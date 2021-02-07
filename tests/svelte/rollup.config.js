@@ -6,6 +6,7 @@ import { terser } from 'rollup-plugin-terser'
 import dev from 'rollup-plugin-dev'
 import json from 'rollup-plugin-json'
 import babel from 'rollup-plugin-babel'
+import copy from 'rollup-plugin-copy'
 
 
 const production = !process.env.ROLLUP_WATCH
@@ -48,6 +49,12 @@ export default {
       proxy: { 
         '*': 'localhost:8000',
       }
+    }),
+    copy({
+      targets: [{ 
+          src: 'node_modules/bootstrap/dist/**/*', 
+          dest: 'public/vendor/bootstrap' 
+      }]
     }),
 
     // added by angelo
