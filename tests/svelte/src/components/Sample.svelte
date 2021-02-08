@@ -2,10 +2,10 @@
   let search = ""
   let elements = []
   let runSearch = function() {
+    elements = elements.concat({text: search});
     window.ui.backend("appendSomething", search, function(response) { 
       search = response; 
     });
-    elements = elements.concat({text: search});
   };
 </script>
 

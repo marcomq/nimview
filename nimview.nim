@@ -1,5 +1,5 @@
 # Nimview UI Library 
-# Copyright (C) 2020, 2021, by Marco Mengelkoch
+# Copyright (C) 2021, by Marco Mengelkoch
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
@@ -18,6 +18,7 @@ when not defined(just_core):
   import nimpy
   when compileWithWebview:
     import webview except debug
+    var myWebView: Webview
   # import browsers
 else:
   # Just core features. Disable jester, webview nimpy and exportpy
@@ -34,19 +35,31 @@ else:
 # gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
 
 type ReqUnknownException* = object of CatchableError
-type RequestCallbacks* = ref object of RootObj
+type RequestCallbacks* = object of RootObj
   map: Table[string, proc(value: string): string ]
-  
-var req* : RequestCallbacks
+
+var req*: ptr RequestCallbacks = system.createShared(RequestCallbacks)
 var responseHttpHeader = {"Access-Control-Allow-Origin": "None"} # will be overwritten when starting Jester
 var useJester* = not compileWithWebview or (defined(useJester) or defined(debug) or (fileExists("/.dockerenv")))
-var logger = newConsoleLogger()
-logging.addHandler(logger)
+
+let stdLogger = newConsoleLogger()
+logging.addHandler(stdLogger)
+var requestLogger: FileLogger = nil
+
+proc enableRequestLogger*() {.exportpy.} = 
+  if requestLogger.isNil:
+    if not fileExists("requests.log"):
+      var createFile = system.open("requests.log", system.fmWrite)
+      createFile.close()
+    let requestLoggerTmp = newFileLogger("requests.log", fmtStr = "")
+    requestLogger = requestLoggerTmp;
+  requestLogger.levelThreshold = logging.lvlAll
+    
+proc disableRequestLogger*() {.exportpy.} = 
+  if not requestLogger.isNil:
+    requestLogger.levelThreshold = logging.lvlNone
 
 proc addRequest*(request: string, callback: proc(value: string): string ) {.exportpy.} = 
-  if (isNil(req)):
-    req = new RequestCallbacks
-    debug "new request map initialized"
   {.cast(gcsafe).}:
     req.map[request] = callback
 
@@ -68,6 +81,9 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   if (value.isEmptyOrWhitespace()):
     value = $jsonMessage["value"]
   let request = $jsonMessage["request"].getStr()
+  {.cast(gcsafe).}:
+    if not requestLogger.isNil:
+      requestLogger.log(logging.lvlInfo, $jsonMessage)
   result = dispatchRequest(request, value)
 
 proc dispatchCommandLineArg*(escapedArgv: string): string = 
@@ -193,27 +209,28 @@ when not defined(just_core):
           absFolder = os.getAppDir() / folder
       copyBackendHelper(absFolder)
       os.setCurrentDir(absFolder.parentDir())
-      let myView = newWebView("nimview", "file://" / absFolder)
       var fullScreen = true
-      myView.bindProcs("backend"): 
-          proc alert(message: string) = myView.info("alert", message)
+      myWebView = newWebView("nimview", "file://" / absFolder)
+      myWebView.bindProcs("backend"): 
+          proc alert(message: string) = myWebView.info("alert", message)
           proc call(message: string) = 
             info message
             let jsonMessage = json.parseJson(message)
             let resonseId = jsonMessage["responseId"].getInt()
             let response = dispatchJsonRequest(jsonMessage)
             let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
-            let responseCode =  myView.eval(evalJsCode)
+            let responseCode =  myWebView.eval(evalJsCode)
             discard responseCode
   #[          # just sample functions without current real functionality
-          proc open() = info myView.dialogOpen()
-          proc save() = info myView.dialogSave()
-          proc opendir() = info myView.dialogOpen(flag=dFlagDir)
-          proc close() = myView.terminate()
-          proc changeColor() = myView.setColor(210,210,210,100)
-          proc toggleFullScreen() = fullScreen = not myView.setFullscreen(fullScreen) ]#
-      myView.run()
-      myView.exit()
+          proc open() = info myWebView.dialogOpen()
+          proc save() = info myWebView.dialogSave()
+          proc opendir() = info myWebView.dialogOpen(flag=dFlagDir)
+          proc close() = myWebView.terminate()
+          proc changeColor() = myWebView.setColor(210,210,210,100)
+          proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
+      myWebView.run()
+      myWebView.exit()
+      dealloc(myWebView)
 
   when declared(Thread):
     proc startJesterThread(folder: string) {.thread.} =
@@ -230,16 +247,18 @@ when not defined(just_core):
 proc main() =
   when not defined(noMain):
     debug "starting nim main"
-    let argv = os.commandLineParams()
-    for arg in argv:
-      readAndParseJsonCmdFile(arg)
     when system.appType != "lib" and not defined(just_core):
       # startJester(folder)
-      addRequest("appendSomething", proc (value: string): string =
+      nimview.addRequest("appendSomething", proc (value: string): string =
         result = "'" & value & "' modified by Nim Backend")
       # let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
+      
+      let argv = os.commandLineParams()
+      for arg in argv:
+        nimview.readAndParseJsonCmdFile(arg)
       let folder = os.getCurrentDir() / "tests/svelte/public/index.html"
-      start(folder)
+      nimview.enableRequestLogger()
+      nimview.start(folder)
 
 initRequestFunctions() 
 when isMainModule and not defined(noMain):

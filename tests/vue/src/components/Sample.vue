@@ -8,7 +8,6 @@ export default {
   },
   methods: {
     runSearch() {
-      console.log(this)
       this.backend("appendSomething", this, 'search'); // calling the backend
       this.elements.push({val: this.search})
     }

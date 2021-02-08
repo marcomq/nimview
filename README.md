@@ -53,20 +53,32 @@ It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
 ```
 
 `window.ui.backend(request, value, callback)` can take up to 3 parameters:
-- the first one is the request function that is registered on server side.
+- the first one is the request function that is registered on back-end.
 - the second one is the value that is sent to the back-end
 - the third value is a callback function.
  
 An alternative signature, optimized for Vue.js is following:
 `window.ui.backend(request, object, key)`
-In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the server response. 
+In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the back-end response. 
 This is not expected to work with Svelte, as the modification of the object would be hidden for Svelte.
 
 You need to include your own error handler in the callback, as there is no separate error callback function.
 
-## Does this mean I can only send just 1 value and just receive just 1 value from server?
+
+## Does this mean I can only send just 1 value and just receive just 1 value from back-end?
 Yes and No - you can use Json to encode your values on the client, use a parser on the back-end to read all values and send Json back to the client. This is amazingly easy when using python or Nim as back-end. 
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
+
+## Development Workflow
+You need to compile the back-end and usually the front-end too, when using vue or svelte. While this seems unnecessary complicated, you will have the freedom to restart the back-end if you have back-end changes and 
+may have an auto-updated browser UI immediately after file change as there is some great autoreload functionality for webpack (vue) and rollit (svelte).
+So the development workflow would be:
+- start your back-end in debug mode with vs code or terminal, run: `nimble debug && ./nimview_debug`
+- start your frontend npm in autoreload with vs code or terminal, run `npm run dev --prefix <path_to_ui_folder>`
+- open a browser with url http://localhost:5000 to see the current front-end code result that is served by node.js
+- change your front-end code, the page will reload automatically
+- change your back-end code and use the debug restart button in vs code when finished
+- keep in mind that http://localhost:5000 is only a development url, the Javascript generated for production would be reachable by default at http://localhost:8000
 
 ### Why Nim?
 Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules but creates plain C Code that can be compiled by gcc compilers to optimized machine code. 
@@ -86,9 +98,9 @@ Also, you will have all the included features of nim if you decide to build a C+
 ### Difference to Eel and Neel
 There are some cool similar frameworks: The very popular framework "eel" (https://github.com/ChrisKnott/Eel) for python and its little brother neel (https://github.com/Niminem/Neel) for nim
 There are 2 major differences: 
-- Both eel and neel make it easy to call back-end-server side functions from Javascript and also call exposed Javascript from back-end. This is not any goal here with Nimview. 
+- Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. This is not any goal here with Nimview. 
   Nimview will just make it easy to trigger back-end routes from Javascript but will not expose Javascript functions to the back-end side. 
-  If you want to do so, you need to parse the back-end’s response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same server code without worrying about javascript functions.
+  If you want to do so, you need to parse the back-end’s response and call the function with this data. This makes it possible to use multiple HTML / JS user interfaces for the same back-end code without worrying about javascript functions.
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ### Difference to Flask
@@ -96,7 +108,7 @@ Flask is probably the most popular python framework to create micro services (ht
 Nimview will also not support server side template engines as flask does. But in case you want your application also running on the Desktop or Mobile, or if you want to use nim or C++ as your primary language, you might get get your application done really quick when using nimview.
 
 ### IE 11 
-Unfortunately, the backend-helper.js cannot send AJAX reuqests to a backend, as IE 11 doesn't support fetch. I might add an alternative fetch support for IE 11 in case that IE 11 still exits when nimview gets popular. 
+Unfortunately, the backend-helper.js cannot send AJAX reuqests to a back-end, as IE 11 doesn't support fetch. I might add an alternative fetch support for IE 11 in case that IE 11 still exits when nimview gets popular. 
 Feel free to make a PR if you need the IE 11 support sooner for your web engine.
 
 ## Project setup

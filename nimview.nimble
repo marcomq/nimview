@@ -27,6 +27,16 @@ when defined(nimdistros):
 
 import oswalkdir, os, strutils  
 
+proc execCmd(command: string) = 
+  when defined(windows): 
+    exec "cmd /c \"" & command & "\""
+  else:
+    exec command
+    
+proc execNim(command: string) = 
+  echo "nim " & command
+  selfExec(command)
+
 proc buildLibs() = 
   ## creates python and C/C++ libraries
   rmDir("tmp_py")
@@ -37,22 +47,16 @@ proc buildLibs() =
     "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
   else: 
     " -l" & application & " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
-  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & mainApp & "" # creates python lib, header file not usable
-  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on " & libraryFile  # header not usable, but this creates .o files we need
-  selfExec "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & libraryFile # just to create usable header file, doesn't create .o files
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & mainApp & "" # creates python lib, header file not usable
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on " & libraryFile  # header not usable, but this creates .o files we need
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & libraryFile # just to create usable header file, doesn't create .o files
   cpFile(thisDir() & "/tmp_c/" & application & ".h", thisDir() & "/" & application & ".h")
 
   exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & application & ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
   echo "Python and shared C libraries build completed. Files have been created in tests folder."
 
-proc execCmd(command: string) = 
-  when defined(windows): 
-    exec "cmd /c \"" & command & "\""
-  else:
-    exec command
-
 proc buildRelease() =
-  selfExec "c --app:gui -d:release -d:useStdLib --out:" & application & " " & mainApp
+  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & mainApp
   # execCmd("npm run build --prefix " & uiDir)
   # when defined(windows): 
   #   exec "cmd /c \"" & vueCmd & "\""
@@ -60,7 +64,7 @@ proc buildRelease() =
   #   exec "vueCmd"
 
 proc buildDebug() =
-  selfExec "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & mainApp
+  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & mainApp
   # cd uiDir
   # exec "npm install"
   # cd "../../"
@@ -126,7 +130,7 @@ proc runTests(nimFlags = "") =
     let sf = f.path.splitFile()
     if sf.ext == ".nim" and sf.name.startsWith("t"):
       for libPython in libPythons:
-        selfExec "c -d:nimpyTestLibPython=" & libPython & " -r " & nimFlags & " " & f.path
+        execNim "c -d:nimpyTestLibPython=" & libPython & " -r " & nimFlags & " " & f.path
 
 task libs, "Build Libs":
   buildLibs()
