@@ -36,7 +36,12 @@ ui.createRequest = function(request, data, callbackFunction) {
         callbackFunction = data; 
         data = '';
         break;
-    default: break;
+    case 'undefined': 
+        data = '';
+        break;
+    default: 
+      data = '' + data; 
+      break;
   }
   if (ui.responseCounter >= Number.MAX_SAFE_INTEGER-1) {
     ui.responseCounter = 0;
@@ -105,7 +110,12 @@ ui.backend = function (request, data, callbackFunction) {
       var url = defaultPostTarget; 
     }
     fetch(host + "/" + url, opts).then(function(response) { 
-      return response && response.json();
+      if (response && response.json) {
+        return response.json();
+      }
+      else {
+        return response;
+      }
     }).then(function(response) {
       var key = jsonRequest.key;
       if ((typeof response === "object") && (key in response)) {

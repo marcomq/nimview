@@ -23,7 +23,7 @@
       </div>
     </div>
     <div v-else>
-      <h5>No data available yet ??</h5>
+      <p>No data available yet</p>
     </div>
   </b-container>
 </div>

@@ -17,7 +17,7 @@
                 <em>Nothing here yet</em>
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                <a class="dropdown-item" href="#">Action</a>
+                <a class="dropdown-item" href="#">Some Action</a>
               </div>
             </li>
           </ul>

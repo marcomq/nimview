@@ -4,7 +4,7 @@
 </script>
 <main>
 	<div id="app">
-		<Navbar />
+		<Navbar/>
 		<Sample/>
 	</div>
 </main>

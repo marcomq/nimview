@@ -52,9 +52,13 @@ export default {
     }),
     copy({
       targets: [{ 
-          src: 'node_modules/bootstrap/dist/**/*', 
-          dest: 'public/vendor/bootstrap' 
-      }]
+        src: ['node_modules/bootstrap/dist/js/*', 'node_modules/bootstrap/dist/css/*'],
+        dest: 'public/vendor/bootstrap' 
+      },{ 
+        src: ['node_modules/jquery/dist/*'],
+        dest: 'public/vendor/jquery' 
+      }],
+      copyOnce: true
     }),
 
     // added by angelo
