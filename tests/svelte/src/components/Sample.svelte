@@ -30,5 +30,7 @@
 </div>
 
 <style>
-.sample {margin-top: 5px;}
+.sample {
+  margin-top: 5px;
+}
 </style>
