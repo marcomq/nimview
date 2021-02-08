@@ -11,7 +11,7 @@ license     = "MIT"
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
 requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview == 0.1.0"
-let vueDir = "tests/vue"
+let uiDir = "tests/svelte"
 let application = "nimview"
 bin = @[application]
 let mainApp = application & ".nim"
@@ -53,7 +53,7 @@ proc execCmd(command: string) =
 
 proc buildRelease() =
   selfExec "c --app:gui -d:release -d:useStdLib --out:" & application & " " & mainApp
-  execCmd("npm run build --prefix " & vueDir)
+  # execCmd("npm run build --prefix " & uiDir)
   # when defined(windows): 
   #   exec "cmd /c \"" & vueCmd & "\""
   # else:
@@ -61,7 +61,7 @@ proc buildRelease() =
 
 proc buildDebug() =
   selfExec "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & mainApp
-  # cd vueDir
+  # cd uiDir
   # exec "npm install"
   # cd "../../"
 
@@ -132,7 +132,7 @@ task libs, "Build Libs":
   buildLibs()
 
 task dev, "Serve NPM":
-  execCmd("npm run dev --prefix " & vueDir)
+  execCmd("npm run dev --prefix " & uiDir)
 
 task debug, "Build nimview debug":
   buildDebug()
@@ -141,7 +141,7 @@ task debug, "Build nimview debug":
   #   cd "tests"
   #   exec "startNpmDebug.bat"
   # else:
-  #   exec "./" & application & "_debug & npm run serve --prefix " & vueDir
+  #   exec "./" & application & "_debug & npm run serve --prefix " & uiDir
 
     
 task release, "Build npm and Run with webview":
@@ -150,7 +150,7 @@ task release, "Build npm and Run with webview":
 task test, "Run tests":
   runTests()
   runTests("--gc:arc --passc:-g") # Arc
-  execCmd "npm run build --prefix " & vueDir
+  execCmd "npm run build --prefix " & uiDir
 
 task test_arc, "Run tests with --gc:arc":
   runTests("--gc:arc --passc:-g")

@@ -1,34 +1,3 @@
-//src/components/Sample.vue
-// https://blog.logrocket.com/getting-started-with-bootstrapvue-2d8bf907ef11/
-<template>
-<div>
-  <b-container>
-  <b-nav-form>
-    <b-form-input 
-      size="sm" 
-      class="mr-sm-2" 
-      placeholder="Search for..."
-      v-model="search"
-      ></b-form-input>
-    <b-button 
-      size="sm" 
-      class="my-2 my-sm-0" 
-      type="submit" 
-      @click.prevent="runSearch"
-      >Search</b-button>
-  </b-nav-form>
-    <div v-if="elements.length">
-      <div v-for="item in elements" :key="item.val">
-          <div>{{item.val}}</div>
-      </div>
-    </div>
-    <div v-else>
-      <p>No data available yet</p>
-    </div>
-  </b-container>
-</div>
-</template>
-
 <script>
 export default {
   data() {
@@ -39,9 +8,35 @@ export default {
   },
   methods: {
     runSearch() {
+      console.log(this)
       this.backend("appendSomething", this, 'search'); // calling the backend
       this.elements.push({val: this.search})
     }
   }
 };
 </script>
+
+<template>
+<div class="container sample">
+  <li class="form-inline">
+    <form class="form-inline">
+      <input class="form-control mr-sm-2" type="search" placeholder="Search for ..." aria-label="search"  v-model="search">
+      <button type="button" v-on:click="runSearch" class="btn btn-success my-2 my-sm-0">Search</button>
+    </form>
+  </li>
+  <div v-if="elements.length">
+    <div v-for="item in elements" :key="item.val">
+        <div>{{item.val}}</div>
+    </div>
+  </div>
+  <div v-else>
+    <p>No data available yet</p>
+  </div>
+</div>
+</template>
+
+<style scoped>
+.sample {
+  margin-top: 5px;
+}
+</style>

@@ -93,7 +93,10 @@ proc readAndParseJsonCmdFile*(filename: string) =
     logging.error "File does not exist: " & filename
 
 when not defined(just_core):
-  const backendHelperJs = system.staticRead("backend-helper.js")
+  when not defined release:
+    const backendHelperJs = system.staticRead("backend-helper.js")
+  else:
+    var backendHelperJs = system.readFile("backend-helper.js")
 
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string = 
     # optional but not implemented yet - check credentials from header information
