@@ -75,12 +75,12 @@ proc buildLibs(nimFlags = "") =
   rmDir("tmp_c")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
   let cDllExtension = when defined(windows): "dll" else: "so"
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on "  & nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & nimFlags & " " & libraryFile # just to create usable header file, doesn't create .o files
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on "  & nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & nimFlags & " " & libraryFile # just to create usable header file, doesn't create .o files
   cpFile(thisDir() & "/tmp_c/" & application & ".h", thisDir() & "/" & application & ".h")
 
-  exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & application & ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs
+  exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & application & ".a -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs # -Wl,--export-all-symbols -Wl,--enable-auto-import
   echo "Python and shared C libraries build completed. Files have been created in tests folder."
 
 proc buildRelease(nimFlags = "") =
