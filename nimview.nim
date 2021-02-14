@@ -234,8 +234,9 @@ when not defined(just_core):
       # TODO: potentially re-initialize function map for each thread
       # createThread(thread, startHttpServer, folder, 8000)
 
-  proc start*(folder: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} = 
-    if useJester:
+  proc start*(folder: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
+    let displayAvailable = (os.getEnv("DISPLAY") != "")
+    if useJester or not displayAvailable:
       startHttpServer(folder, port, bindAddr)
     else:
       startDesktop(folder, title, width, height, resizable)

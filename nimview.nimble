@@ -24,7 +24,7 @@ else:
   echo "####-----------------------------------------------------####"
   requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview >= 0.1.0"
 
-import oswalkdir, os, strutils
+import os, strutils
 
 let vueDir = "tests/vue"
 let svelteDir = "tests/svelte"
@@ -38,10 +38,11 @@ if (not system.fileExists(nimbaseDir & "/nimbase.h")):
 if (not system.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(parentDir(parentDir(parentDir(system.findExe("gcc"))))) & "/lib"
 
-let externalLibs = when defined(windows): 
+var externalLibs = when defined(windows): 
   "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
 else: 
-  " -l" & application & " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
+  " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0 -ldl"
+  
 
 when defined(nimdistros):
   import distros
@@ -50,6 +51,7 @@ when defined(nimdistros):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
     foreignDep "webkit2gtk3-devel"
+    externalLibs = " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
 
 
 proc execCmd(command: string) = 
@@ -128,7 +130,7 @@ proc calcLibPythons() : seq[string] =
 
 proc buildCSample(nimFlags = "") = 
   rmDir("tmp_c")
-  execNim "c -d:release -d:useStdLib -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c --app:gui --out:" & application & " " & nimFlags & " " & libraryFile # to debug nim lib paths, add --genScript:on
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c --app:staticLib --out:" & application & " " & nimFlags & " " & libraryFile # to debug nim lib paths, add --genScript:on
   when defined(windows): 
     execCmd "gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -Itmp_c tests/c_sample.c"
   else:

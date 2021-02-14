@@ -11,6 +11,7 @@ extern "C" {
 #include<type_traits>
 #include<utility>
 #include<functional>
+#include <stdlib.h>
 #ifdef _MSC_VER 
 #include <variant>
 #endif
@@ -66,8 +67,17 @@ namespace nimview {
         nimview_addRequest(const_cast<char*>(request.c_str()), cFunc, free);
     }
     void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  { 
-        nimview_start(const_cast<char*>(folder), port, const_cast<char*>(bindAddr), const_cast<char*>(title), width, height, resizable);
-    };
+        bool runWithGui = (NULL != getenv("DISPLAY"));
+        #ifdef _DEBUG
+            runWithGui = false;
+        #endif
+        if (runWithGui) {
+            nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, false);
+        }
+        else {
+            nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
+        }
+    }
     void startDesktop(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  { 
         nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
     };
