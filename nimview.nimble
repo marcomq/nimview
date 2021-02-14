@@ -9,7 +9,6 @@ bin         = @[application]
 
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core
-
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
 when system.NimMinor >= 2:
@@ -53,6 +52,10 @@ when defined(nimdistros):
     foreignDep "webkit2gtk3-devel"
     externalLibs = " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
 
+var extraParameter = ""
+if (system.paramCount() > 8):
+  for i in 9..system.paramCount():
+    extraParameter = extraParameter & " " & system.paramStr(i) 
 
 proc execCmd(command: string) = 
   echo "running: " & command
@@ -62,8 +65,9 @@ proc execCmd(command: string) =
     exec command
     
 proc execNim(command: string) = 
-  echo "running: nim " & command
-  selfExec(command)
+  let commandWithExtra = extraParameter & " " & command  
+  echo "running: nim " & commandWithExtra
+  selfExec(commandWithExtra)
 
 proc buildLibs(nimFlags = "") = 
   ## creates python and C/C++ libraries
@@ -173,7 +177,3 @@ task release, "Build npm and Run with webview":
 task test, "Run tests":
   runTests()
   # execCmd "npm run build --prefix " & svelteDir
-
-task test_arc, "Run tests with --gc:arc":
-  buildLibs("--gc:arc --passc:-g")
-  runTests()
