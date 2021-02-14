@@ -1,0 +1,32 @@
+---
+AccessModifierOffset: 0
+AlwaysBreakBeforeMultilineStrings: false
+AllowShortFunctionsOnASingleLine: Inline
+AlignAfterOpenBracket: DontAlign
+BasedOnStyle:  Chromium 
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass : false
+  AfterControlStatement : MultiLine
+  AfterEnum: false
+  AfterExternBlock: true
+  AfterFunction: false
+  AfterNamespace: true
+  AfterStruct: false
+  BeforeCatch: true
+  BeforeElse: true
+  SplitEmptyFunction: false
+ColumnLimit:     240
+Language:        Cpp
+Standard:        Cpp11
+TabWidth:        4
+IndentWidth:     4
+ContinuationIndentWidth: 4
+IncludeBlocks: Preserve
+IndentCaseLabels: true
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
+PointerAlignment: Left
+SpaceAfterCStyleCast: true
+UseTab:          ForContinuationAndIndentation

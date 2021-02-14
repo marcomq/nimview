@@ -13,8 +13,8 @@ export nimview
 # import std/compilesettings
 # when (querySetting(backend) == "c"):
 #   proc NimMain() {.importc.}
-# elif (querySetting(backend) == "cpp"):
-#   proc NimMain() {.importcpp.}
+# when (querySetting(backend) == "cpp"):
+#  proc NimMain() {.importcpp.}
 # else:
 #   proc NimMain() =
 #     discard
@@ -44,23 +44,20 @@ proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} =
   
 when not defined(just_core):
   
-  proc nimview_startJester*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
-    startJester($folder, int(port), $bindAddr)
+  proc nimview_startHttpServer*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost") {.exportc.} =
+    startHttpServer($folder, int(port), $bindAddr)
 
-  proc nimview_startWebview*(folder: cstring) {.exportc.} = 
+  proc nimview_startDesktop*(folder: cstring, title: cstring = "nimview", width: cint = 640, height: cint = 480, resizable: bool = true, debug: bool = false) {.exportc.} = 
     # NimMain()
     debug "starting C webview"
-    startWebview($folder)
+    startDesktop($folder, $title, width, height, resizable, debug)
     debug "leaving C webview"
 
-  proc nimview_start*(folder: cstring) {.exportc.} = 
-    nimview.start($folder) 
-      
-initRequestFunctions()
+  proc nimview_start*(folder: cstring, port: cint = 8000, bindAddr: cstring = "localhost", title: cstring = "nimview", width: cint = 640, height: cint = 480, resizable: bool = true) {.exportc.} = 
+    nimview.start($folder, port, $bindAddr, $title, width, height, resizable) 
 
-proc main() =
-  echo "nimview_c main"
-      
+proc myMain() {.exportc.} =
+  echo "starting nim"
 
-when isMainModule and not defined(noMain):
-  main()
+when isMainModule:
+  myMain()
