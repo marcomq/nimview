@@ -66,8 +66,12 @@ namespace nimview {
         auto cFunc = castToFunction<COUNTER>(lambda);
         nimview_addRequest(const_cast<char*>(request.c_str()), cFunc, free);
     }
-    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  { 
-        bool runWithGui = (NULL != getenv("DISPLAY"));
+    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  {
+        #ifdef _WIN32
+            bool runWithGui = true;
+        #else
+            bool runWithGui = (NULL != getenv("DISPLAY"));
+        #endif
         #ifdef _DEBUG
             runWithGui = false;
         #endif

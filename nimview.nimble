@@ -37,11 +37,19 @@ if (not system.fileExists(nimbaseDir & "/nimbase.h")):
 if (not system.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(parentDir(parentDir(parentDir(system.findExe("gcc"))))) & "/lib"
 
-var externalLibs = when defined(windows): 
+let webviewlLibs = when defined(windows): 
   "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
-else: 
-  " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0 -ldl"
-  
+elif defined(macosx):
+  "-framework Cocoa -framework WebKit"
+else:
+  system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl"
+
+let webviewIncludes = when defined(windows): 
+  "-DWEBVIEW_WINAPI=1 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN " 
+elif defined(macosx):
+  "-DWEBVIEW_COCOA=1 -x objective-c"
+else:
+  "-DWEBVIEW_GTK=1 " & staticExec("pkg-config --cflags gtk+-3.0 webkit2gtk-4.0")
 
 when defined(nimdistros):
   import distros
@@ -50,7 +58,6 @@ when defined(nimdistros):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
     foreignDep "webkit2gtk3-devel"
-    externalLibs = " -lm -lrt -lwebkit2gtk-4.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lsoup-2.4 -lgio-2.0 -ljavascriptcoregtk-4.0 -lgobject-2.0 -lglib-2.0"
 
 var extraParameter = ""
 if (system.paramCount() > 8):
@@ -68,36 +75,6 @@ proc execNim(command: string) =
   let commandWithExtra = extraParameter & " " & command  
   echo "running: nim " & commandWithExtra
   selfExec(commandWithExtra)
-
-proc buildLibs(nimFlags = "") = 
-  ## creates python and C/C++ libraries
-  rmDir("tmp_py")
-  rmDir("tmp_c")
-  let pyDllExtension = when defined(windows): "pyd" else: "so"
-  let cDllExtension = when defined(windows): "dll" else: "so"
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on "  & nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & nimFlags & " " & libraryFile # just to create usable header file, doesn't create .o files
-  cpFile(thisDir() & "/tmp_c/" & application & ".h", thisDir() & "/" & application & ".h")
-
-  exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & application & ".a -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & externalLibs # -Wl,--export-all-symbols -Wl,--enable-auto-import
-  echo "Python and shared C libraries build completed. Files have been created in tests folder."
-
-proc buildRelease(nimFlags = "") =
-  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & nimFlags & " " & mainApp
-  # execCmd("npm run build --prefix " & uiDir)
-  # when defined(windows): 
-  #   exec "cmd /c \"" & vueCmd & "\""
-  # else:
-  #   exec "vueCmd"
-
-
-proc buildDebug(nimFlags = "") =
-  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & nimFlags & " " & mainApp
-  # cd uiDir
-  # exec "npm install"
-  # cd "../../"
-
 
 proc calcPythonExecutables() : seq[string] =
   ## Calculates which Python executables to use for testing
@@ -132,27 +109,42 @@ proc calcLibPythons() : seq[string] =
   let libPythons = getEnv("NIMPY_LIBPYTHONS", "")
   result = libPythons.split(":")
 
+proc buildLibs(nimFlags = "") = 
+  ## creates python and C/C++ libraries
+  rmDir("tmp_py")
+  rmDir("tmp_c")
+  let pyDllExtension = when defined(windows): "pyd" else: "so"
+  let cDllExtension = when defined(windows): "dll" else: "so"
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/" & application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on "  & nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & application & ".h --compileOnly:off --nimcache=./tmp_c " & nimFlags & " " & libraryFile # just to create usable header file, doesn't create .o files
+  cpFile(thisDir() & "/tmp_c/" & application & ".h", thisDir() & "/" & application & ".h")
+
+  exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & application & ".a -Wl,--whole-archive tmp_c/*.o -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--no-whole-archive " & webviewlLibs # -Wl,--export-all-symbols -Wl,--enable-auto-import
+  echo "Python and shared C libraries build completed. Files have been created in tests folder."
+
+proc buildRelease(nimFlags = "") =
+  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & nimFlags & " " & mainApp
+
+proc buildDebug(nimFlags = "") =
+  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & nimFlags & " " & mainApp
+
 proc buildCSample(nimFlags = "") = 
   rmDir("tmp_c")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c --app:staticLib --out:" & application & " " & nimFlags & " " & libraryFile # to debug nim lib paths, add --genScript:on
-  when defined(windows): 
-    execCmd "gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -Itmp_c tests/c_sample.c"
-  else:
-    execCmd r"gcc -c -w -o tmp_c/c_sample.o -c  -w -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -DWEBVIEW_GTK=1 -I/usr/include/gtk-3.0 -I/usr/include/pango-1.0 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/include/fribidi -I/usr/include/cairo -I/usr/include/pixman-1 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/uuid -I/usr/include/harfbuzz -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/atk-1.0 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/at-spi-2.0 -I/usr/include/dbus-1.0 -I/usr/lib64/dbus-1.0/include -I/usr/include/webkitgtk-4.0 -I/usr/include/libsoup-2.4 -pthread -I/usr/include/libxml2 -O3 -fno-strict-aliasing -fno-ident -I. -Itmp_c tests/c_sample.c"
-  execCmd "gcc -w -o tests/c_sample.exe tmp_c/*.o " & externalLibs
+  execCmd "gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_c tests/c_sample.c"
+  execCmd "gcc -w -o tests/c_sample.exe tmp_c/*.o " & webviewlLibs
 
 proc buildCppSample(nimFlags = "") = 
   rmDir("tmp_cpp")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_cpp --app:staticLib " & nimFlags & " " & libraryFile # target cpp would require a different nimview.hpp
-  when defined(windows): 
-    execCmd "g++ -c -w -std=c++17 -o tmp_cpp/cpp_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -Itmp_cpp tests/cpp_sample.cpp"
-  else:
-    execCmd r"g++ -c -w -std=c++17 -o tmp_cpp/cpp_sample.o -c  -w -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -DWEBVIEW_GTK=1 -I/usr/include/gtk-3.0 -I/usr/include/pango-1.0 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/include/fribidi -I/usr/include/cairo -I/usr/include/pixman-1 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/uuid -I/usr/include/harfbuzz -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/atk-1.0 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/at-spi-2.0 -I/usr/include/dbus-1.0 -I/usr/lib64/dbus-1.0/include -I/usr/include/webkitgtk-4.0 -I/usr/include/libsoup-2.4 -pthread -I/usr/include/libxml2 -O3 -fno-strict-aliasing -fno-ident -I. -Itmp_cpp tests/cpp_sample.cpp"
-  execCmd "g++ -w -o tests/cpp_sample.exe tmp_cpp/*.o " & externalLibs
+  execCmd "g++ -c -w -std=c++17 -o tmp_cpp/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_cpp tests/cpp_sample.cpp"
+  execCmd "g++ -w -o tests/cpp_sample.exe tmp_cpp/*.o " & webviewlLibs
 
 proc runTests() =
-  buildCppSample()
   buildCSample()
+  buildCppSample()
+  buildLibs()
 
 
 task libs, "Build Libs":
