@@ -1,17 +1,18 @@
 # Nimview
-A lightweight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of online / offline Desktop applications based on a HTML/CSS/JS layer to be displayed with Webview while also having the possibility to run the same applicatio on cloud with the same code.
+A lightweight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of online / offline applications based on a HTML/CSS/JS layer to be displayed with Webview or a browser. The application will run on cloud and on desktop with the same code.
 
 # About
 
-The target of this project is to have a simple, ultra lightweight cross platform, cross programming language UI layer for Desktop and Cloud applications that have just a few MB in static executable size. 
+The target of this project is to have a simple, ultra lightweight cross platform, cross programming language UI layer for desktop and cloud applications that have just a few MB in static executable size. 
 The UI layer will be completely HTML/CSS/JS based and the back-end should be using either Nim, C/C++ or Python code directly. 
-Nim also acts as a "glue" layer as it makes it very easy to create python libs and can also create c libraries easily. 
-The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS  without the requirement to have some kind of web-server running. 
-Running remote (cloud) server applications are possible too, but should use an additional authentication and security reverse proxy layer. An Android Studio setup for nimview is here: ...
+Nim mostly acts as a "glue" layer as it can create python and C libraries easily. 
+The final result should be a binary executable that runs on Linux, Windows or (untested) MacOS Desktop. 
+The application will only need to create a webserver in debug mode, or if there is no Desktop available.
+Make sure to use an additional authentication and security reverse proxy layer when running on cloud for production. An Android Studio setup for nimview is here: ...
 
 Node.js is recommended if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
-During development in debug mode, the back-end code will also create a simple HTTP server by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
-Webview on its own is a mess if you want to debug your Javascript issues.
+The HTTP server will run in debug mode by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
+Webview on its own is a mess if you want to debug your Javascript issues. You might use it for production and testing, but you shouldn't focus Javascript UI development on Webview.
 
 This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
@@ -60,7 +61,7 @@ It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
 An alternative signature, optimized for Vue.js is following:
 `window.ui.backend(request, object, key)`
 In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the back-end response. 
-This is not expected to work with Svelte, as the modification of the object would be hidden for Svelte.
+This is not expected to work with Svelte, as the modification of the object would be hidden for Svelte and doesn't add the reactivity you might expect.
 
 You need to include your own error handler in the callback, as there is no separate error callback function.
 
@@ -70,8 +71,8 @@ Yes and No - you can use Json to encode your values on the client, use a parser 
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
 
 ## Development Workflow
-You need to compile the back-end and usually the front-end too, when using vue or svelte. While this seems unnecessary complicated, you will have the freedom to restart the back-end if you have back-end changes and 
-may have an auto-updated browser UI immediately after file change as there is some great autoreload functionality for webpack (vue) and rollit (svelte).
+You need to compile the back-end and usually the front-end too, when using vue or svelte. While this seems unnecessary complicated in the beginning, you will have the freedom to only restart the back-end if you have back-end changes and 
+use some autoreload feature of webpack (vue) and rollit (svelte) for the frontend.
 So the development workflow would be:
 - start your back-end in debug mode with vs code or terminal, run: `nimble debug && ./nimview_debug`
 - start your frontend npm in autoreload with vs code or terminal, run `npm run dev --prefix <path_to_ui_folder>`
@@ -85,13 +86,12 @@ Nim is actually some great "batteries included" helper. It is similar readable a
 You can also include C/C++ code as the output of Nim is just plain C. Additionally, it can be compiled to a python library easily. (https://robert-mcdermott.gitlab.io/posts/speeding-up-python-with-nim/).
 
 ### Which JS framework would be recommended.
-If you work on Windows, Vue is probably the easiest to setup. There is an example for Vue + Bootstrap in tests/vue and also one example for Svelte in tests/svelte.
-Svelte is probably fastest, easiest to write and best to read, but might create issues with the IE11 engine if you don't setup polyfill and babel correctly.
-I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux. But if you want - you might just use the JS framework of your choice.
+Svelte will create the fastest and most readable front-end code. But it is up to you which framework you will choose. There is an example for Vue + Bootstrap in tests/vue and one for Svelte in tests/svelte.
+I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, but I didn't like the verbosity of React or writing map-reducers for Redux, so I didn't add an example for React yet.
 The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in the static HTML includes. There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library. 
 
 ### Why not Electron or CEF?
-Electron is a great framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate in Electron. In CEF, it is easy to use C++, but the output binary is usually more than 100 MB and getting started with a new project can take some time. So, CEF might be great for large Desktop projects that don't need to care about RAM or Disk, but can be an overkill for small applications.
+Electron is a great framework and it was also an inspiration to this helper here. However, using C++ Code is quite complicate in Electron. In CEF, it is easy to use C++, but the output binary is usually more than 100 MB and getting started with a new project can take some time. Also, the nim support for CEF is still basic. So, CEF might be great for large Desktop projects that don't need to care about RAM or Disk, but can be an overkill for small applications.
 The output of this tool here can be less than 2MB. It also might just run in the Cloud as there is an included webserver - you might easily run the app in Docker. Getting started might just take some minutes and it will consume less RAM, less system resources and will start much quicker than an Electron or CEF App.
 Also, you will have all the included features of nim if you decide to build a C++ Code. You might write the same Code and the same UI for your Cloud application as for your Desktop App.
 
@@ -117,9 +117,10 @@ Feel free to make a PR if you need the IE 11 support sooner for your web engine.
     avoid white-space in nim install folder name when using windows
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
-- nimble release
-- (linux, optional if not installed by nimble: yum install nim, gcc, npm, webkit2gtk3-devel <or:> apt install nim, gcc, npm, libwebkit2gtk-4.0-dev
-- install node > 12.19 if using windows  (https://nodejs.org/en/download/)
+- (linux:  yum install nim, gcc, npm, webkit2gtk3-devel <or:> apt install nim, gcc, npm, libwebkit2gtk-4.0-dev)
+- (windows: install node > 12.19  (https://nodejs.org/en/download/)
+- nimble install
 - run "cd tests/vue", "npm install" and "cd ../.." 
-- run nimview
+- nimble debug && ./nimview.exe
+- (other console) npm run dev --prefix <ui folder of your choice>
 ```

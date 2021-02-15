@@ -11,6 +11,8 @@ import strutils
 import tables
 import logging
 
+# run "nimble release" or "nimble debug" to compile
+
 const compileWithWebview = defined(useWebview) or not defined(useJester)
 
 when not defined(just_core):
@@ -24,15 +26,6 @@ else:
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
-
-# nim c -r --threads:on -d:debug --debuginfo  --debugger:native -d:useStdLib --verbosity:2 nimview.nim
-# cp .\generated_c\nimview.h .
-# nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --app:lib --out:nimview.dll --nimcache=./tmp_c nimview.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --header:nimview.h --nimcache=./tmp_c nimview.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on --noLinking:on  --compileOnly:on --header:nimview.h --nimcache=./tmp_c nimview.nim
-# nim c --verbosity:2 -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:nimview.h --nimcache=./tmp_c nimview.nim    
-# gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -DWEBVIEW_WINAPI=1 -O3 -fno-strict-aliasing -fno-ident -IC:\Users\Mmengelkoch\.nimble\pkgs\webview-0.1.0\webview -IC:\Users\Mmengelkoch\.choosenim\toolchains\nim-1.4.2\lib -Itmp_c tests/c_sample.c
-# gcc -w -o tests/c_sample.exe tmp_c/*.o -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32 -Itmp_c 
 
 type ReqUnknownException* = object of CatchableError
 type RequestCallbacks* = object of RootObj
@@ -162,13 +155,14 @@ when not defined(just_core):
         except:
           respond Http500, $ %* { "error":"500", "value":"request doesn't contain valid json", "resultId": resultId } 
 
-  proc copyBackendHelper (folder: string) =
+  proc copyBackendHelper (folder: string) {.gcsafe.} =
     let targetJs =  folder.parentDir() / "backend-helper.js"
     try:
       when (system.hostOS == "windows"):
         if (not os.fileExists(targetJs) or defined(debug)):
             debug "writing to " & targetJs
-            system.writeFile(targetJs, backendHelperJs)
+            {.gcsafe.}:
+              system.writeFile(targetJs, backendHelperJs)
       else:
         if (not os.fileExists(targetJs)):
             debug "symlinking to " & targetJs
@@ -176,18 +170,23 @@ when not defined(just_core):
     except:
       logging.error "backend-helper.js not copied" 
 
-  proc startHttpServer*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.exportpy.} =
-    var absFolder = folder
-    if (not os.isAbsolute(folder)): 
-      if (os.getAppFilename().startsWith("python")):
-        absFolder = os.getCurrentDir() / folder
+  proc getAbsFolder(folder:string): string = 
+    result = folder
+    if (not os.isAbsolute(folder)):
+      debug os.getAppFilename().extractFilename()
+      if (os.getAppFilename().extractFilename().startsWith("python")):
+        result = os.getCurrentDir() / folder
       else:
-        absFolder = os.getAppDir() / folder
+        result = os.getAppDir() / folder
+
+  proc startHttpServer*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.exportpy.} =
+    var absFolder = nimview.getAbsFolder(folder)
     copyBackendHelper(absFolder)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
-    nimview.responseHttpHeader = { "Access-Control-Allow-Origin": origin }
+    {.gcsafe.}:
+      nimview.responseHttpHeader = { "Access-Control-Allow-Origin": origin }
     let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
     var jester = jester.initJester(handleRequest, settings=settings)
     # debug "open default browser"
@@ -196,13 +195,7 @@ when not defined(just_core):
     
   proc startDesktop*(folder: string, title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true, debug: bool = defined release) {.exportpy.} =
     when compileWithWebview: 
-      var absFolder = folder
-      if (not os.isAbsolute(folder)):
-        debug os.getAppFilename().extractFilename()
-        if (os.getAppFilename().extractFilename().startsWith("python")):
-          absFolder = os.getCurrentDir() / folder
-        else:
-          absFolder = os.getAppDir() / folder
+      var absFolder = nimview.getAbsFolder(folder)
       copyBackendHelper(absFolder)
       os.setCurrentDir(absFolder.parentDir())
       var fullScreen = true
@@ -229,13 +222,16 @@ when not defined(just_core):
       dealloc(myWebView)
 
   when declared(Thread):
-    proc startJesterThread(folder: string) {.thread.} =
-      var thread: Thread[string]
-      # TODO: potentially re-initialize function map for each thread
-      # createThread(thread, startHttpServer, folder, 8000)
+    proc startHttpServerThread(args: tuple[folder: string, port: int, bindAddr: string]) {.thread.} =
+      nimview.startHttpServer(args.folder, args.port, args.bindAddr)
+
+    proc startJesterThread(folder: string, port: int = 8000, bindAddr: string = "localhost") {.thread.} =
+      var thread: Thread[tuple[folder: string, port: int, bindAddr: string]]
+      createThread(thread, startHttpServerThread, (folder, port, bindAddr))
 
   proc start*(folder: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
-    let displayAvailable = (os.getEnv("DISPLAY") != "")
+    
+    let displayAvailable = when (system.hostOS == "windows"): true else: (os.getEnv("DISPLAY") != "")
     if useJester or not displayAvailable:
       startHttpServer(folder, port, bindAddr)
     else:
@@ -255,6 +251,8 @@ proc main() =
       # let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
       let folder = os.getCurrentDir() / "tests/svelte/public/index.html"
       nimview.enableRequestLogger()
+      # nimview.startJesterThread(folder)
+      debug "starting webview"
       nimview.start(folder)
 
 when isMainModule:
