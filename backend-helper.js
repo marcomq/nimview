@@ -95,13 +95,13 @@ ui.backend = function (request, data, callbackFunction) {
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
     jsonRequest = ui.createRequest(request, data, callbackFunction);
-
+    var postData = JSON.stringify(jsonRequest);
     var opts = {
       method: 'POST', // always use AJAX post for simplicity with special chars    
       mode: 'cors',
       cache: 'no-cache',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(jsonRequest)
+      body: postData
     };
     if (defaultPostTarget == "") {
       var url = request; // Not required. Just for easier debugging
@@ -109,14 +109,7 @@ ui.backend = function (request, data, callbackFunction) {
     else {
       var url = defaultPostTarget; 
     }
-    fetch(host + "/" + url, opts).then(function(response) { 
-      if (response && response.json) {
-        return response.json();
-      }
-      else {
-        return response;
-      }
-    }).then(function(response) {
+    var responseHandler = function(response) {
       var key = jsonRequest.key;
       if ((typeof response === "object") && (key in response)) {
         ui.applyResponse(response[key], jsonRequest.responseId);
@@ -125,11 +118,46 @@ ui.backend = function (request, data, callbackFunction) {
         ui.applyResponse(response, jsonRequest.responseId);
       }
 
-    }).catch(function(err) {
-      if (console && console.log) {
-        console.log(err);
-      }
-    });
+    };
+    if (typeof fetch !== "undefined") {
+      fetch(host + "/" + url, opts).then(function(response) { 
+        if (response && response.json) {
+          return response.json();
+        }
+        else {
+          return response;
+        }
+      }).then(responseHandler).catch(function(err) {
+        if (console && console.log) {
+          console.log(err);
+        }
+      });
+    }
+    else {
+      let xhr = new XMLHttpRequest();
+      xhr.open('POST', host + "/" + url, true);
+      xhr.responseType = "json";
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) {
+          return; // not finished yet, check next state
+        }
+        if (xhr.status === 200) {
+          // request successful - show response
+          var response = xhr.response;
+          if (typeof response === "string") {
+            responseHandler(JSON.parse(response));
+          }
+          else {
+            responseHandler(response);
+          }
+        }
+        else {
+          // request error
+          console.log('HTTP error', xhr.status, xhr.statusText);
+        }
+      };
+      xhr.send(postData);
+    }
   }
   else {
     // This part of the function is intendend to interact directly with webview. No HTTP server involved.
