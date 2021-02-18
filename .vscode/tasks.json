@@ -6,8 +6,7 @@
     "tasks": [
         {
             "label": "nimble debug",
-            "command": "nimble debug",
-            // "args": ["c", "-r", "--debugger:native", "--threads:on", "nimview.nim"],
+            "command": "nimble debug  --threads:on --debugger:native",            
             "options": {
                 "cwd": "${workspaceRoot}"
             },

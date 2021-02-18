@@ -48,6 +48,7 @@ export default {
       port: 5000, 
       proxy: { 
         '*': 'localhost:8000',
+        '/*': 'localhost:8000/',
       }
     }),
     copy({

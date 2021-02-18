@@ -8,7 +8,7 @@ import json
 import system
 import uri
 import strutils
-import tables
+import sharedtables
 import logging
 
 # run "nimble release" or "nimble debug" to compile
@@ -28,12 +28,11 @@ else:
     result = def
 
 type ReqUnknownException* = object of CatchableError
-type RequestCallbacks* = object of RootObj
-  map: Table[string, proc(value: string): string ]
 
-var req*: ptr RequestCallbacks = system.createShared(RequestCallbacks)
 var responseHttpHeader = {"Access-Control-Allow-Origin": "None"} # will be overwritten when starting Jester
 var useJester* = not compileWithWebview or (defined(useJester) or defined(debug) or (fileExists("/.dockerenv")))
+var reqMap*: SharedTable[string, proc(value: string): string ] 
+reqMap.init()
 
 let stdLogger = newConsoleLogger()
 logging.addHandler(stdLogger)
@@ -53,15 +52,13 @@ proc disableRequestLogger*() {.exportpy.} =
     requestLogger.levelThreshold = logging.lvlNone
 
 proc addRequest*(request: string, callback: proc(value: string): string ) {.exportpy.} = 
-  {.gcsafe.}:
-    req.map[request] = callback
+  nimview.reqMap.add(request, callback)
 
-proc dispatchRequest*(request, value: string): string {.exportpy.} = 
-  {.gcsafe.}:
-    if req.map.hasKey(request):
-      let callbackFunc = req.map[request]
-      result = callbackFunc(value) 
-    else :
+proc dispatchRequest*(request: string, value: string): string {.exportpy.} = 
+  {.gcsafe.}: 
+    nimview.reqMap.withValue(request, callbackFunc) do:
+      result = callbackFunc[](value) 
+    do:
       raise newException(ReqUnknownException, "404 - Request unknown")
 
 # main dispatcher
@@ -102,19 +99,19 @@ when not defined(just_core):
   when defined release:
     const backendHelperJs = system.staticRead("backend-helper.js")
   else:
-    var backendHelperJs = system.readFile("backend-helper.js")
+    let backendHelperJs = system.readFile("backend-helper.js")
 
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string = 
     # optional but not implemented yet - check credentials from header information
     result = dispatchJsonRequest(jsonMessage)
 
-  template respond(code: untyped, message: untyped): untyped =
+  template respond(code: untyped, header:untyped, message: untyped): untyped =
     mixin resp
     {.gcsafe.}:
-      resp code, nimview.responseHttpHeader, message
+      resp code, header, message
   
   template respond(message: untyped): untyped =
-      respond Http200, message
+      respond Http200, nimview.responseHttpHeader, message
 
   proc handleRequest(request: Request): Future[ResponseData] {.async.} =
     block route:
@@ -123,7 +120,9 @@ when not defined(just_core):
       var resultId = 0
       case requestPath
       of "/backend-helper.js":
-        respond nimview.backendHelperJs
+        var header = @{"Content-Type": "application/javascript"}
+        {.gcsafe.}: header.add(nimview.responseHttpHeader)
+        respond Http200, header, nimview.backendHelperJs
       else:
         try:
           if (requestPath == "/"): 
@@ -133,7 +132,18 @@ when not defined(just_core):
           if fileExists(potentialFilename):
             debug "Sending " & potentialFilename
             # jester.sendFile(potentialFilename)
-            respond system.readFile(potentialFilename)
+            let fileData = splitFile(potentialFilename)
+            let contentType = case fileData.ext:
+              of ".json": "application/json;charset=utf-8"
+              of ".js": "text/javascript;charset=utf-8"
+              of ".css": "text/css;charset=utf-8"
+              of ".jpg": "image/jpeg"
+              of ".txt": "text/plain;charset=utf-8"
+              of ".map": "application/octet-stream"
+              else: "text/html;charset=utf-8"
+            var header = @{"Content-Type": contentType}
+            {.gcsafe.}: header.add(nimview.responseHttpHeader)
+            respond Http200, header, system.readFile(potentialFilename)
           else:
             if (request.body == ""):
               raise newException(ReqUnknownException, "404 - File not found")
@@ -151,9 +161,9 @@ when not defined(just_core):
             respond $jsonResponse
 
         except ReqUnknownException:
-          respond Http404, $ %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": resultId }
+          respond Http404, nimview.responseHttpHeader, $ %* { "error":"404", "value": getCurrentExceptionMsg(), "resultId": resultId }
         except:
-          respond Http500, $ %* { "error":"500", "value":"request doesn't contain valid json", "resultId": resultId } 
+          respond Http500, nimview.responseHttpHeader, $ %* { "error":"500", "value":"request doesn't contain valid json", "resultId": resultId }
 
   proc copyBackendHelper (folder: string) {.gcsafe.} =
     let targetJs =  folder.parentDir() / "backend-helper.js"
@@ -181,18 +191,23 @@ when not defined(just_core):
 
   proc startHttpServer*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.exportpy.} =
     var absFolder = nimview.getAbsFolder(folder)
-    copyBackendHelper(absFolder)
+    nimview.copyBackendHelper(absFolder)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
     {.gcsafe.}:
       nimview.responseHttpHeader = { "Access-Control-Allow-Origin": origin }
     let settings = jester.newSettings(port=Port(port), bindAddr=bindAddr, staticDir = absFolder.parentDir())
-    var jester = jester.initJester(handleRequest, settings=settings)
+    var myJester = jester.initJester(nimview.handleRequest, settings=settings)
     # debug "open default browser"
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
-    jester.serve()
+    myJester.serve()
     
+
+  proc stopHttpServer*() {.exportpy.} =
+    if not myWebView.isNil():
+      myWebView.terminate()
+
   proc startDesktop*(folder: string, title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true, debug: bool = defined release) {.exportpy.} =
     when compileWithWebview: 
       var absFolder = nimview.getAbsFolder(folder)
@@ -200,34 +215,38 @@ when not defined(just_core):
       os.setCurrentDir(absFolder.parentDir())
       var fullScreen = true
       myWebView = webview.newWebView(title, "file://" / absFolder, width, height, resizable = resizable, debug = debug)
-      myWebView.bindProcs("backend"): 
-          proc alert(message: string) = webview.info(myWebView, "alert", message)
-          proc call(message: string) = 
-            info message
-            let jsonMessage = json.parseJson(message)
-            let resonseId = jsonMessage["responseId"].getInt()
-            let response = dispatchJsonRequest(jsonMessage)
-            let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
-            let responseCode =  webview.eval(myWebView, evalJsCode)
-            discard responseCode
-  #[          # just sample functions without current real functionality
-          proc open() = info myWebView.dialogOpen()
-          proc save() = info myWebView.dialogSave()
-          proc opendir() = info myWebView.dialogOpen(flag=dFlagDir)
-          proc close() = myWebView.terminate()
-          proc changeColor() = myWebView.setColor(210,210,210,100)
-          proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
+      myWebView.bindProc("backend", "alert", proc (message: string) = webview.info(myWebView, "alert", message))
+      myWebView.bindProc("backend", "call", proc (message: string) = 
+        info message
+        let jsonMessage = json.parseJson(message)
+        let resonseId = jsonMessage["responseId"].getInt()
+        let response = dispatchJsonRequest(jsonMessage)
+        let evalJsCode = "window.ui.applyResponse('" & response.replace("\\", "\\\\").replace("\'", "\\'")  & "'," & $resonseId & ");"
+        let responseCode =  webview.eval(myWebView, evalJsCode)
+        discard responseCode
+      )
+#[          # just sample functions without current real functionality
+        proc open() = info myWebView.dialogOpen()
+        proc save() = info myWebView.dialogSave()
+        proc opendir() = info myWebView.dialogOpen(flag=dFlagDir)
+        proc close() = myWebView.terminate()
+        proc changeColor() = myWebView.setColor(210,210,210,100)
+        proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
       myWebView.run()
       myWebView.exit()
       dealloc(myWebView)
+  
+  proc stopDesktop*() {.exportpy.} =
+    if not myWebView.isNil():
+      myWebView.terminate()
 
   when declared(Thread):
-    proc startHttpServerThread(args: tuple[folder: string, port: int, bindAddr: string]) {.thread.} =
+    proc startHttpServerByTuple(args: tuple[folder: string, port: int, bindAddr: string]) {.thread.} =
       nimview.startHttpServer(args.folder, args.port, args.bindAddr)
 
-    proc startJesterThread(folder: string, port: int = 8000, bindAddr: string = "localhost") {.thread.} =
+    proc startHttpServerThread*(folder: string, port: int = 8000, bindAddr: string = "localhost") {.thread.} =
       var thread: Thread[tuple[folder: string, port: int, bindAddr: string]]
-      createThread(thread, startHttpServerThread, (folder, port, bindAddr))
+      createThread(thread, startHttpServerByTuple, (folder, port, bindAddr))
 
   proc start*(folder: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview", width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
     
@@ -241,7 +260,6 @@ proc main() =
   when not defined(noMain):
     debug "starting nim main"
     when system.appType != "lib" and not defined(just_core):
-      # startHttpServer(folder)
       nimview.addRequest("appendSomething", proc (value: string): string =
         result = "'" & value & "' modified by Nim Backend")
       
@@ -251,9 +269,12 @@ proc main() =
       # let folder = os.getCurrentDir() / "tests/vue/dist/index.html"
       let folder = os.getCurrentDir() / "tests/svelte/public/index.html"
       nimview.enableRequestLogger()
-      # nimview.startJesterThread(folder)
-      debug "starting webview"
+      # nimview.startHttpServerThread(folder)
+      echo "started"
       nimview.start(folder)
+      # nimview.startHttpServer(folder)
+      # nimview.startDesktop(folder)
+      echo "ended"
 
 when isMainModule:
   main()

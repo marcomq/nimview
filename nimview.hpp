@@ -55,7 +55,7 @@ namespace nimview {
         auto lambda = [&, callback](char* input) {
             std::string result = callback(input);
             if (result == "") {
-                return const_cast<char*>(result.c_str()); // "" will not be freed
+                return const_cast<char*>(""); // "" will not be freed
             }
             else {
                 char* newChars = static_cast<char*>(calloc(result.length() + 1, 1));
@@ -82,7 +82,7 @@ namespace nimview {
             nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
         }
     }
-    void startDesktop(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  { 
+    void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  { 
         nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
     };
     void startHttpServer(const char* folder, int port = 8000, const char* bindAddr = "localhost")  { 

@@ -107,10 +107,6 @@ There are 2 major differences:
 Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and nimview/Jester probably cannot compete with Flask for cloud applications. 
 Nimview will also not support server side template engines as flask does. But in case you want your application also running on the Desktop or Mobile, or if you want to use nim or C++ as your primary language, you might get get your application done really quick when using nimview.
 
-### IE 11 
-Unfortunately, the backend-helper.js cannot send AJAX reuqests to a back-end, as IE 11 doesn't support fetch. I might add an alternative fetch support for IE 11 in case that IE 11 still exits when nimview gets popular. 
-Feel free to make a PR if you need the IE 11 support sooner for your web engine.
-
 ## Project setup
 ```
 - install nim (https://nim-lang.org/install.html or package manager)
