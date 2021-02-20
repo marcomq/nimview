@@ -124,3 +124,5 @@ Nim has a thread local heap and most variables in Nimview are declared thread lo
 - nimble debug && ./nimview.exe
 - (other console) npm run dev --prefix <ui folder of your choice>
 ```
+
+Documentation is here: http://htmlpreview.github.io/?https://github.com/marcomq/nimview/blob/master/docs/webview.html
