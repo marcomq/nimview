@@ -22,18 +22,19 @@ export nimview
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
 proc nimview_addRequest*(request: cstring, callback: proc(
-    value: cstring): cstring {.cdecl.}, 
-    freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} =
+  value: cstring): cstring {.cdecl.}, 
+  freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} =
   nimview.addRequest($request, proc (nvalue: string): string =
-    debug "calling nim from c interface with: " & nvalue
-    var resultPtr: cstring = ""
-    try:
-      resultPtr = callback(nvalue)
-      result = $resultPtr
-    finally:
-      if (resultPtr != ""):
-        freeFunc(resultPtr)
-  )
+    {.gcsafe.}:
+      debug "calling nim from c interface with: " & nvalue
+      var resultPtr: cstring = ""
+      try:
+        resultPtr = callback(nvalue)
+        result = $resultPtr
+      finally:
+        if (resultPtr != ""):
+          freeFunc(resultPtr)
+    )
 
 proc nimview_dispatchRequest*(request, value: cstring): cstring {.exportc.} =
   result = $dispatchRequest($request, $value)
@@ -57,6 +58,8 @@ when not defined(just_core):
     debug "starting C webview"
     startDesktop($folder, $title, width, height, resizable, debug)
     debug "leaving C webview"
+
+  proc nimview_stopDesktop*() {.exportc.} = nimview.stopDesktop()
 
   proc nimview_start*(folder: cstring, port: cint = 8000,
       bindAddr: cstring = "localhost", title: cstring = "nimview",

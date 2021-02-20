@@ -104,7 +104,7 @@ There are 2 major differences:
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ### Difference to Flask
-Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and nimview/Jester probably cannot compete with Flask for cloud applications. 
+Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and nimview/Jester probably cannot compete with Flask for simple python cloud applications. 
 Nimview will also not support server side template engines as flask does. But in case you want your application also running on the Desktop or Mobile, or if you want to use nim or C++ as your primary language, you might get get your application done really quick when using nimview.
 
 ## Project setup
@@ -117,6 +117,7 @@ Nimview will also not support server side template engines as flask does. But in
 - (windows: install node > 12.19  (https://nodejs.org/en/download/)
 - nimble install
 - run "cd tests/vue", "npm install" and "cd ../.." 
+- run "cd tests/svelte", "npm install" and "cd ../.." 
 - nimble debug && ./nimview.exe
 - (other console) npm run dev --prefix <ui folder of your choice>
 ```

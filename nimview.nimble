@@ -85,37 +85,8 @@ proc execNim(command: string) =
   selfExec(commandWithExtra)
 
 proc calcPythonExecutables() : seq[string] =
-  ## Calculates which Python executables to use for testing
-  ## The default is to use "python2" and "python3"
-  ##
-  ## You can override this by setting the environment
-  ## variable `NIMPY_PY_EXES` to a comma separated list
-  ## of Python executables to invoke. For example, to test
-  ## with Python 2 from the system PATH and multiple versions
-  ## of Python 3, you might invoke something like
-  ##
-  ## `NIMPY_PY_EXES="python2:/usr/local/bin/python3.7:/usr/local/bin/python3.8" nimble test`
-  ##
-  ## These are launched via a shell so they can be scripts
-  ## as well as actual Python executables
-
-  let pyExes = getEnv("NIMPY_PY_EXES", "python2:python3")
+  let pyExes = getEnv("NIMPY_PY_EXES", "python:python3")
   result = pyExes.split(":")
-
-proc calcLibPythons() : seq[string] =
-  ## Calculates which libpython modules to use for testing
-  ## The default is to use whichever libpython is found
-  ## by `pythonLibHandleFromExternalLib()` in py_lib.nim
-  ##
-  ## You can override this by setting the environment
-  ## variable `NIMPY_LIBPYTHONS` to a comma separated list
-  ## of libpython modules to load. For example, you might
-  ## invoke something like
-  ##
-  ## `NIMPY_LIBPYTHONS="/usr/lib/x86_64-linux-gnu/libpython2.7.so:/usr/lib/x86_64-linux-gnu/libpython3.8.so" nimble test`
-  ##
-  let libPythons = getEnv("NIMPY_LIBPYTHONS", "")
-  result = libPythons.split(":")
 
 proc buildLibs(nimFlags = "") = 
   ## creates python and C/C++ libraries
@@ -123,8 +94,13 @@ proc buildLibs(nimFlags = "") =
   rmDir("tmp_c")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
   let cDllExtension = when defined(windows): "dll" else: "so"
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_py --out:tests/"  & 
+  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./tmp_py --out:tests/"  & 
     application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
+
+
+# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.so nimview.nim 
+# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.pyd nimview.nim # windows
+
   execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on " & 
     nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
   execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & 
@@ -148,6 +124,14 @@ proc buildCSample(nimFlags = "") =
   execCmd "gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
     webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_c tests/c_sample.c"
   execCmd "gcc -w -o tests/c_sample.exe tmp_c/*.o " & webviewlLibs
+  
+proc buildCTest(nimFlags = "") = 
+  rmDir("tmp_c_test")
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c_test --app:staticLib --out:" & 
+    application & " " & nimFlags & " " & libraryFile
+  execCmd "gcc -c -w -o tmp_c_test/c_test.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_c_test tests/c_test.c"
+  execCmd "gcc -w -o tests/c_test.exe tmp_c_test/*.o " & webviewlLibs
 
 proc buildCppSample(nimFlags = "") = 
   rmDir("tmp_cpp")
@@ -161,6 +145,9 @@ proc runTests() =
   buildCSample()
   buildCppSample()
   buildLibs()
+  buildCTest()
+  execCmd getCurrentDir() & "/tests/c_test.exe"
+  execCmd "python tests/pyTest.py"
 
 
 task libs, "Build Libs":
