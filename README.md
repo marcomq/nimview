@@ -117,7 +117,7 @@ Nim has a thread local heap and most variables in Nimview are declared thread lo
     avoid white-space in nim install folder name when using windows
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
-- (linux:  yum install nim, gcc, npm, webkit2gtk3-devel <or:> apt install nim, gcc, npm, libwebkit2gtk-4.0-dev)
+- (linux:  yum install nim, gcc, npm, webkit2gtk3-devel <or:> apt install nim gcc npm libwebkit2gtk-4.0-dev)
 - (windows: install node > 12.19  (https://nodejs.org/en/download/)
 - nimble install
 - run "cd tests/vue", "npm install" and "cd ../.." 

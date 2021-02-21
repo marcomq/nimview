@@ -29,7 +29,7 @@ jobs:
       - name:  Prepare
         run: |
           sudo apt-get update
-          sudo apt install -y gcc, npm, libwebkit2gtk-4.0-dev curl, gcc python3 
+          sudo apt install -y gcc npm libwebkit2gtk-4.0-dev curl python3 
           export CHOOSENIM_NO_ANALYTICS=1
           curl https://nim-lang.org/choosenim/init.sh -sSf | sh -s -- -y
           export PATH=$HOME/.nimble/bin:$PATH
