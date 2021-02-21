@@ -48,3 +48,14 @@ jobs:
           nimble test
           # npm run build --prefix examples/svelte
           # npm run build --prefix examples/vue
+          
+      - name: StoreArtifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          retention-days: 5
+          path: |
+            build/*.exe
+            build/*.dll
+            build/*.a
+            build/*.pyd
