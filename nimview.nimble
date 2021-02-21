@@ -144,6 +144,8 @@ proc runTests() =
   execCmd getCurrentDir() / buildDir / "c_test.exe"
   execCmd "python tests/pyTest.py"
 
+proc generateDocs() = 
+  execNim "doc --outdir:docs nimview.nim"
 
 task libs, "Build Libs":
   buildLibs()
@@ -166,6 +168,10 @@ task vue, "build vue example in release mode":
 task release, "Build npm and Run with webview":
   buildRelease()
 
+task docs, "Generate doc":
+  generateDocs()
+
 task test, "Run tests":
   runTests()
+  generateDocs()
   # execCmd "npm run build --prefix " & svelteDir
