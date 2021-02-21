@@ -39,7 +39,7 @@ jobs:
       - name: InstallMacOSDependencies
         if: runner.os == 'macOS'
         run: |
-          sudo brew install gcc python && sudo pip install pathlib
+          brew install gcc python && pip install pathlib
       # Runs a set of commands using the runners shell
       - name: Test
         run: |
