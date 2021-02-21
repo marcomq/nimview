@@ -26,7 +26,7 @@ ui.createRequest = function(request, data, callbackFunction) {
         var key = callbackFunction;
         var outputValueObj = data;
         callbackFunction = function(response) { outputValueObj[key] = response; }; 
-        data = data[key]
+        data = data[key];
       }
       else {
         data = JSON.stringify(data);
@@ -74,7 +74,7 @@ ui.alert = function (str) {
     alert(str);
   }
   else {
-    backend.alert(str)
+    backend.alert(str);
   }
 }
 /***
