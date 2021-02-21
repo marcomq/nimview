@@ -23,8 +23,8 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macOS-latest
           - windows-latest
+          - macOS-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -49,13 +49,21 @@ jobs:
           # npm run build --prefix examples/svelte
           # npm run build --prefix examples/vue
           
-      - name: StoreArtifacts
-        uses: actions/upload-artifact@v2
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: binaries
-          retention-days: 5
-          path: |
+          files: |
             build/*.exe
             build/*.dll
             build/*.a
             build/*.pyd
+            build/*.so
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+       #  uses: actions/upload-artifact@v2
+       #  with:
+          # name: binaries
+          # retention-days: 5
+          # path: |

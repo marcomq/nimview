@@ -31,7 +31,6 @@ let mainApp = application & ".nim"
 let libraryFile =  application & "_c.nim"
 let buildDir = "build"
 mkdir "build"
-mkdir "build/tmp_o"
 
 let nimbleDir = parentDir(parentDir(system.findExe("nimble")))
 var nimbaseDir = parentDir(nimbleDir) & "/lib"
@@ -138,6 +137,7 @@ proc buildCTest() =
 proc buildGenericObjects() = 
   rmDir(buildDir / "tmp_c")
   rmDir(buildDir / "tmp_o")
+  mkdir "build/tmp_o"
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
     "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile # create g
 
