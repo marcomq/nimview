@@ -50,11 +50,11 @@ else:
   system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl"
 
 let webviewIncludes = when defined(windows): 
-  "-std=c++17 -DWEBVIEW_WINAPI=1 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN " 
+  "-DWEBVIEW_WINAPI=1 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN " 
 elif defined(macosx):
-  "-std=c++11 -DWEBVIEW_COCOA=1 -x objective-c"
+  "-DWEBVIEW_COCOA=1 -x objective-c"
 else:
-  "-std=c++17 -DWEBVIEW_GTK=1 " & staticExec("pkg-config --cflags gtk+-3.0 webkit2gtk-4.0")
+  "-DWEBVIEW_GTK=1 " & staticExec("pkg-config --cflags gtk+-3.0 webkit2gtk-4.0")
 
 when defined(nimdistros):
   import distros
@@ -126,7 +126,7 @@ proc buildCSample() =
   execCmd "gcc -w -o " & buildDir & "/c_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_sample.o " & webviewlLibs
   
 proc buildCppSample() = 
-  execCmd "g++ -c -w -o " & buildDir & "/tmp_o/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
+  execCmd "g++ -c -w -std=c++17 -o " & buildDir & "/tmp_o/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
     webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c examples/cpp_sample.cpp"
   execCmd "g++ -w -o " & buildDir & "/cpp_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/cpp_sample.o " & webviewlLibs
 
@@ -144,7 +144,8 @@ proc runTests() =
   buildLibs()
   buildGenericObjects()
   buildCSample()
-  buildCppSample()
+  if not defined(macosx):
+    buildCppSample()
   buildCTest()
   execCmd getCurrentDir() / buildDir / "c_test.exe"
   execCmd "python tests/pyTest.py"
