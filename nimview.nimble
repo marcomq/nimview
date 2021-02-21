@@ -25,8 +25,8 @@ else:
 
 import os, strutils
 
-let vueDir = "tests/vue"
-let svelteDir = "tests/svelte"
+let vueDir = "examples/vue"
+let svelteDir = "examples/svelte"
 let mainApp = application & ".nim"
 let libraryFile =  application & "_c.nim"
 let buildDir = "build"
@@ -100,7 +100,6 @@ proc buildLibs() =
 
   execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir & "/"  & 
     application & "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
-
   execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
     " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
 
@@ -108,7 +107,7 @@ proc buildLibs() =
   let minGwSymbols = when defined(windows): "-Wl,--export-all-symbols -Wl,--enable-auto-import " else: ""
   execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " -Wl,--out-implib," & buildDir & "/lib" & 
     application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " & minGwSymbols & webviewlLibs # generate .dll and .a
-  echo "Python and shared C libraries build completed. Files have been created in tests folder."
+  echo "Python and shared C libraries build completed. Files have been created in build folder."
 
 proc buildRelease() =
   execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & " " & mainApp
@@ -118,18 +117,18 @@ proc buildDebug() =
 
 proc buildCSample() = 
   execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c tests/c_sample.c"
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c examples/c_sample.c"
   execCmd "gcc -w -o " & buildDir & "/c_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_sample.o " & webviewlLibs
   
-proc buildCTest() = 
-  execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_test.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c_test tests/c_test.c"
-  execCmd "gcc -w -o " & buildDir & "/c_test.exe " & buildDir & "/tmp_c_test/*.o " & buildDir & "/tmp_o/c_test.o " & webviewlLibs
-
 proc buildCppSample() = 
   execCmd "g++ -c -w -std=c++17 -o " & buildDir & "/tmp_o/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c tests/cpp_sample.cpp"
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c examples/cpp_sample.cpp"
   execCmd "g++ -w -o " & buildDir & "/cpp_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/cpp_sample.o " & webviewlLibs
+
+proc buildCTest() = 
+  execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_test.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c tests/c_test.c"
+  execCmd "gcc -w -o " & buildDir & "/c_test.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_test.o " & webviewlLibs
 
 proc buildGenericObjects() = 
   rmDir(buildDir & "tmp_c")
@@ -156,6 +155,13 @@ task debug, "Build nimview debug":
   buildDebug()
   # exec "./" & application & "_debug & npm run serve --prefix " & uiDir
 
+task svelte, "build svelte example in release mode":
+  execCmd "npm run build --prefix " & svelteDir
+  execNim "c -r --app:gui -d:release -d:useStdLib --out:build/svelte.exe examples/svelte.nim"
+
+task vue, "build vue example in release mode":
+  execCmd "npm run build --prefix " & vueDir
+  execNim "c -r --app:gui -d:release -d:useStdLib --out:build/vue.exe examples/svelte.nim"
     
 task release, "Build npm and Run with webview":
   buildRelease()

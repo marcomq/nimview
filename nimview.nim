@@ -13,7 +13,7 @@ import tables
 
 # run "nimble release" or "nimble debug" to compile
 
-const compileWithWebview = defined(useWebview) or not defined(useJester)
+const compileWithWebview = defined(useWebview) or not defined(useServer)
 
 when not defined(just_core):
   import jester
@@ -32,8 +32,8 @@ type ReqUnknownException* = object of CatchableError
 var reqMap {.threadVar.}: Table[string, proc(value: string): string {.gcsafe.}] 
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
 var requestLogger {.threadVar.}: FileLogger
-var useJester* = not compileWithWebview or 
-  (defined(useJester) or defined(debug) or (os.fileExists("/.dockerenv")))
+var useServer* = not compileWithWebview or 
+  (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
 
 logging.addHandler(newConsoleLogger())
 
@@ -274,7 +274,7 @@ when not defined(just_core):
     let displayAvailable = 
       when (system.hostOS == "windows"): true 
       else: ( os.getEnv("DISPLAY") != "")
-    if useJester or not displayAvailable:
+    if useServer or not displayAvailable:
       startHttpServer(indexHtmlFile, port, bindAddr)
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable)

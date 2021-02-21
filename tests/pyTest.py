@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 
 # pylint: disable=import-error
-import nimview
+import __init__, nimview
 def echoAndModify(value):
     print (value)
     return (value + " appended by python")

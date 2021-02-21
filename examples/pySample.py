@@ -3,10 +3,11 @@
 # Licensed under MIT License, see License file for more details
 
 # pylint: disable=import-error
-import nimview
+import __init__, nimview
 def echoAndModify(value):
     print (value)
     return (value + " appended by python")
 
 nimview.addRequest("echoAndModify", echoAndModify)
-nimview.start("tests/minimal_ui_sample/index.html")
+nimview.useServer = True
+nimview.start("minimal_ui_sample/index.html") # current dir needs to be relative to this
