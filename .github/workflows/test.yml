@@ -33,7 +33,7 @@ jobs:
           export CHOOSENIM_NO_ANALYTICS=1
           curl https://nim-lang.org/choosenim/init.sh -sSf | sh -s -- -y
           export PATH=$HOME/.nimble/bin:$PATH
-          choosenim ${{ matrix.nim-channel }}
+          choosenim stable
 
       # Runs a set of commands using the runners shell
       - name: Test
