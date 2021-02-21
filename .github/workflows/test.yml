@@ -40,7 +40,7 @@ jobs:
         run: |
           export PATH=$HOME/.nimble/bin:$PATH
           nim --version
-          nimble install
+          echo y | nimble install -d
           nimble test
           # npm run build --prefix examples/svelte
           # npm run build --prefix examples/vue
