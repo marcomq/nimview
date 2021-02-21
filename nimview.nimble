@@ -145,7 +145,7 @@ proc runTests() =
   execCmd "python tests/pyTest.py"
 
 proc generateDocs() = 
-  execNim "doc -o:docs/nimview.html nimview.nim"
+  execNim "doc -d:useStdLib -o:docs/nimview.html nimview.nim"
 
 task libs, "Build Libs":
   buildLibs()
@@ -173,5 +173,5 @@ task docs, "Generate doc":
 
 task test, "Run tests":
   runTests()
-  generateDocs()
+  # generateDocs()
   # execCmd "npm run build --prefix " & svelteDir
