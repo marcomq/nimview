@@ -1,4 +1,6 @@
-# Nimview ![License](https://img.shields.io/github/license/marcomq/nimview) [![Build Status](https://github.com/marcomq/nimview/workflows/CI/badge.svg?branch=main)](https://github.com/marcomq/nimview/actions?query=branch%main)
+# Nimview 
+![License](https://img.shields.io/github/license/marcomq/nimview) 
+[![Build Status](https://github.com/marcomq/nimview/workflows/CI/badge.svg?branch=main)](https://github.com/marcomq/nimview/actions/workflows/test.yml)
 
 A lightweight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of online / offline applications based on a HTML/CSS/JS layer to be displayed with Webview or a browser. The application will run on cloud and on desktop with the same code.
 
