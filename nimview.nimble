@@ -145,7 +145,7 @@ proc runTests() =
   execCmd "python tests/pyTest.py"
 
 proc generateDocs() = 
-  execNim "doc --outdir:docs nimview.nim"
+  execNim "doc -o:docs/nimview.html nimview.nim"
 
 task libs, "Build Libs":
   buildLibs()
