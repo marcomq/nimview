@@ -1,6 +1,6 @@
 import os
 import ../nimview
-
+# start with "nimble vue" from parent directory
 proc appendSomething(value: string): string {.noSideEffect.} =
   result = "'" & value & "' modified by vue sample"
 

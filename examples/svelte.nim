@@ -1,5 +1,6 @@
 import os
 import ../nimview
+# start with "nimble svelte" from parent directory
 
 proc appendSomething(value: string): string {.noSideEffect.} =
   result = "'" & value & "' modified by svelte sample"
