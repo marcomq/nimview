@@ -105,13 +105,13 @@ proc buildLibs() =
 
   cpFile(thisDir() / buildDir / "tmp_dll" / application & ".h", thisDir() / application & ".h")
   let minGwSymbols = when defined(windows): 
-    " -Wl,--out-implib," & buildDir & "/lib" & application & ".a -Wl,--export-all-symbols -Wl,--enable-auto-import " 
+    " -Wl,--out-implib," & buildDir & "/lib" & application & 
+    ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " 
   elif defined(linux):
-    " -Wl,--out-implib," & buildDir & "/lib" & application & ".a "
+    " -Wl,--out-implib," & buildDir & "/lib" & application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive "
   else: 
-    ""
-  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " -Wl,--whole-archive " & buildDir & 
-    "/tmp_dll/*.o -Wl,--no-whole-archive " & minGwSymbols & webviewlLibs # generate .dll and .a
+    " " & buildDir & "/tmp_dll/*.o "
+  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " " & minGwSymbols & webviewlLibs # generate .dll and .a
   echo "Python and shared C libraries build completed. Files have been created in build folder."
 
 proc buildRelease() =
