@@ -124,7 +124,7 @@ when not defined(just_core):
   template respond(message: untyped): untyped =
     respond Http200, nimview.responseHttpHeader, message
 
-  proc handleRequest(request: Request): Future[ResponseData] {.async.} =
+  proc handleRequest(request: Request): Future[ResponseData] {.async, gcsafe.} =
     ## used by HttpServer
     block route:
       var response: string

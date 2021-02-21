@@ -70,7 +70,7 @@ when defined(nimdistros):
 else:
   echo "no nimdistros"
 
-var extraParameter = ""
+var extraParameter = "" # TODO: remove; syntax is nimble <compiler parameter> <task>
 if (system.paramCount() > 8):
   for i in 9..system.paramCount():
     extraParameter = extraParameter & " " & system.paramStr(i) 
@@ -136,7 +136,8 @@ proc buildCTest() =
   execCmd "gcc -w -o " & buildDir & "/c_test.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_test.o " & webviewlLibs
 
 proc buildGenericObjects() = 
-  rmDir(buildDir & "tmp_c")
+  rmDir(buildDir / "tmp_c")
+  rmDir(buildDir / "tmp_o")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
     "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile # create g
 
@@ -147,7 +148,7 @@ proc runTests() =
   if not defined(macosx):
     buildCppSample()
   buildCTest()
-  execCmd getCurrentDir() / buildDir / "c_test.exe"
+  execCmd system.getCurrentDir() / buildDir / "c_test.exe"
   execCmd "python tests/pyTest.py"
 
 proc generateDocs() = 
