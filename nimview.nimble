@@ -29,6 +29,9 @@ let vueDir = "tests/vue"
 let svelteDir = "tests/svelte"
 let mainApp = application & ".nim"
 let libraryFile =  application & "_c.nim"
+let buildDir = "build"
+mkdir "build"
+mkdir "build/tmp_o"
 
 let nimbleDir = parentDir(parentDir(system.findExe("nimble")))
 var nimbaseDir = parentDir(nimbleDir) & "/lib"
@@ -88,65 +91,58 @@ proc calcPythonExecutables() : seq[string] =
   let pyExes = getEnv("NIMPY_PY_EXES", "python:python3")
   result = pyExes.split(":")
 
-proc buildLibs(nimFlags = "") = 
+proc buildLibs() = 
   ## creates python and C/C++ libraries
-  rmDir("tmp_py")
-  rmDir("tmp_c")
+  rmDir(buildDir / "tmp_py")
+  rmDir(buildDir / "tmp_dll")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
-  let cDllExtension = when defined(windows): "dll" else: "so"
-  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./tmp_py --out:tests/"  & 
-    application & "." & pyDllExtension & " --app:lib " & nimFlags & " "  & mainApp & " " # creates python lib, header file not usable
+  let cDllExtension = when defined(windows): "dll" else: "c.so"
 
+  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir & "/"  & 
+    application & "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
 
-# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.so nimview.nim 
-# nimble c --app:lib -d:release -d:noMain --out:tests/nimview.pyd nimview.nim # windows
+  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
+    " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
 
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./tmp_c --app:lib --noLinking:on " & 
-    nimFlags & " " & libraryFile  # header not usable, but this creates .o files we need
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --noLinking:on --header:" & 
-    application & ".h --compileOnly:off --nimcache=./tmp_c " & nimFlags & " " & libraryFile # just to create usable header file, doesn't create .o files
-  cpFile(thisDir() & "/tmp_c/" & application & ".h", thisDir() & "/" & application & ".h")
+  cpFile(thisDir() / buildDir / "tmp_dll" / application & ".h", thisDir() / application & ".h")
   let minGwSymbols = when defined(windows): "-Wl,--export-all-symbols -Wl,--enable-auto-import " else: ""
-  exec "gcc -shared -o tests/" & application & "." & cDllExtension & " -Wl,--out-implib,tests/lib" & 
-    application & ".a -Wl,--whole-archive tmp_c/*.o -Wl,--no-whole-archive " & minGwSymbols & webviewlLibs # -Wl,--export-all-symbols -Wl,--enable-auto-import
+  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " -Wl,--out-implib," & buildDir & "/lib" & 
+    application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " & minGwSymbols & webviewlLibs # generate .dll and .a
   echo "Python and shared C libraries build completed. Files have been created in tests folder."
 
-proc buildRelease(nimFlags = "") =
-  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & nimFlags & " " & mainApp
+proc buildRelease() =
+  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & " " & mainApp
 
-proc buildDebug(nimFlags = "") =
-  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & nimFlags & " " & mainApp
+proc buildDebug() =
+  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & " " & mainApp
 
-proc buildCSample(nimFlags = "") = 
-  rmDir("tmp_c")
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c --app:staticLib --out:" & 
-    application & " " & nimFlags & " " & libraryFile # to debug nim lib paths, add --genScript:on
-  execCmd "gcc -c -w -o tmp_c/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_c tests/c_sample.c"
-  execCmd "gcc -w -o tests/c_sample.exe tmp_c/*.o " & webviewlLibs
+proc buildCSample() = 
+  execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c tests/c_sample.c"
+  execCmd "gcc -w -o " & buildDir & "/c_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_sample.o " & webviewlLibs
   
-proc buildCTest(nimFlags = "") = 
-  rmDir("tmp_c_test")
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_c_test --app:staticLib --out:" & 
-    application & " " & nimFlags & " " & libraryFile
-  execCmd "gcc -c -w -o tmp_c_test/c_test.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_c_test tests/c_test.c"
-  execCmd "gcc -w -o tests/c_test.exe tmp_c_test/*.o " & webviewlLibs
+proc buildCTest() = 
+  execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_test.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c_test tests/c_test.c"
+  execCmd "gcc -w -o " & buildDir & "/c_test.exe " & buildDir & "/tmp_c_test/*.o " & buildDir & "/tmp_o/c_test.o " & webviewlLibs
 
-proc buildCppSample(nimFlags = "") = 
-  rmDir("tmp_cpp")
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./tmp_cpp --app:staticLib " & 
-    nimFlags & " " & libraryFile # target cpp would require a different nimview.hpp
-  execCmd "g++ -c -w -std=c++17 -o tmp_cpp/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
-    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -Itmp_cpp tests/cpp_sample.cpp"
-  execCmd "g++ -w -o tests/cpp_sample.exe tmp_cpp/*.o " & webviewlLibs
+proc buildCppSample() = 
+  execCmd "g++ -c -w -std=c++17 -o " & buildDir & "/tmp_o/cpp_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
+    webviewIncludes & " -I" & nimbaseDir & " -I" & nimbleDir & "/pkgs/webview-0.1.0/webview -I. -I" & buildDir & "/tmp_c tests/cpp_sample.cpp"
+  execCmd "g++ -w -o " & buildDir & "/cpp_sample.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/cpp_sample.o " & webviewlLibs
+
+proc buildGenericObjects() = 
+  rmDir(buildDir & "tmp_c")
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
+    "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile # create g
 
 proc runTests() =
+  buildLibs()
+  buildGenericObjects()
   buildCSample()
   buildCppSample()
-  buildLibs()
   buildCTest()
-  execCmd getCurrentDir() & "/tests/c_test.exe"
+  execCmd getCurrentDir() / buildDir / "c_test.exe"
   execCmd "python tests/pyTest.py"
 
 

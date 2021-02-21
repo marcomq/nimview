@@ -41,7 +41,7 @@ proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
   ## The file can be used for automated tests, to archive and replay all actions.
   if nimview.requestLogger.isNil:
-    if not fileExists("requests.log"):
+    if not os.fileExists("requests.log"):
       var createFile = system.open("requests.log", system.fmWrite)
       createFile.close()
     var requestLoggerTmp = newFileLogger("requests.log", fmtStr = "")
@@ -211,6 +211,7 @@ when not defined(just_core):
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
     var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
+    doAssert(os.fileExists(absIndexHtml))
     nimview.copyBackendHelper(absIndexHtml.parentDir())
     when not defined release:
       backendHelperJs = system.readFile("backend-helper.js")
@@ -241,6 +242,7 @@ when not defined(just_core):
     when compileWithWebview:
       var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
       nimview.copyBackendHelper(absIndexHtml.parentDir())
+      doAssert(os.fileExists(absIndexHtml))
       os.setCurrentDir(absIndexHtml.parentDir()) # unfortunately required, let me know if you have a workaround
       # var fullScreen = true
       myWebView = webview.newWebView(title, "file://" / absIndexHtml, width,

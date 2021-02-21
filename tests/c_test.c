@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     printf(" starting c code\n");
     NimMain();
     nimview_addRequest("echoAndModify", echoAndModify, free);
+    nimview_addRequest("stopNimview", stopNimview, free);
     
     nimview_dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":\"this is a test\",\"responseId\":0,\"responseKey\":\"test\"}");
     nimview_dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":1,\"responseKey\":\"test\"}");

@@ -21,5 +21,5 @@ int main(int argc, char* argv[]) {
     nimview::addRequest("echoAndModify2", echoAndModify2);
     nimview::addRequest("appendSomething", echoAndModify2);
     // nimview::start("svelte/public/index.html");
-    nimview::start("minimal_ui_sample/index.html", 8000, "localhost");
+    nimview::start("../tests/minimal_ui_sample/index.html", 8000, "localhost");
 }
