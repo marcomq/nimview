@@ -39,7 +39,7 @@ jobs:
       - name: InstallMacOSDependencies
         if: runner.os == 'macOS'
         run: |
-          brew install boehmgc make sfml gtk+3
+          brew install gcc python
       # Runs a set of commands using the runners shell
       - name: Test
         run: |
