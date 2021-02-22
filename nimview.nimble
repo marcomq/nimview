@@ -29,8 +29,8 @@ let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
 let mainApp = application & ".nim"
 let libraryFile =  application & "_c.nim"
-let buildDir = "build"
-mkdir "build"
+let buildDir = "out"
+mkdir buildDir
 
 let nimbleDir = parentDir(parentDir(system.findExe("nimble")))
 var nimbaseDir = parentDir(nimbleDir) & "/lib"
@@ -91,15 +91,19 @@ proc buildAllPythonLibs () =
   rmDir(buildDir / "tmp_py_linux")
   rmDir(buildDir / "tmp_py_macos")
 
-proc buildLibs() = 
-  ## creates python and C/C++ libraries
+proc buildPyLib() = 
+  ## C/C++ libraries
   rmDir(buildDir / "tmp_py")
-  rmDir(buildDir / "tmp_dll")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
-  let cDllExtension = when defined(windows): "dll" else: "c.so"
-
   execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir & "/"  & 
     application & "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
+
+proc buildLibs() = 
+  ## creates python 
+  buildPyLib()
+  rmDir(buildDir / "tmp_dll")
+  let cDllExtension = when defined(windows): "dll" else: "c.so"
+
   execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
     " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
 
@@ -138,7 +142,7 @@ proc buildCTest() =
 proc buildGenericObjects() = 
   rmDir(buildDir / "tmp_c")
   rmDir(buildDir / "tmp_o")
-  mkdir "build/tmp_o"
+  mkdir(buildDir / "tmp_o")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
     "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile # create g
 
@@ -157,6 +161,9 @@ proc generateDocs() =
 
 task libs, "Build Libs":
   buildLibs()
+
+task pyLib, "Build python lib":
+  buildPyLib()
 
 task dev, "Serve NPM":
   execCmd("npm run dev --prefix " & svelteDir)
