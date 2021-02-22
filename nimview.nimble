@@ -86,9 +86,10 @@ proc execNim(command: string) =
   echo "running: nim " & commandWithExtra
   selfExec(commandWithExtra)
 
-proc calcPythonExecutables() : seq[string] =
-  let pyExes = getEnv("NIMPY_PY_EXES", "python:python3")
-  result = pyExes.split(":")
+proc buildAllPythonLibs () = 
+  rmDir(buildDir / "tmp_py_windows")
+  rmDir(buildDir / "tmp_py_linux")
+  rmDir(buildDir / "tmp_py_macos")
 
 proc buildLibs() = 
   ## creates python and C/C++ libraries
