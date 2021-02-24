@@ -44,7 +44,7 @@ jobs:
       - name: Test
         run: |
           nim --version
-          echo y | nimble install -d
+          nimble install -d -y --verbose
           nimble test
           # npm run build --prefix examples/svelte
           # npm run build --prefix examples/vue
