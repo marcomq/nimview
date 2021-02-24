@@ -1,0 +1,1 @@
+include nimview.nim nimview.nimble backend-helper.js nimview.pyd nimview.so
