@@ -32,7 +32,7 @@ nimview.start("minimal_ui_sample/index.html")
 ```
 ## minimal python sample
 ```
-import nimporter, nimview
+import nimview
 def echoAndModify(value):
     print ("From front-end: " + value)
     return (value + " appended")

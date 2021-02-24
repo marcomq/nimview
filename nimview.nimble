@@ -62,14 +62,14 @@ when defined(nimdistros):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
     foreignDep "webkit2gtk3-devel"
-  echo "You need to install following dependencies:"
+  echo "In case of trouble, you may need to install following dependencies:"
   echo ""
   echoForeignDeps()
   echo ""
 else:
   echo "no nimdistros"
 
-var extraParameter = "" # TODO: remove; syntax is nimble <compiler parameter> <task>
+var extraParameter = "" # TODO: alternatively forward task parameters...
 if (system.paramCount() > 8):
   for i in 9..system.paramCount():
     extraParameter = extraParameter & " " & system.paramStr(i) 

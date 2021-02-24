@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import setuptools
-from setuptools import setup, dist, Extension
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from subprocess import check_call
 import os
-from os.path import isfile, join
 from shutil import copy, rmtree
 
 with open('README.md', encoding='utf-8') as f:
@@ -25,9 +23,6 @@ for fileName in srcFiles:
     fullFileName = os.path.join(this_directory, fileName)
     if os.path.isfile(fullFileName):
         copy(fullFileName, targetDir)
-
-# with open(targetDir + "/__init__.py", "w") as text_file:
-#    text_file.write("from nimview import nimview")
 
 classifiers = [
         "Development Status :: 4 - Beta",
@@ -74,7 +69,7 @@ class NimBuild(build_ext):
                 print("copy " + fullFileName + " => " + self.build_temp)
                 copy(fullFileName, self.build_temp)
 
-        check_call(['nimble', 'install', '-d'], cwd=self.build_temp)
+        check_call(['nimble', 'install', '-d -y --noSSLCheck '], cwd=self.build_temp)
         check_call(['nimble', 'pyLib'], cwd=self.build_temp)
         libFiles = [ "out/nimview.so", "out/nimview.pyd"]
         install_target = os.path.abspath(os.path.dirname(extdir))
@@ -96,9 +91,6 @@ setup(
     license='MIT',
     classifiers=classifiers,
     packages=["nimview"],
-    # packages=setuptools.find_packages(exclude=["examples", "tests", "dist", "build", "docs"]),
-    # ext_modules=nimporter.build_nim_extensions(exclude_dirs=["tests", "examples"]),
-    # include_package_data=True,
     ext_modules=[NimExtension('.')],
     cmdclass={
         'build_ext': NimBuild,
