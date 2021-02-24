@@ -44,7 +44,7 @@ jobs:
       - name: Test
         run: |
           nim --version
-          nimble install -d -y --verbose
+          nimble install -d -y --noSSLCheck --verbose
           nimble test
           # npm run build --prefix examples/svelte
           # npm run build --prefix examples/vue
