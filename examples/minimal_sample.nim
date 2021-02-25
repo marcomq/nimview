@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import ../nimview
+import ../src/nimview
 
 nimview.addRequest("echoAndModify", proc (value: string): string =
   echo "From Frontend: " & value

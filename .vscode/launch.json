@@ -15,6 +15,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "includePath": ["src/tmp_c"],
             // "miDebuggerPath": "C:/nim-1.2.6/dist/mingw64/bin/gdb.exe",
             "setupCommands": [
                 {

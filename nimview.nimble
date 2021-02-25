@@ -27,8 +27,9 @@ import os, strutils
 
 let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
-let mainApp = application & ".nim"
-let libraryFile =  application & "_c.nim"
+let srcDir = "src"
+let mainApp = srcDir / application & ".nim"
+let libraryFile =  srcDir / application & "_c.nim"
 let buildDir = "out"
 mkdir buildDir
 
@@ -86,11 +87,6 @@ proc execNim(command: string) =
   echo "running: nim " & commandWithExtra
   selfExec(commandWithExtra)
 
-proc buildAllPythonLibs () = 
-  rmDir(buildDir / "tmp_py_windows")
-  rmDir(buildDir / "tmp_py_linux")
-  rmDir(buildDir / "tmp_py_macos")
-
 proc buildPyLib() = 
   ## C/C++ libraries
   rmDir(buildDir / "tmp_py")
@@ -107,7 +103,7 @@ proc buildLibs() =
   execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
     " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
 
-  cpFile(thisDir() / buildDir / "tmp_dll" / application & ".h", thisDir() / application & ".h")
+  cpFile(thisDir() / buildDir / "tmp_dll" / application & ".h", thisDir() / srcDir / application & ".h")
   let minGwSymbols = when defined(windows): 
     " -Wl,--out-implib," & buildDir & "/lib" & application & 
     ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " 
@@ -115,7 +111,7 @@ proc buildLibs() =
     " -Wl,--out-implib," & buildDir & "/lib" & application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive "
   else: 
     " " & buildDir & "/tmp_dll/*.o "
-  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " " & minGwSymbols & webviewlLibs # generate .dll and .a
+  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " -I" & buildDir & "/tmp_dll/" & " " & minGwSymbols & webviewlLibs # generate .dll and .a
   echo "Python and shared C libraries build completed. Files have been created in build folder."
 
 proc buildRelease() =
@@ -144,7 +140,7 @@ proc buildGenericObjects() =
   rmDir(buildDir / "tmp_o")
   mkdir(buildDir / "tmp_o")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
-    "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile # create g
+    "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile 
 
 proc runTests() =
   buildLibs()
@@ -157,7 +153,7 @@ proc runTests() =
   execCmd "python tests/pyTest.py"
 
 proc generateDocs() = 
-  execNim "doc -d:useStdLib -o:docs/nimview.html nimview.nim"
+  execNim "doc -d:useStdLib -o:docs/nimview.html " & application & ".nim"
 
 task libs, "Build Libs":
   buildLibs()
@@ -174,11 +170,11 @@ task debug, "Build nimview debug":
 
 task svelte, "build svelte example in release mode":
   execCmd "npm run build --prefix " & svelteDir
-  execNim "c -r --app:gui -d:release -d:useStdLib --out:build/svelte.exe examples/svelte.nim"
+  execNim "c -r --app:gui -d:release -d:useStdLib --out:svelte.exe examples/svelte.nim"
 
 task vue, "build vue example in release mode":
   execCmd "npm run build --prefix " & vueDir
-  execNim "c -r --app:gui -d:release -d:useStdLib --out:build/vue.exe examples/svelte.nim"
+  execNim "c -r --app:gui -d:release -d:useStdLib --out:vue.exe examples/svelte.nim"
     
 task release, "Build npm and Run with webview":
   buildRelease()

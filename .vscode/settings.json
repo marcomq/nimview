@@ -3,6 +3,7 @@
         "iostream": "c",
         "xlocale": "c",
         "xstring": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "nimview.h": "c"
     }
 }

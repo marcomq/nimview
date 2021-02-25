@@ -5,7 +5,7 @@
 **/
 // Important Notice: You should use --threads:on AND you need to avoid --gc:arc ; I had crashes on windows otherwise with NIM 1.4 when starting webview
 
-#include "../tmp_c/nimview.h"
+#include "../out/tmp_c/nimview.h"
 #include <stdio.h>
 #include <stdlib.h>
 

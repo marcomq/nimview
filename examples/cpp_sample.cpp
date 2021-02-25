@@ -5,7 +5,7 @@
 **/
 
 #include <iostream>
-#include "../nimview.hpp"
+#include "../src/nimview.hpp"
 
 std::string echoAndModify(const std::string& something) {
     return (std::string(something) + " appended to string");

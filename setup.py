@@ -18,11 +18,12 @@ try:
 except:
     pass
 os.makedirs(targetDir, exist_ok=True)
-srcFiles = [ "nimview.nim", "nimview.nimble", "backend-helper.js", "LICENSE", "README.md"]
-for fileName in srcFiles:
+os.makedirs(targetDir + "/src", exist_ok=True)
+srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "LICENSE", "README.md"]
+for index, fileName in enumerate(srcFiles):
     fullFileName = os.path.join(this_directory, fileName)
     if os.path.isfile(fullFileName):
-        copy(fullFileName, targetDir)
+        copy(fullFileName, targetDir + "/" + fileName)
 
 classifiers = [
         "Development Status :: 4 - Beta",
@@ -58,16 +59,18 @@ class NimBuild(build_ext):
         print("=> build_extension")
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
+            os.makedirs(self.build_temp + "/src")
         
         extdir = self.get_ext_fullpath(ext.name)
         if not os.path.exists(extdir):
-            os.makedirs(extdir)
+            os.makedirs(extdir + "/src")
 
         for fileName in srcFiles:
-            fullFileName = os.path.join(this_directory, fileName)
+            fullFileName = os.path.join(targetDir, fileName)
             if os.path.isfile(fullFileName):
-                print("copy " + fullFileName + " => " + self.build_temp)
-                copy(fullFileName, self.build_temp)
+                target = self.build_temp + "/" + fileName
+                print("copy " + fullFileName + " => " + target)
+                copy(fullFileName, target)
 
         check_call(['nimble', 'install', '-d -y --noSSLCheck '], cwd=self.build_temp)
         check_call(['nimble', 'pyLib'], cwd=self.build_temp)
