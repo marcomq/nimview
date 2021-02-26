@@ -6,12 +6,13 @@ description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
 let application = "nimview"
 bin         = @[application]
+srcDir      = "src"
 
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
-when system.NimMinor >= 2:
+when system.NimMinor > 2:
   requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview == 0.1.0"
 else:
   echo "####-----------------------------------------------------####"
@@ -27,7 +28,6 @@ import os, strutils
 
 let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
-let srcDir = "src"
 let mainApp = srcDir / application & ".nim"
 let libraryFile =  srcDir / application & "_c.nim"
 let buildDir = "out"

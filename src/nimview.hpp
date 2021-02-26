@@ -8,9 +8,9 @@ extern "C" {
 #include "nimview.h"
 }
 #include <string>
-#include<type_traits>
-#include<utility>
-#include<functional>
+#include <type_traits>
+#include <utility>
+#include <functional>
 #include <stdlib.h>
 #ifdef _MSC_VER 
 #include <variant>

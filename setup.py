@@ -13,10 +13,7 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 targetDir = "nimview"
 
 # create another nimview subfolder as setup.py is much friendlier if you do so
-try:
-    rmtree(targetDir)
-except:
-    pass
+rmtree(targetDir, ignore_errors=False)
 os.makedirs(targetDir, exist_ok=True)
 os.makedirs(targetDir + "/src", exist_ok=True)
 srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "LICENSE", "README.md"]
