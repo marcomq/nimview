@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI Linux
+name: CI linux
 
 # Controls when the action will run. 
 on:
@@ -39,8 +39,9 @@ jobs:
           nim --version
           nimble install -d -y --noSSLCheck --verbose
           nimble test
-          npm run build --prefix examples/svelte
-          npm run build --prefix examples/vue
+          # npm install --prefix examples/svelte
+          # npm run build --prefix examples/svelte
+          # npm run build --prefix examples/vue
           
       - name: Release
         uses: softprops/action-gh-release@v1
