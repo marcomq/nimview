@@ -13,7 +13,7 @@ this_directory = os.path.abspath(os.path.dirname(__file__))
 targetDir = "nimview"
 
 # create another nimview subfolder as setup.py is much friendlier if you do so
-rmtree(targetDir, ignore_errors=False)
+rmtree(targetDir, ignore_errors=True)
 os.makedirs(targetDir, exist_ok=True)
 os.makedirs(targetDir + "/src", exist_ok=True)
 srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "LICENSE", "README.md"]
@@ -54,13 +54,11 @@ class NimBuild(build_ext):
 
     def build_extension(self, ext):
         print("=> build_extension")
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
-            os.makedirs(self.build_temp + "/src")
+        os.makedirs(self.build_temp, exist_ok=True)
+        os.makedirs(self.build_temp + "/src", exist_ok=True)
         
         extdir = self.get_ext_fullpath(ext.name)
-        if not os.path.exists(extdir):
-            os.makedirs(extdir + "/src")
+        os.makedirs(extdir + "/src", exist_ok=True)
 
         for fileName in srcFiles:
             fullFileName = os.path.join(targetDir, fileName)
@@ -73,6 +71,7 @@ class NimBuild(build_ext):
         check_call(['nimble', 'pyLib'], cwd=self.build_temp)
         libFiles = [ "out/nimview.so", "out/nimview.pyd"]
         install_target = os.path.abspath(os.path.dirname(extdir))
+        os.makedirs(install_target + "/src", exist_ok=True)
 
         for fileName in libFiles:
             fullFileName = os.path.join(self.build_temp, fileName)
