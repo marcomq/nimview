@@ -1,6 +1,7 @@
 # This specific file is based on https://github.com/yglukhov/nimpy/blob/master/nimpy.nimble
 
-version     = "0.1.0"
+import os, strutils
+version     = system.readFile("VERSION")
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
@@ -23,8 +24,6 @@ else:
   echo "Ignore this text if these packages already have been installed."
   echo "####-----------------------------------------------------####"
   requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview >= 0.1.0"
-
-import os, strutils
 
 let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"

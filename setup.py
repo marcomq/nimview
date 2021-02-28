@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+# python setup.py sdist
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from subprocess import check_call
 import os
 from shutil import copy, rmtree
-
-with open('README.md', encoding='utf-8') as f:
-    long_description = f.read()
-
 this_directory = os.path.abspath(os.path.dirname(__file__))
 targetDir = "nimview"
 
@@ -22,25 +20,6 @@ for index, fileName in enumerate(srcFiles):
     if os.path.isfile(fullFileName):
         copy(fullFileName, targetDir + "/" + fileName)
 
-classifiers = [
-        "Development Status :: 4 - Beta",
-        "Natural Language :: English",
-        "Operating System :: OS Independent",
-        "Operating System :: POSIX :: Linux",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: MacOS :: MacOS X",
-        "Environment :: Console",
-        "Environment :: Other Environment",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Other Audience",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Software Development"
-    ]
     
 class NimExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -80,16 +59,6 @@ class NimBuild(build_ext):
                 copy(fullFileName, install_target)
 
 setup(
-    name="nimview",
-    version="0.1.0",
-    author="Marco Mengelkoch",
-    description = "A lightwight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of Desktop applications based on a HTML/CSS/JS layer that is displayed with Webview.",
-    long_description = long_description,
-    long_description_content_type='text/markdown',
-    url="https://github.com/marcomq/nimview",
-    license='MIT',
-    classifiers=classifiers,
-    packages=["nimview"],
     ext_modules=[NimExtension('.')],
     cmdclass={
         'build_ext': NimBuild,
