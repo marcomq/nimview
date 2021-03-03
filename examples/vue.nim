@@ -9,7 +9,7 @@ proc main() =
   let argv = os.commandLineParams()
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
-  nimview.start("vue/dist/index.html")
+  nimview.start("examples/vue/dist/index.html")
   
 when isMainModule:
   main()

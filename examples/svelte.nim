@@ -10,7 +10,7 @@ proc main() =
   let argv = os.commandLineParams()
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
-  nimview.start("../examples/svelte/public/index.html")
+  nimview.start("examples/svelte/public/index.html")
   
 when isMainModule:
   main()

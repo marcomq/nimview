@@ -192,7 +192,7 @@ when not defined(just_core):
       else:
         if (not os.fileExists(targetJs)):
           debug "symlinking to " & targetJs
-          os.createSymlink(system.currentSourcePath.parentDir() /
+          os.createSymlink(system.currentSourcePath().parentDir() /
               "backend-helper.js", targetJs)
     except:
       logging.error "backend-helper.js not copied"
@@ -212,9 +212,9 @@ when not defined(just_core):
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
     var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
     doAssert(os.fileExists(absIndexHtml))
-    nimview.copyBackendHelper(absIndexHtml.parentDir())
     when not defined release:
-      backendHelperJs = system.readFile("backend-helper.js")
+      nimview.backendHelperJs = system.readFile(system.currentSourcePath().parentDir() / "backend-helper.js")
+    nimview.copyBackendHelper(absIndexHtml.parentDir())
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
@@ -242,7 +242,7 @@ when not defined(just_core):
     when compileWithWebview:
       var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
       nimview.copyBackendHelper(absIndexHtml.parentDir())
-      doAssert(os.fileExists(absIndexHtml))
+      doAssert(os.fileExists(absIndexHtml), absIndexHtml)
       os.setCurrentDir(absIndexHtml.parentDir()) # unfortunately required, let me know if you have a workaround
       # var fullScreen = true
       myWebView = webview.newWebView(title, "file://" / absIndexHtml, width,
@@ -289,13 +289,13 @@ proc main() =
       let argv = os.commandLineParams()
       for arg in argv:
         nimview.readAndParseJsonCmdFile(arg)
-      # let indexHtmlFile = os.getCurrentDir() / "tests/vue/dist/index.html"
-      let indexHtmlFile = os.getCurrentDir() / "tests/svelte/public/index.html"
+      # let indexHtmlFile = system.currentSourcePath().parentDir().parentDir()  / "examples/vue/dist/index.html"
+      let indexHtmlFile = system.currentSourcePath().parentDir().parentDir() / "examples/svelte/public/index.html"
       nimview.enableRequestLogger()
       # nimview.startHttpServerThread(indexHtmlFile)
       # nimview.start(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
-      nimview.startDesktop(indexHtmlFile)
+      nimview.start(indexHtmlFile)
 
 when isMainModule:
   main()

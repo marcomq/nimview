@@ -136,7 +136,7 @@ proc buildGenericObjects() =
   rmDir(buildDir / "tmp_c")
   rmDir(buildDir / "tmp_o")
   mkdir(buildDir / "tmp_o")
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:nimview.h --nimcache=./" & buildDir & 
+  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:" & application & ".h --nimcache=./" & buildDir & 
     "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile 
 
 proc runTests() =
@@ -150,7 +150,7 @@ proc runTests() =
   execCmd "python tests/pyTest.py"
 
 proc generateDocs() = 
-  execNim "doc -d:useStdLib -o:docs/nimview.html " & application & ".nim"
+  execNim "doc -d:useStdLib -o:docs/" & application & ".html " & mainApp
 
 task libs, "Build Libs":
   buildLibs()
@@ -161,7 +161,7 @@ task pyLib, "Build python lib":
 task dev, "Serve NPM":
   execCmd("npm run dev --prefix " & svelteDir)
 
-task debug, "Build nimview debug":
+task debug, "Build " & application & " debug":
   buildDebug()
   # exec "./" & application & "_debug & npm run serve --prefix " & uiDir
 
