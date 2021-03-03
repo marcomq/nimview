@@ -169,9 +169,10 @@ when not defined(just_core):
             else:
               jsonMessage = parseJson(uri.decodeUrl(requestPath))
             resultId = jsonMessage["responseId"].getInt()
-            response = dispatchHttpRequest(jsonMessage, request.headers)
-            let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response}
-            respond $jsonResponse
+            {.gcsafe.}:
+              response = dispatchHttpRequest(jsonMessage, request.headers)
+              let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response}
+              respond $jsonResponse
 
         except ReqUnknownException:
           respond Http404, nimview.responseHttpHeader, $ %* {"error": "404",
