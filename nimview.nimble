@@ -1,5 +1,3 @@
-# This specific file is based on https://github.com/yglukhov/nimpy/blob/master/nimpy.nimble
-
 import os, strutils
 version     = system.readFile("VERSION")
 author      = "Marco Mengelkoch"
