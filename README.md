@@ -151,7 +151,7 @@ But Nimview is written in Nim and creates static binaries that can run in a mini
 Nim has a thread local heap and most variables in Nimview are declared thread local. It is therefore not possible to share Nimview data between multiple threads automatically. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
 
 ### Paths / Using files from existing web-applications
-For Desktop applications, it is required to use relative file paths. The paths must point to a directory relative to the given index html file.
+For Desktop applications, it is required to use relative file paths in HTML. The paths must point to a directory relative of the binary to the given index html file.
 It is not possible to use a subdirectory of the index file. You can also not use a web URL as startpoint, as this must be an existing file.
 It is also not recommended to load anything via an URL from any existing internet source, as this could easily cause a security breach.
 The Desktop mode is using IE11 as platform, so there might be security issues when loading uncontrolled content from internet.

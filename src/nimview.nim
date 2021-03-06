@@ -110,6 +110,7 @@ when not defined(just_core):
   when defined release:
     const backendHelperJs = system.staticRead("backend-helper.js")
   else:
+    const backendHelperJsStatic = system.staticRead("backend-helper.js")
     var backendHelperJs {.threadVar.}: string
 
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
@@ -182,30 +183,34 @@ when not defined(just_core):
               "value": "request doesn't contain valid json",
               "resultId": resultId}
 
+        
+  proc getCurrentAppDir(): string =
+      let applicationName = os.getAppFilename().extractFilename()
+      debug applicationName
+      if (applicationName.startsWith("python") or applicationName.startsWith("platform-python")):
+        result = os.getCurrentDir()
+      else:
+        result = os.getAppDir()
+
   proc copyBackendHelper (folder: string) =
     let targetJs = folder / "backend-helper.js"
     try:
-      when (system.hostOS == "windows"):
-        if (not os.fileExists(targetJs) or defined(debug)):
+      if not os.fileExists(targetJs):
+        let sourceJs = nimview.getCurrentAppDir() / "../src/backend-helper.js"
+        if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
           debug "writing to " & targetJs
           if nimview.backendHelperJs != "":
             system.writeFile(targetJs, nimview.backendHelperJs)
-      else:
-        if (not os.fileExists(targetJs)):
-          debug "symlinking to " & targetJs
-          os.createSymlink(system.currentSourcePath().parentDir() /
-              "backend-helper.js", targetJs)
+        elif (os.fileExists(sourceJs)):
+            debug "symlinking to " & targetJs
+            os.createSymlink(sourceJs, targetJs)
     except:
       logging.error "backend-helper.js not copied"
 
   proc getAbsPath(indexHtmlFile: string): string =
     result = indexHtmlFile
     if (not os.isAbsolute(indexHtmlFile)):
-      debug os.getAppFilename().extractFilename()
-      if (os.getAppFilename().extractFilename().startsWith("python")):
-        result = os.getCurrentDir() / indexHtmlFile
-      else:
-        result = os.getAppDir() / indexHtmlFile
+      result = nimview.getCurrentAppDir() / indexHtmlFile
 
   proc startHttpServer*(indexHtmlFile: string, port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
@@ -214,7 +219,11 @@ when not defined(just_core):
     var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
     doAssert(os.fileExists(absIndexHtml))
     when not defined release:
-      nimview.backendHelperJs = system.readFile(system.currentSourcePath().parentDir() / "backend-helper.js")
+      nimview.backendHelperJs = nimview.backendHelperJsStatic
+      try:
+        nimview.backendHelperJs = system.readFile(nimview.getCurrentAppDir() / "../src/backend-helper.js")
+      except: 
+        discard
     nimview.copyBackendHelper(absIndexHtml.parentDir())
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
@@ -290,8 +299,8 @@ proc main() =
       let argv = os.commandLineParams()
       for arg in argv:
         nimview.readAndParseJsonCmdFile(arg)
-      # let indexHtmlFile = system.currentSourcePath().parentDir().parentDir()  / "examples/vue/dist/index.html"
-      let indexHtmlFile = system.currentSourcePath().parentDir().parentDir() / "examples/svelte/public/index.html"
+      # let indexHtmlFile = "../examples/vue/dist/index.html"
+      let indexHtmlFile = "../examples/svelte/public/index.html"
       nimview.enableRequestLogger()
       # nimview.startHttpServerThread(indexHtmlFile)
       # nimview.start(indexHtmlFile)

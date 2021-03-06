@@ -88,8 +88,8 @@ proc buildPyLib() =
   ## C/C++ libraries
   rmDir(buildDir / "tmp_py")
   let pyDllExtension = when defined(windows): "pyd" else: "so"
-  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir & "/"  & 
-    application & "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
+  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir / application & 
+    "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
 
 proc buildLibs() = 
   ## creates python 
@@ -112,10 +112,10 @@ proc buildLibs() =
   echo "Python and shared C libraries build completed. Files have been created in build folder."
 
 proc buildRelease() =
-  execNim "c --app:gui -d:release -d:useStdLib --out:" & application & " " & " " & mainApp
+  execNim "c --app:gui -d:release -d:useStdLib --out:"  & buildDir / application & " " & " " & mainApp
 
 proc buildDebug() =
-  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native -d:useStdLib --out:" & application & "_debug  " & " " & mainApp
+  execNim "c --verbosity:2 --app:console -d:debug --debuginfo --debugger:native --out:"  & buildDir / application & "_debug  " & " " & mainApp
 
 proc buildCSample() = 
   execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION  -O3 -fno-strict-aliasing -fno-ident " & 
@@ -137,7 +137,7 @@ proc buildGenericObjects() =
   rmDir(buildDir / "tmp_o")
   mkdir(buildDir / "tmp_o")
   execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:" & application & ".h --nimcache=./" & buildDir & 
-    "/tmp_c --app:staticLib --out:" & application & " " & " " & libraryFile 
+    "/tmp_c --app:staticLib --out:"  & buildDir / application & " " & " " & libraryFile 
 
 proc runTests() =
   buildLibs()
