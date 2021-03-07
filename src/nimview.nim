@@ -192,18 +192,22 @@ when not defined(just_core):
       else:
         result = os.getAppDir()
 
-  proc copyBackendHelper (folder: string) =
+  proc copyBackendHelper (indexHtml: string) =
+    let folder = indexHtml.parentDir()
     let targetJs = folder / "backend-helper.js"
     try:
-      if not os.fileExists(targetJs):
-        let sourceJs = nimview.getCurrentAppDir() / "../src/backend-helper.js"
-        if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
-          debug "writing to " & targetJs
-          if nimview.backendHelperJs != "":
-            system.writeFile(targetJs, nimview.backendHelperJs)
-        elif (os.fileExists(sourceJs)):
-            debug "symlinking to " & targetJs
-            os.createSymlink(sourceJs, targetJs)
+      if not os.fileExists(targetJs) and indexHtml.endsWith(".html"):
+        # read index html file and check if it actually requires backend helper
+        let indexHtmlContent = system.readFile(indexHtml)
+        if indexHtmlContent.contains("backend-helper.js"):
+          let sourceJs = nimview.getCurrentAppDir() / "../src/backend-helper.js"
+          if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
+            debug "writing to " & targetJs
+            if nimview.backendHelperJs != "":
+              system.writeFile(targetJs, nimview.backendHelperJs)
+          elif (os.fileExists(sourceJs)):
+              debug "symlinking to " & targetJs
+              os.createSymlink(sourceJs, targetJs)
     except:
       logging.error "backend-helper.js not copied"
 
@@ -224,7 +228,7 @@ when not defined(just_core):
         nimview.backendHelperJs = system.readFile(nimview.getCurrentAppDir() / "../src/backend-helper.js")
       except: 
         discard
-    nimview.copyBackendHelper(absIndexHtml.parentDir())
+    nimview.copyBackendHelper(absIndexHtml)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
@@ -251,7 +255,7 @@ when not defined(just_core):
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
       var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
-      nimview.copyBackendHelper(absIndexHtml.parentDir())
+      nimview.copyBackendHelper(absIndexHtml)
       doAssert(os.fileExists(absIndexHtml), absIndexHtml)
       os.setCurrentDir(absIndexHtml.parentDir()) # unfortunately required, let me know if you have a workaround
       # var fullScreen = true

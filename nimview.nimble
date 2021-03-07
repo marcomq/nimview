@@ -59,7 +59,7 @@ when defined(nimdistros):
   if detectOs(Ubuntu):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
-    foreignDep "webkit2gtk3-devel"
+    foreignDep "webkitgtk4-devel"
   echo "In case of trouble, you may need to install following dependencies:"
   echo ""
   echoForeignDeps()
@@ -181,5 +181,6 @@ task docs, "Generate doc":
 
 task test, "Run tests":
   runTests()
+  echo "all tests passed"
   # generateDocs()
   # execCmd "npm run build --prefix " & svelteDir
