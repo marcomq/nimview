@@ -45,7 +45,7 @@ If you need HTML generators or helpers, there are widely used open source framew
 There is a pre-build demo windows x64 binary available that uses a simple Svelte UI. 
 To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
 one desktop application and one HTTP server application that can be reached at http://localhost:8000.
-[demo_app.zip](https://github.com/marcomq/nimview/files/6100203/demo_app.zip)
+- [demo_app.zip](https://github.com/marcomq/nimview/files/6100203/demo_app.zip)
 sha256sum 315035d4c26bf53e95e44d09def88c58c751d78c4436da4da8dde1139a88584c
 To build this demo from source, you need to run `nimble demo`
 
