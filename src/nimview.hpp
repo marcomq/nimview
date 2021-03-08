@@ -50,8 +50,17 @@ Fn* castToFunction(Lambda&& memberFunction) {
 }
 
 namespace nimview {
+    thread_local bool nimInitialized = false;
+    auto nimview_nimMain = NimMain;
+    void nimMain() {
+        if (!nimInitialized) {
+            nimview_nimMain();
+            nimInitialized = true;
+        }
+    };
     template<unsigned int COUNTER>
     void addRequestImpl(const std::string& request, const std::function<std::string(const std::string&)> &callback) {
+        nimMain();
         auto lambda = [&, callback](char* input) {
             std::string result = callback(input);
             if (result == "") {
@@ -67,6 +76,7 @@ namespace nimview {
         nimview_addRequest(const_cast<char*>(request.c_str()), cFunc, free);
     }
     void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  {
+        nimMain();
         #ifdef _WIN32
             bool runWithGui = true;
         #else
@@ -82,13 +92,14 @@ namespace nimview {
             nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
         }
     }
-    void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  { 
+    void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  {
+        nimMain(); 
         nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
     };
     void startHttpServer(const char* folder, int port = 8000, const char* bindAddr = "localhost")  { 
+        nimMain();
         nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
     };
-    auto nimMain = NimMain;
     auto dispatchRequest = nimview_dispatchRequest;
     auto dispatchCommandLineArg = nimview_dispatchCommandLineArg;
     auto readAndParseJsonCmdFile = nimview_readAndParseJsonCmdFile;

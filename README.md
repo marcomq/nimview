@@ -175,7 +175,7 @@ This is not any goal here with Nimview.
 This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ### Difference to Flask
-Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
+Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and Nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
 But Nimview is written in Nim and creates static binaries that can run in a minimal tiny Docker container that doesn't need an installed python environment. So you might create containers for your application that have just a few MB. So those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker, or you need to include GTK libraries in your container.
 
 ### Multithreading
