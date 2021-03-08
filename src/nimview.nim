@@ -41,6 +41,7 @@ proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
   ## The file can be used for automated tests, to archive and replay all actions.
   if nimview.requestLogger.isNil:
+    debug "creating request logger, further requests will be logged to file and flushed at application end"
     if not os.fileExists("requests.log"):
       var createFile = system.open("requests.log", system.fmWrite)
       createFile.close()
@@ -216,19 +217,24 @@ when not defined(just_core):
     if (not os.isAbsolute(indexHtmlFile)):
       result = nimview.getCurrentAppDir() / indexHtmlFile
 
+  proc checkFileExists(filePath: string, message: string) =
+    if not os.fileExists(filePath):
+      raise newException(IOError, message)
+
   proc startHttpServer*(indexHtmlFile: string, port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-    var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
-    doAssert(os.fileExists(absIndexHtml))
+    var indexHtmlPath = nimview.getAbsPath(indexHtmlFile)
+    nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+      "; cannot start UI; the UI folder needs to be relative to the binary")
     when not defined release:
       nimview.backendHelperJs = nimview.backendHelperJsStatic
       try:
         nimview.backendHelperJs = system.readFile(nimview.getCurrentAppDir() / "../src/backend-helper.js")
       except: 
         discard
-    nimview.copyBackendHelper(absIndexHtml)
+    nimview.copyBackendHelper(indexHtmlPath)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
@@ -236,7 +242,7 @@ when not defined(just_core):
     let settings = jester.newSettings(
         port = Port(port),
         bindAddr = bindAddr,
-        staticDir = absIndexHtml.parentDir())
+        staticDir = indexHtmlPath.parentDir())
     var myJester = jester.initJester(nimview.handleRequest, settings = settings)
     # debug "open default browser"
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
@@ -245,21 +251,22 @@ when not defined(just_core):
 
   proc stopDesktop*() {.exportpy.} =
     ## Will stop the Http server - may trigger application exit.
-    debug "stopping ..."
-    if not myWebView.isNil():
-      myWebView.terminate()
+    when compileWithWebview:
+      debug "stopping ..."
+      if not myWebView.isNil():
+        myWebView.terminate()
 
   proc startDesktop*(indexHtmlFile: string, title: string = "nimview",
       width: int = 640, height: int = 480, resizable: bool = true,
           debug: bool = defined release) {.exportpy.} =
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
-      var absIndexHtml = nimview.getAbsPath(indexHtmlFile)
-      nimview.copyBackendHelper(absIndexHtml)
-      doAssert(os.fileExists(absIndexHtml), absIndexHtml)
-      os.setCurrentDir(absIndexHtml.parentDir()) # unfortunately required, let me know if you have a workaround
+      var indexHtmlPath = nimview.getAbsPath(indexHtmlFile)
+      nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+        "; cannot start UI; the UI folder needs to be relative to the binary")
+      nimview.copyBackendHelper(indexHtmlPath)
       # var fullScreen = true
-      myWebView = webview.newWebView(title, "file://" / absIndexHtml, width,
+      myWebView = webview.newWebView(title, "file://" / indexHtmlPath, width,
           height, resizable = resizable, debug = debug)
       myWebView.bindProc("backend", "alert", proc (
           message: string) = webview.info(myWebView, "alert", message))

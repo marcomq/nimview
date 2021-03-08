@@ -53,10 +53,10 @@ export default {
     }),
     copy({
       targets: [{ 
-        src: ['node_modules/bootstrap/dist/js/*', 'node_modules/bootstrap/dist/css/*'],
+        src: ['node_modules/bootstrap/dist/js/*.min.*', 'node_modules/bootstrap/dist/css/*.min.*'],
         dest: 'public/vendor/bootstrap' 
       },{ 
-        src: ['node_modules/jquery/dist/*'],
+        src: ['node_modules/jquery/dist/*.min.*'],
         dest: 'public/vendor/jquery' 
       }],
       copyOnce: true

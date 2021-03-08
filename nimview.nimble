@@ -60,10 +60,11 @@ when defined(nimdistros):
     foreignDep "libwebkit2gtk-4.0-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
     foreignDep "webkitgtk4-devel"
-  echo "In case of trouble, you may need to install following dependencies:"
-  echo ""
-  echoForeignDeps()
-  echo ""
+  if not detectOs(Windows):
+    echo "In case of trouble, you may need to install following dependencies:"
+    echo ""
+    echoForeignDeps()
+    echo ""
 else:
   echo "no nimdistros"
 
@@ -168,6 +169,14 @@ task debug, "Build " & application & " debug":
 task svelte, "build svelte example in release mode":
   execCmd "npm run build --prefix " & svelteDir
   execNim "c -r --app:gui -d:release -d:useStdLib --out:svelte.exe examples/svelte.nim"
+
+task demo, "build svelte example in release mode":
+  rmDir(buildDir / "demo")
+  mkdir(buildDir / "demo/ui")
+  execCmd "npm run build --prefix " & svelteDir
+  cpDir(svelteDir / "public", buildDir / "demo/ui")
+  execNim "c --app:console -d:useServer -d:release -d:useStdLib --out:"  & buildDir / "demo/server_demo.exe examples/demo.nim"
+  execNim "c -r --app:gui -d:release -d:useStdLib --out:"  & buildDir / "demo/desktop_demo.exe examples/demo.nim"
 
 task vue, "build vue example in release mode":
   execCmd "npm run build --prefix " & vueDir
