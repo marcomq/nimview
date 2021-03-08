@@ -9,6 +9,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 
 ## Table of Contents
 - [About](#about)
+- [Demo binary](#demo-binary)
 - [Minimal Python Example](#minimal-python-example)
 - [Minimal Nim example](#minimal-nim-example)
 - [Javascript and HTML UI](#javascript-and-html-ui)
@@ -40,6 +41,15 @@ Webview on its own is a mess if you want to debug your Javascript issues. You mi
 This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
 
+## Demo binary
+There is a pre-build demo windows x64 binary available that uses a simple Svelte UI. 
+To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
+one desktop application and one HTTP server application that can be reached at http://localhost:8000.
+[demo_app.zip](https://github.com/marcomq/nimview/files/6100203/demo_app.zip)
+sha256sum 315035d4c26bf53e95e44d09def88c58c751d78c4436da4da8dde1139a88584c
+To build this demo from source, you need to run `nimble demo`
+
+## Minimal Python example
 The project is available for python via `pip install nimview` and for nim via `nimble install nimview`. 
 If you just want to display some simple static HTML (or alternatively a jpg in Python), you can run:
 
@@ -50,7 +60,6 @@ nimview.start("hello_world.html")
 
 If you want to actually trigger some server code from a button, you can do following:
 
-## Minimal Python example
 ```
 import nimview
 def echoAndModify(value):
