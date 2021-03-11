@@ -25,7 +25,7 @@ proc nimview_addRequest*(request: cstring, callback: proc(
   value: cstring): cstring {.cdecl.}, 
   freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} =
   nimview.addRequest($request, proc (nvalue: string): string =
-    {.gcsafe.}:
+    {.gcsafe.}: # we need to assume that the c function is gc safe
       debug "calling nim from c interface with: " & nvalue
       var resultPtr: cstring = ""
       try:
@@ -37,26 +37,26 @@ proc nimview_addRequest*(request: cstring, callback: proc(
     )
 
 proc nimview_dispatchRequest*(request, value: cstring): cstring {.exportc.} =
-  result = $dispatchRequest($request, $value)
+  result = $nimview.dispatchRequest($request, $value)
 
 proc nimview_dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} =
-  result = $dispatchCommandLineArg($escapedArgv)
+  result = $nimview.dispatchCommandLineArg($escapedArgv)
 
 proc nimview_readAndParseJsonCmdFile*(filename: cstring) {.exportc.} =
-  readAndParseJsonCmdFile($filename)
+  nimview.readAndParseJsonCmdFile($filename)
 
 when not defined(just_core):
 
   proc nimview_startHttpServer*(folder: cstring, port: cint = 8000,
       bindAddr: cstring = "localhost") {.exportc.} =
-    startHttpServer($folder, int(port), $bindAddr)
+    nimview.startHttpServer($folder, int(port), $bindAddr)
 
   proc nimview_startDesktop*(folder: cstring, title: cstring = "nimview",
       width: cint = 640, height: cint = 480, resizable: bool = true,
       debug: bool = false) {.exportc.} =
     # NimMain()
     debug "starting C webview"
-    startDesktop($folder, $title, width, height, resizable, debug)
+    nimview.startDesktop($folder, $title, width, height, resizable, debug)
     debug "leaving C webview"
 
   proc nimview_stopDesktop*() {.exportc.} = nimview.stopDesktop()
@@ -65,9 +65,3 @@ when not defined(just_core):
       bindAddr: cstring = "localhost", title: cstring = "nimview",
       width: cint = 640, height: cint = 480, resizable: bool = true) {.exportc.} =
     nimview.start($folder, port, $bindAddr, $title, width, height, resizable)
-
-proc myMain() {.exportc.} =
-  echo "starting nim"
-
-when isMainModule:
-  myMain()
