@@ -1,5 +1,5 @@
 import os, strutils
-version     = system.readFile("VERSION")
+version = "0.1.1"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
