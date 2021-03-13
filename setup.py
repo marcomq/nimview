@@ -7,6 +7,7 @@ from setuptools.command.build_ext import build_ext
 from subprocess import check_call
 import os
 from shutil import copy, rmtree
+
 this_directory = os.path.abspath(os.path.dirname(__file__))
 targetDir = "nimview"
 
