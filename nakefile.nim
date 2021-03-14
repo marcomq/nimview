@@ -7,6 +7,7 @@ let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
 let mainApp = srcDir / application & ".nim"
 let libraryFile =  srcDir / application & "_c.nim"
+let srcFiles = [mainApp, libraryFile]
 let buildDir = "out"
 let thisDir = system.currentSourcePath().parentDir() 
 
@@ -44,31 +45,35 @@ proc execNim(command: string) =
   execCmd nimexe & " " & command
 
 proc buildPyLib() = 
-  ## C/C++ libraries
-  os.removeDir(buildDir / "tmp_py")
+  ## creates python lib
   let pyDllExtension = when defined(windows): "pyd" else: "so"
-  execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & buildDir / application & 
-    "." & pyDllExtension & " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
+  let outputLib = buildDir / application & "." & pyDllExtension
+  if outputLib.needsRefresh(srcFiles):
+    os.removeDir(buildDir / "tmp_py")
+    execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
+      " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
 
 proc buildLibs() = 
-  ## creates python 
+  ## C/C++ libraries
   buildPyLib()
-  os.removeDir(buildDir / "tmp_dll")
   let cDllExtension = when defined(windows): "dll" else: "c.so"
+  let headerFile = thisDir / buildDir / "tmp_dll" / application & ".h"
+  let outputLib = buildDir / application & "." & cDllExtension
+  if headerFile.needsRefresh(srcFiles):
+    os.removeDir(buildDir / "tmp_dll")
+    execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
+      " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
+    os.copyFile(headerFile, thisDir / srcDir / application & ".h")
 
-  execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
-    " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
-
-  os.copyFile(thisDir / buildDir / "tmp_dll" / application & ".h", thisDir / srcDir / application & ".h")
-  let minGwSymbols = when defined(windows): 
-    " -Wl,--out-implib," & buildDir & "/lib" & application & 
-    ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " 
-  elif defined(linux):
-    " -Wl,--out-implib," & buildDir & "/lib" & application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive "
-  else: 
-    " " & buildDir & "/tmp_dll/*.o "
-  execCmd "gcc -shared -o " & buildDir / application & "." & cDllExtension & " -I" & buildDir & "/tmp_dll/" & " " & minGwSymbols & webviewlLibs # generate .dll and .a
-  echo "Python and shared C libraries build completed. Files have been created in build folder."
+    let minGwSymbols = when defined(windows): 
+      " -Wl,--out-implib," & buildDir & "/lib" & application & 
+      ".a -Wl,--export-all-symbols -Wl,--enable-auto-import -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive " 
+    elif defined(linux):
+      " -Wl,--out-implib," & buildDir & "/lib" & application & ".a -Wl,--whole-archive " & buildDir & "/tmp_dll/*.o -Wl,--no-whole-archive "
+    else: 
+      " " & buildDir & "/tmp_dll/*.o "
+    execCmd "gcc -shared -o " & outputLib & " -I" & buildDir & "/tmp_dll/" & " " & minGwSymbols & webviewlLibs # generate .dll and .a
+    echo "Python and shared C libraries build completed. Files have been created in build folder."
 
 proc buildRelease() =
   execNim "c --app:gui -d:release -d:useStdLib --out:"  & buildDir / application & " " & " " & mainApp
@@ -93,11 +98,13 @@ proc buildCTest() =
   execCmd "gcc -w -o " & buildDir & "/c_test.exe " & buildDir & "/tmp_c/*.o " & buildDir & "/tmp_o/c_test.o " & webviewlLibs
 
 proc buildGenericObjects() = 
-  os.removeDir(buildDir / "tmp_c")
   os.removeDir(buildDir / "tmp_o")
   os.createDir(buildDir / "tmp_o")
-  execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:" & application & ".h --nimcache=./" & buildDir & 
-    "/tmp_c --app:staticLib --out:"  & buildDir / application & " " & " " & libraryFile 
+  let headerFile = thisDir / buildDir / "tmp_c" / application & ".h"
+  if headerFile.needsRefresh(srcFiles):
+    os.removeDir(buildDir / "tmp_c")
+    execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:" & application & ".h --nimcache=./" & buildDir & 
+      "/tmp_c --app:staticLib --out:"  & buildDir / application & " " & " " & libraryFile 
 
 proc runTests() =
   buildLibs()
@@ -108,6 +115,7 @@ proc runTests() =
   buildCTest()
   execCmd os.getCurrentDir() / buildDir / "c_test.exe"
   execCmd "python tests/pyTest.py"
+  execCmd "nimble install -y"
 
 proc generateDocs() = 
   execNim "doc -d:useStdLib -o:docs/" & application & ".html " & mainApp

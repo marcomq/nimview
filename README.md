@@ -56,7 +56,7 @@ http://localhost:8000.
 
 sha256sum 315035d4c26bf53e95e44d09def88c58c751d78c4436da4da8dde1139a88584c
 
-If you want to build this demo from source, you need to run `nimble demo` on the
+If you want to build this demo from source, you need to run `nake demo` on the
 Nimview source folder.
 
 ## Minimal Python example
@@ -141,7 +141,7 @@ The setup/install after installing nim would be:
 - `npm install --prefix <path_to_ui_folder>`
 
 The development workflow would be:
-- start your back-end in debug mode with vs code or terminal, run: `nimble debug && ./nimview_debug`
+- start your back-end in debug mode with vs code or terminal, run: `nake debug && ./nimview_debug`
 - start your frontend npm in autoreload with vs code or terminal, run `npm run dev --prefix <path_to_ui_folder>`
 - open a browser with url http://localhost:5000 to see the current front-end code result that is served by node.js
 - change your front-end code, the page will reload automatically
@@ -214,7 +214,7 @@ If you don't want to use `nimble install nimview` but build everything from scra
 - cd nimview
 - nimble install -d -y
 - run "cd examples/svelte", "npm install" and "cd ../.." 
-- nimble debug && ./out/nimview_debug.exe
+- nake debug && ./out/nimview_debug.exe
 - (open new console) 
 - npm run dev --prefix examples/svelte
 - (open a browser with localhost:5000)
