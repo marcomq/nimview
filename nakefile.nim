@@ -21,14 +21,14 @@ if (not os.fileExists(nimbaseDir & "/nimbase.h")):
 if (not os.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(nimbleDir) & "/.choosenim/toolchains/nim-" & system.NimVersion & "/lib"
 
-let webviewlLibs = when defined(windows): 
+const webviewlLibs = when defined(windows): 
   "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
 elif defined(macosx):
   "-framework Cocoa -framework WebKit"
 else:
   system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl"
 
-let webviewIncludes = when defined(windows): 
+const webviewIncludes = when defined(windows): 
   "-DWEBVIEW_WINAPI=1 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN " 
 elif defined(macosx):
   "-DWEBVIEW_COCOA=1 -x objective-c"

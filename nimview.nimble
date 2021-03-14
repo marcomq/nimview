@@ -38,5 +38,5 @@ else:
   echo "no nimdistros"
 
 task test, "Run tests":
-  let nake = findExe("nake")
+  let nake = system.findExe("nake")
   exec  nake & " test"
