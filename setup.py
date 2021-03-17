@@ -7,6 +7,7 @@ from setuptools.command.build_ext import build_ext
 from subprocess import check_call
 import os
 from shutil import copy, rmtree
+
 this_directory = os.path.abspath(os.path.dirname(__file__))
 targetDir = "nimview"
 
@@ -14,7 +15,7 @@ targetDir = "nimview"
 rmtree(targetDir, ignore_errors=True)
 os.makedirs(targetDir, exist_ok=True)
 os.makedirs(targetDir + "/src", exist_ok=True)
-srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "LICENSE", "README.md"]
+srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "nakefile.nim", "LICENSE", "README.md"]
 for index, fileName in enumerate(srcFiles):
     fullFileName = os.path.join(this_directory, fileName)
     if os.path.isfile(fullFileName):
@@ -47,7 +48,7 @@ class NimBuild(build_ext):
                 copy(fullFileName, target)
 
         check_call(['nimble', 'install', '-d -y --noSSLCheck '], cwd=self.build_temp)
-        check_call(['nimble', 'pyLib'], cwd=self.build_temp)
+        check_call(['nake', 'pyLib'], cwd=self.build_temp)
         libFiles = [ "out/nimview.so", "out/nimview.pyd"]
         install_target = os.path.abspath(os.path.dirname(extdir))
         os.makedirs(install_target + "/src", exist_ok=True)

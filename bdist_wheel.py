@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# nimble pyLib
+# nake pyLib
 # python bdist_wheel.py  bdist_wheel --plat-name win-amd64
-# python bdist_wheel.py  bdist_wheel --plat-name linux-x86_64
+# /opt/python/cp37-cp37m/bin/python bdist_wheel.py  bdist_wheel --plat-name linux-x86_64
+# auditwheel repair --plat manylinux2014_x86_64 dist/nimview-0.*.*-py3-none-linux_x86_64.whl
 from setuptools import setup, Distribution
 import os
 from shutil import copy, rmtree

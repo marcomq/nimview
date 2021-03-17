@@ -10,15 +10,6 @@ export nimview
 # in case you need to create your own C library with custom code,
 # just add import nimview_c to your custom module
 
-# import std/compilesettings
-# when (querySetting(backend) == "c"):
-#   proc NimMain() {.importc.}
-# when (querySetting(backend) == "cpp"):
-#  proc NimMain() {.importcpp.}
-# else:
-#   proc NimMain() =
-#     discard
-
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
 proc nimview_addRequest*(request: cstring, callback: proc(

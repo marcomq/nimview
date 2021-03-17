@@ -139,6 +139,9 @@ when not defined(just_core):
         respond Http200, header, nimview.backendHelperJs
       else:
         try:
+          let separatorFound = requestPath.rfind({'#', '?'})
+          if separatorFound != -1:
+            requestPath = requestPath[0 ..< separatorFound]
           if (requestPath == "/"):
             requestPath = "/index.html"
 
@@ -166,10 +169,10 @@ when not defined(just_core):
             # if not a file, assume this is a json request
             var jsonMessage: JsonNode
             echo request.body
-            if (request.body != ""):
-              jsonMessage = parseJson(request.body)
-            else:
+            if unlikely(request.body == ""):
               jsonMessage = parseJson(uri.decodeUrl(requestPath))
+            else:
+              jsonMessage = parseJson(request.body)
             resultId = jsonMessage["responseId"].getInt()
             {.gcsafe.}:
               response = dispatchHttpRequest(jsonMessage, request.headers)
@@ -212,10 +215,15 @@ when not defined(just_core):
     except:
       logging.error "backend-helper.js not copied"
 
-  proc getAbsPath(indexHtmlFile: string): string =
-    result = indexHtmlFile
-    if (not os.isAbsolute(indexHtmlFile)):
-      result = nimview.getCurrentAppDir() / indexHtmlFile
+  proc getAbsPath(indexHtmlFile: string): (string, string) =
+    let separatorFound = indexHtmlFile.rfind({'#', '?'})
+    if separatorFound == -1:
+      result[0] = indexHtmlFile
+    else:
+      result[0] = indexHtmlFile[0 ..< separatorFound]
+      result[1] = indexHtmlFile[separatorFound .. ^1]
+    if (not os.isAbsolute(result[0])):
+      result[0] = nimview.getCurrentAppDir() / indexHtmlFile
 
   proc checkFileExists(filePath: string, message: string) =
     if not os.fileExists(filePath):
@@ -225,7 +233,8 @@ when not defined(just_core):
       bindAddr: string = "localhost") {.exportpy.} =
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-    var indexHtmlPath = nimview.getAbsPath(indexHtmlFile)
+    var (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
+    discard parameter # needs to be inserted into url manually
     nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
       "; cannot start UI; the UI folder needs to be relative to the binary")
     when not defined release:
@@ -245,7 +254,7 @@ when not defined(just_core):
         staticDir = indexHtmlPath.parentDir())
     var myJester = jester.initJester(nimview.handleRequest, settings = settings)
     # debug "open default browser"
-    # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port)
+    # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
     myJester.serve()
 
 
@@ -261,12 +270,12 @@ when not defined(just_core):
           debug: bool = defined release) {.exportpy.} =
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
-      var indexHtmlPath = nimview.getAbsPath(indexHtmlFile)
+      var (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
       nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
       nimview.copyBackendHelper(indexHtmlPath)
       # var fullScreen = true
-      myWebView = webview.newWebView(title, "file://" / indexHtmlPath, width,
+      myWebView = webview.newWebView(title, "file://" / indexHtmlPath & parameter, width,
           height, resizable = resizable, debug = debug)
       myWebView.bindProc("backend", "alert", proc (
           message: string) = webview.info(myWebView, "alert", message))
