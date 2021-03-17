@@ -1,4 +1,3 @@
-import os, strutils
 version     = "0.1.1"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
@@ -6,6 +5,7 @@ license     = "MIT"
 bin         = @["nimview"]
 srcDir      = "src"
 
+import os, strutils
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core
 # Currently, Webview requires gcc and doesn't work with vcc or clang

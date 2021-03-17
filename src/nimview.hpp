@@ -3,10 +3,14 @@
  * Licensed under MIT License, see License file for more details
  * git clone https://github.com/marcomq/nimview
 **/
-
+#pragma once
+#ifndef NIMVIEW_CPP_LIB
 extern "C" {
+#endif
 #include "nimview.h"
+#ifndef NIMVIEW_CPP_LIB
 }
+#endif
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -100,7 +104,15 @@ namespace nimview {
         nimMain();
         nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
     };
-    auto dispatchRequest = nimview_dispatchRequest;
+    char* dispatchRequest(char* request, char* value) {
+        nimMain();
+        return nimview_dispatchRequest(request, value);
+    };
+    std::string dispatchRequest(const std::string &request, const std::string &value) {
+        nimMain();
+        // free of return value should be performed by nim gc
+        return nimview_dispatchRequest(const_cast<char*>(request.c_str()), const_cast<char*>(value.c_str())); 
+    };
     auto dispatchCommandLineArg = nimview_dispatchCommandLineArg;
     auto readAndParseJsonCmdFile = nimview_readAndParseJsonCmdFile;
     
