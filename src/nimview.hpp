@@ -4,11 +4,9 @@
  * git clone https://github.com/marcomq/nimview
 **/
 #pragma once
-#ifndef NIMVIEW_CPP_LIB
+#ifndef NIMVIEW_CUSTOM_LIB
 extern "C" {
-#endif
 #include "nimview.h"
-#ifndef NIMVIEW_CPP_LIB
 }
 #endif
 #include <string>
@@ -79,6 +77,8 @@ namespace nimview {
         auto cFunc = castToFunction<COUNTER>(lambda);
         nimview_addRequest(const_cast<char*>(request.c_str()), cFunc, free);
     }
+
+#ifndef JUST_CORE
     void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  {
         nimMain();
         #ifdef _WIN32
@@ -104,6 +104,7 @@ namespace nimview {
         nimMain();
         nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
     };
+#endif
     char* dispatchRequest(char* request, char* value) {
         nimMain();
         return nimview_dispatchRequest(request, value);
