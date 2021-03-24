@@ -3,16 +3,19 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import times, jester, std/sysrand, base64
+import times, jester, std/sysrand, base64, locks
 
+var L: Lock
+initLock(L)
 # generate 5 tokens that rotate
 var tokens: array[0..4, tuple[
     token: array[0..31, byte], 
     generated: times.DateTime]]
 
 proc checkIfTokenExists(token: array[0..31, byte]): bool =
-    for i in globalToken.tokens:
-        if token == i.token:
+    # Very unlikely, but it may be necessary to also lock here
+    for i in 0 ..< globalToken.tokens.len:
+        if token == globalToken.tokens[i].token:
             return true
     return false
 
@@ -47,9 +50,10 @@ proc getFreshToken*(): array[0..31, byte] =
         discard
     if tokenPlusInterval < currentTime: 
         let randomValue = sysrand.urandom(32)
-        # TODO: lock
         for i in 0 ..< randomValue.len:
             result[i] = randomValue[i]
-        currentToken[].generated.swap(currentTime)
-        currentToken[].token.swap(result)
+        withLock(L):    
+            currentToken[].generated.swap(currentTime)
+            currentToken[].token.swap(result)
+    # It may be necessary to also lock here
     result = currentToken[].token

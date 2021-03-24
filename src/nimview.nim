@@ -126,8 +126,9 @@ when not defined(just_core):
 
   template respond(code: untyped, header: untyped, message: untyped): untyped =
     mixin resp
-    resp code, header, message
-  proc handleRequest(request: Request): Future[ResponseData] {.async, gcsafe.} =
+    jester.resp code, header, message
+
+  proc handleRequest(request: Request): Future[ResponseData] {.async.} =
     ## used by HttpServer
     block route:
       var response: string
@@ -169,7 +170,7 @@ when not defined(just_core):
 
             # if not a file, assume this is a json request
             var jsonMessage: JsonNode
-            echo request.body
+            debug request.body
             if unlikely(request.body == ""):
               jsonMessage = parseJson(uri.decodeUrl(requestPath))
             else:
