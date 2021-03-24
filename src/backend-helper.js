@@ -89,20 +89,13 @@ ui.alert = function (str) {
  *        You will need to handle error and success manually.
  ***/
 ui.backend = function (request, data, callbackFunction) {
-  var jsonRequest = {responseId:0};
+  var jsonRequest = { responseId: 0 };
   if (typeof backend === 'undefined') {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
     jsonRequest = ui.createRequest(request, data, callbackFunction);
     var postData = JSON.stringify(jsonRequest);
-    var opts = {
-      method: 'POST', // always use AJAX post for simplicity with special chars    
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {'Content-Type': 'application/json'},
-      body: postData
-    };
     if (defaultPostTarget == "") {
       var url = request; // Not required. Just for easier debugging
     }
@@ -119,23 +112,41 @@ ui.backend = function (request, data, callbackFunction) {
       }
 
     };
-    if (typeof fetch !== "undefined") {
-      fetch(host + "/" + url, opts).then(function(response) { 
-        if (response && response.json) {
-          return response.json();
+    if (typeof fetch !== "undefined") { // chrome and other modern browsers
+      var opts = {
+        method: 'POST', // always use AJAX post for simplicity with special chars    
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {'Content-Type': 'application/json'},
+        body: postData
+      };
+      if (ui.globalToken && (ui.globalToken.length > 0)) {
+        opts.headers["global-token"] = ui.globalToken;
+      }
+      fetch(host + "/" + url, opts).then(function(response) {
+        if (response) {
+          var globalToken = response.headers.get("global-token");
+          if (globalToken && (globalToken.length > 0)) {
+            ui.globalToken = globalToken;
+            ui.lastToken = Date.now();
+          }
+          if (response.json) {
+            return response.json();
+          }
         }
-        else {
-          return response;
-        }
+        return response;
       }).then(responseHandler).catch(function(err) {
         if (console && console.log) {
           console.log(err);
         }
       });
     }
-    else {
+    else { // IE11
       let xhr = new XMLHttpRequest();
       xhr.open('POST', host + "/" + url, true);
+      if (ui.globalToken && (ui.globalToken.length > 0)) {
+        xhr.setRequestHeader("global-token", ui.globalToken);
+      }
       xhr.responseType = "json";
       xhr.onreadystatechange = function() {
         if (xhr.readyState !== 4) {
@@ -144,6 +155,10 @@ ui.backend = function (request, data, callbackFunction) {
         if (xhr.status === 200) {
           // request successful - show response
           var response = xhr.response;
+          var globalToken = xhr.getResponseHeader("global-token");
+          if (globalToken && (globalToken.length > 0)) {
+            ui.globalToken = globalToken;
+          }
           if (typeof response === "string") {
             responseHandler(JSON.parse(response));
           }
@@ -153,7 +168,9 @@ ui.backend = function (request, data, callbackFunction) {
         }
         else {
           // request error
-          console.log('HTTP error', xhr.status, xhr.statusText);
+          if (console && console.log) {
+            console.log('HTTP error', xhr.status, xhr.statusText);
+          }
         }
       };
       xhr.send(postData);
@@ -179,4 +196,14 @@ ui.backend = function (request, data, callbackFunction) {
     }
   }
 // "import from" doesn't seem to work with webview here... So add this as global variable
+ui.getGlobalToken = function() {
+  if (typeof backend === 'undefined') {
+    if ((typeof ui.lastToken === 'undefined') || 
+        (ui.lastToken + (60 * 1000) <= Date.now())) {
+      ui.backend("getGlobalToken");
+    }
+  }
+};
+window.setTimeout(ui.getGlobalToken, 150);
+window.setInterval(ui.getGlobalToken, 60 * 1000);
 window.ui = ui;

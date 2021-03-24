@@ -20,6 +20,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 - [Why not Electron or CEF](#why-not-electron-or-cef)
 - [Difference to Eel](#difference-to-eel)
 - [Difference to Flask](#difference-to-flask)
+- [CSRF and Security](#csrf-and-security)
 - [Multithreading](#multithreading)
 - [Using UI from existing web-applications](#using-ui-from-existing-web-applications)
 - [Setup from source](#setup-from-source)
@@ -176,8 +177,8 @@ Also, you will have all the included features of nim if you decide to build a C+
 You might write the same Code and the same UI for your Cloud application as for your Desktop App.
 
 ### Difference to Eel and Neel
-There are some cool similar frameworks: The very popular framework "eel" (https://github.com/ChrisKnott/Eel) for python 
-and its little brother neel (https://github.com/Niminem/Neel) for nim
+There are some cool similar frameworks: The very popular framework [eel](https://github.com/ChrisKnott/Eel) for python 
+and its cousin [neel](https://github.com/Niminem/Neel) for nim.
 There are 2 major differences: 
 - Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. 
 This is not any goal here with Nimview. 
@@ -188,11 +189,28 @@ This is not any goal here with Nimview.
 This improves security and makes it possible to run multiple applications without having port conflicts.
 
 ### Difference to Flask
-Flask is probably the most popular python framework to create micro services (https://github.com/pallets/flask) and Nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
+[Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
 But Nimview is written in Nim and creates static binaries that can run in a minimal tiny Docker container that doesn't need an installed python environment. So you might create containers for your application that have just a few MB. So those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker by compiling with `-d:useServer`, or you need to include GTK libraries in your container.
 
+### CSRF and Security
+Nimview was made with security in mind. For the Webview `startDesktop` mode, no network ports are opened to display the UI. The webserver is mostly just for debugging, 
+so the application doesn't need to be checked for several common attack vectors
+of web-applications as long as Webview is used.
+
+However, if you create a web-application, you need perform most security mitigations by yourself, by middleware or by the javascript framework you are using. 
+You may check [owasp.org](owasp.org)
+Following CSRF protections are already included in Nimview:
+- Jester, the webserver of Nimview includes a "SameSite" directive for cookies.
+- Nimview stores 5 global random non-session tokens that renew each other every 60 seconds. A valid token is required for any Ajax request except "getGlobalToken".
+The token is queried automatically with a "getGlobalToken" request when the application starts. If the token is missing or wrong, there is a "403" error for ajax requests.
+
+This isn't a full CSRF protection, as the token isn't bound to a session and all users that can read responses from localhost can also use this token and perform an attack.
+But together with the "SameSite" directive of Jester, this might already prevent most common CSRF attacks.
+The token check can also be disabled with `nimview.skipCheckGlobalToken = true` for debugging,
+or in case that there is already a session-based CSRF mitigation used by middleware. 
+
 ### Multithreading
-Nim has a thread local heap and most variables in Nimview are declared thread local. It is therefore not possible to share Nimview data between multiple threads automatically. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
+Nim has a thread local heap and most variables in Nimview are declared thread local. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
 
 ### Using UI from existing web-applications
 For Desktop applications, it is required to use relative file paths in all your HTML. The paths must point to a directory relative of the binary to the given index html file.

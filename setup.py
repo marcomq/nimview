@@ -47,8 +47,10 @@ class NimBuild(build_ext):
                 print("copy " + fullFileName + " => " + target)
                 copy(fullFileName, target)
 
-        check_call(['nimble', 'install', '-d -y --noSSLCheck '], cwd=self.build_temp)
-        check_call(['nake', 'pyLib'], cwd=self.build_temp)
+        check_call(['nimble', 'install', '-dy'], cwd=self.build_temp)
+        print("=> dependencies installed")
+        check_call(['nake', 'pyLib'], cwd=self.build_temp, shell=True)
+        print("=> pyLib created")
         libFiles = [ "out/nimview.so", "out/nimview.pyd"]
         install_target = os.path.abspath(os.path.dirname(extdir))
         os.makedirs(install_target + "/src", exist_ok=True)

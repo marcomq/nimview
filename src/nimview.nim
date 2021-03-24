@@ -3,19 +3,15 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import os
-import json
-import system
-import uri
-import strutils
-import logging
-import tables
+import os, system, strutils, uri
+import json, logging
+
+import tables, globalToken
 
 # run "nimble release" or "nimble debug" to compile
 
-const compileWithWebview = defined(useWebview) or not defined(useServer)
-
 when not defined(just_core):
+  const compileWithWebview = defined(useWebview) or not defined(useServer)
   import jester
   import nimpy
   when compileWithWebview:
@@ -23,17 +19,20 @@ when not defined(just_core):
     var myWebView: Webview
   # import browsers
 else:
+  const compileWithWebview = false
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
 
 type ReqUnknownException* = object of CatchableError
+type ReqDeniedException* = object of CatchableError
 
 var reqMap {.threadVar.}: Table[string, proc(value: string): string {.gcsafe.}] 
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
 var requestLogger {.threadVar.}: FileLogger
 var useServer* = not compileWithWebview or 
   (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
+var skipCheckGlobalToken* = false
 
 logging.addHandler(newConsoleLogger())
 
@@ -65,7 +64,6 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
 
 proc dispatchRequest*(request: string, value: string): string {.exportpy.} =
   ## Global string dispatcher that will trigger a previously registered functions
-  
   nimview.reqMap.withValue(request, callbackFunc) do: # if request available, run request callback
     result = callbackFunc[](value)
   do:
@@ -75,10 +73,12 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND jester
   ## This will extract specific values that were prepared by backend-helper.js
   ## and forward those values to the string dispatcher.
+  let request = $jsonMessage["request"].getStr()
+  if request == "getGlobalToken":
+    return
   var value = $jsonMessage["value"].getStr()
   if (value == ""):
     value = $jsonMessage["value"]
-  let request = $jsonMessage["request"].getStr()
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   result = dispatchRequest(request, value)
@@ -117,15 +117,16 @@ when not defined(just_core):
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
     ## Modify this, if you want to add some authentication, input format validation
     ## or if you want to process HttpHeaders.
-    result = dispatchJsonRequest(jsonMessage)
+    if nimview.skipCheckGlobalToken or globalToken.checkToken(headers):
+        return dispatchJsonRequest(jsonMessage)
+    else:
+        let request = $jsonMessage["request"].getStr()
+        if request != "getGlobalToken":
+            raise newException(ReqDeniedException, "403 - Token expired")
 
   template respond(code: untyped, header: untyped, message: untyped): untyped =
     mixin resp
     resp code, header, message
-
-  template respond(message: untyped): untyped =
-    respond Http200, nimview.responseHttpHeader, message
-
   proc handleRequest(request: Request): Future[ResponseData] {.async, gcsafe.} =
     ## used by HttpServer
     block route:
@@ -175,18 +176,23 @@ when not defined(just_core):
               jsonMessage = parseJson(request.body)
             resultId = jsonMessage["responseId"].getInt()
             {.gcsafe.}:
+              var currentToken = globalToken.byteToString(globalToken.getFreshToken())
               response = dispatchHttpRequest(jsonMessage, request.headers)
               let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response}
-              respond $jsonResponse
+              var header = @{"Global-Token": currentToken}
+              respond Http200, header, $jsonResponse
 
         except ReqUnknownException:
           respond Http404, nimview.responseHttpHeader, $ %* {"error": "404",
+              "value": getCurrentExceptionMsg(), "resultId": resultId}
+
+        except ReqDeniedException:
+          respond Http403, nimview.responseHttpHeader, $ %* {"error": "403",
               "value": getCurrentExceptionMsg(), "resultId": resultId}
         except:
           respond Http500, nimview.responseHttpHeader, $ %* {"error": "500",
               "value": "request doesn't contain valid json",
               "resultId": resultId}
-
         
   proc getCurrentAppDir(): string =
       let applicationName = os.getAppFilename().extractFilename()
@@ -257,7 +263,6 @@ when not defined(just_core):
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
     myJester.serve()
 
-
   proc stopDesktop*() {.exportpy.} =
     ## Will stop the Http server - may trigger application exit.
     when compileWithWebview:
@@ -300,7 +305,7 @@ when not defined(just_core):
         width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
-    ## Notice that this may take the debug mode information of the dll at dll compile timenim.
+    ## The debug mode information will not be available for python or dll.
     let displayAvailable = 
       when (system.hostOS == "windows"): true 
       else: ( os.getEnv("DISPLAY") != "")
@@ -322,8 +327,7 @@ proc main() =
       # let indexHtmlFile = "../examples/vue/dist/index.html"
       let indexHtmlFile = "../examples/svelte/public/index.html"
       nimview.enableRequestLogger()
-      # nimview.startHttpServerThread(indexHtmlFile)
-      # nimview.start(indexHtmlFile)
+      # nimview.startDesktop(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
       nimview.start(indexHtmlFile)
 

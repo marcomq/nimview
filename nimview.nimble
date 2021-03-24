@@ -1,4 +1,4 @@
-version     = "0.1.1"
+version     = "0.1.2"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
@@ -11,7 +11,7 @@ import os, strutils
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
 when system.NimMinor > 2:
-  requires "nim >= 0.17.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview == 0.1.0", "nake >= 1.9.0"
+  requires "nim >= 1.0.0", "jester >= 0.5.0", "nimpy >= 0.1.1", "webview == 0.1.0", "nake >= 1.9.0"
 else:
   echo "####-----------------------------------------------------####"
   echo "You probably need to run "
