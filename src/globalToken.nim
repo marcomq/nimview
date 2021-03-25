@@ -48,12 +48,11 @@ proc getFreshToken*(): array[0..31, byte] =
         tokenPlusInterval = currentToken[].generated + interval.seconds
     except:
         discard
-    if tokenPlusInterval < currentTime: 
-        let randomValue = sysrand.urandom(32)
-        for i in 0 ..< randomValue.len:
-            result[i] = randomValue[i]
-        withLock(L):    
+    withLock(L):    
+        if tokenPlusInterval < currentTime: 
+            let randomValue = sysrand.urandom(32)
+            for i in 0 ..< randomValue.len:
+                result[i] = randomValue[i]
             currentToken[].generated.swap(currentTime)
             currentToken[].token.swap(result)
-    # It may be necessary to also lock here
-    result = currentToken[].token
+        result = currentToken[].token
