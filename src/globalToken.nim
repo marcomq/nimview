@@ -8,21 +8,21 @@ import times, jester, std/sysrand, base64, locks
 var L: Lock
 initLock(L)
 # generate 5 tokens that rotate
-var tokens: array[0..4, tuple[
-    token: array[0..31, byte], 
+var tokens: array[5, tuple[
+    token: array[32, byte], 
     generated: times.DateTime]]
 
-proc checkIfTokenExists(token: array[0..31, byte]): bool =
+proc checkIfTokenExists(token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
     for i in 0 ..< globalToken.tokens.len:
         if token == globalToken.tokens[i].token:
             return true
     return false
 
-proc byteToString*(token: array[0..31, byte]): string = 
+proc byteToString*(token: array[32, byte]): string = 
     result = base64.encode(token)
 
-proc stringToByte*(token: string): array[0..31, byte] = 
+proc stringToByte*(token: string): array[32, byte] = 
     let tokenString = base64.decode(token)
     if (tokenString.len > 31):
         system.copyMem(result[0].addr, tokenString[0].unsafeAddr, 32)
@@ -38,7 +38,7 @@ proc checkToken*(headers: HttpHeaders): bool =
         return globalToken.checkIfTokenExists(headerTokenArray)
     return false
 
-proc getFreshToken*(): array[0..31, byte] =
+proc getFreshToken*(): array[32, byte] =
     var currentTime = times.now()
     const interval = 60
     let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod 5 # a new token every interval seconds

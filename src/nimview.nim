@@ -3,21 +3,22 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import os, system, strutils, uri
+import os, system, tables
 import json, logging
-
-import tables, globalToken
 
 # run "nimble release" or "nimble debug" to compile
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
-  import jester
+  import strutils, uri
   import nimpy
+  import jester
+  import globalToken
+  # import browsers
   when compileWithWebview:
     import webview except debug
     var myWebView: Webview
-  # import browsers
+  var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
 else:
   const compileWithWebview = false
   # Just core features. Disable jester, webview nimpy and exportpy
@@ -28,7 +29,6 @@ type ReqUnknownException* = object of CatchableError
 type ReqDeniedException* = object of CatchableError
 
 var reqMap {.threadVar.}: Table[string, proc(value: string): string {.gcsafe.}] 
-var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
 var requestLogger {.threadVar.}: FileLogger
 var useServer* = not compileWithWebview or 
   (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
@@ -283,8 +283,9 @@ when not defined(just_core):
       # var fullScreen = true
       myWebView = webview.newWebView(title, "file://" / indexHtmlPath & parameter, width,
           height, resizable = resizable, debug = debug)
-      myWebView.bindProc("backend", "alert", proc (
-          message: string) = webview.info(myWebView, "alert", message))
+      myWebView.bindProc("backend", "alert", proc (message: string) =
+        {.gcsafe.}:
+          myWebView.info("alert", message))
       myWebView.bindProc("backend", "call", proc (message: string) =
         info message
         let jsonMessage = json.parseJson(message)
@@ -293,8 +294,9 @@ when not defined(just_core):
         let evalJsCode = "window.ui.applyResponse('" & 
             response.replace("\\", "\\\\").replace("\'", "\\'") &
             "'," & $resonseId & ");"
-        let responseCode = webview.eval(myWebView, evalJsCode)
-        discard responseCode
+        {.gcsafe.}:
+          let responseCode = myWebView.eval(evalJsCode)
+          discard responseCode
       )
 #[    proc changeColor() = myWebView.setColor(210,210,210,100)
       proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
@@ -330,7 +332,7 @@ proc main() =
       nimview.enableRequestLogger()
       # nimview.startDesktop(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
-      nimview.start(indexHtmlFile)
+      nimview.startHttpServer(indexHtmlFile)
 
 when isMainModule:
   main()
