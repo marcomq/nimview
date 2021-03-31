@@ -53,7 +53,7 @@ There is a pre-build demo windows x64 binary available that uses a simple Svelte
 To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
 one desktop application and one HTTP server application that can be reached at 
 http://localhost:8000.
-- [demo_app.zip](https://github.com/marcomq/nimview/files/6155327/demo_app.zip)
+- [demo.zip](https://github.com/marcomq/nimview/files/6236907/demo.zip)
 
 sha256sum ce6ecfad7d6f7d2610af89b868a69dae8de11a67bd8871d7d97bab9a08ddae9e
 
