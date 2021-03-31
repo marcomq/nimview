@@ -32,7 +32,13 @@ var reqMap {.threadVar.}: Table[string, proc(value: string): string {.gcsafe.}]
 var requestLogger {.threadVar.}: FileLogger
 var useServer* = not compileWithWebview or 
   (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
-var skipCheckGlobalToken* = false
+var useGlobalToken* = true
+
+proc setUseServer*(val: bool) {.exportpy.} =
+  useServer = val
+
+proc setUseGlobalToken*(val: bool) {.exportpy.} =
+  useGlobalToken = val
 
 logging.addHandler(newConsoleLogger())
 
@@ -117,7 +123,7 @@ when not defined(just_core):
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
     ## Modify this, if you want to add some authentication, input format validation
     ## or if you want to process HttpHeaders.
-    if nimview.skipCheckGlobalToken or globalToken.checkToken(headers):
+    if not nimview.useGlobalToken or globalToken.checkToken(headers):
         return dispatchJsonRequest(jsonMessage)
     else:
         let request = $jsonMessage["request"].getStr()

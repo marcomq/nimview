@@ -206,7 +206,7 @@ The token is queried automatically with a "getGlobalToken" request when the appl
 
 This isn't a full CSRF protection, as the token isn't bound to a session and all users that can read responses from localhost can also use this token and perform an attack.
 But together with the "SameSite" directive of Jester, this might already prevent most common CSRF attacks.
-The token check can also be disabled with `nimview.skipCheckGlobalToken = true` for debugging,
+The token check can also be disabled with `nimview.setUseGlobalToken(false)` for debugging,
 or in case that there is already a session-based CSRF mitigation used by middleware. 
 
 ### Multithreading
