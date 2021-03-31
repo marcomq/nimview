@@ -55,7 +55,7 @@ one desktop application and one HTTP server application that can be reached at
 http://localhost:8000.
 - [demo_app.zip](https://github.com/marcomq/nimview/files/6155327/demo_app.zip)
 
-sha256sum 9c5c2c66bc8f02559dff834d12a21c8226c14ae80d67db745225f2ecf2ec33f2
+sha256sum ce6ecfad7d6f7d2610af89b868a69dae8de11a67bd8871d7d97bab9a08ddae9e
 
 If you want to build this demo from source, you need to run `nake demo` on the
 Nimview source folder.
