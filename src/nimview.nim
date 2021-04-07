@@ -10,7 +10,7 @@ import json, logging
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
-  import strutils, uri
+  import strutils
   import nimpy
   import jester
   import globalToken
