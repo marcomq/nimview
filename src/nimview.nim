@@ -187,9 +187,8 @@ when not defined(just_core):
             {.gcsafe.}:
               var currentToken = globalToken.byteToString(globalToken.getFreshToken())
               response = dispatchHttpRequest(jsonMessage, request.headers)
-              let jsonResponse = %* { ($jsonMessage["key"]).unescape(): response}
               var header = @{"Global-Token": currentToken}
-              respond Http200, header, $jsonResponse
+              respond Http200, header, response
 
         except ReqUnknownException:
           respond Http404, nimview.responseHttpHeader, $ %* {"error": "404",
@@ -340,7 +339,7 @@ proc main() =
       nimview.enableRequestLogger()
       # nimview.startDesktop(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
-      nimview.startHttpServer(indexHtmlFile)
+      nimview.start(indexHtmlFile)
 
 when isMainModule:
   main()

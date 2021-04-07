@@ -3,10 +3,10 @@
 # Licensed under MIT License, see License file for more details
 
 # pylint: disable=import-error
-import __init__, nimview
+import __init__, nimview, json
 def echoAndModify(value):
     print (value)
-    return (value + " appended by python")
+    return json.dumps({"val": value + " appended by python"})
 
 nimview.setUseServer(True)
 nimview.addRequest("echoAndModify", echoAndModify)

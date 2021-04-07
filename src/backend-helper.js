@@ -12,12 +12,12 @@ ui.responseCounter = 0;
  *  request: will be sent to server as json ".request"
  *  data: can be either following: 
  *        1. a normal value, could be even json, which is then transmitted normally 
- *        2. a json object, which will require the "callbackFunction" to be the key and a non-function value. This will automatically create a callback that sets data[key] = response
+ *        2. a json object, which will require the "callbackFunction" to be the key and a non-function value. 
+ *           This will automatically create a callback that sets data[key] = response
  *        3. a function, in case you don't need to send data
  *  callbackFunction: will be a generalized callback for success and error. Will have the backend response as parameter. You will need to handle error and success manually.
  ***/
 ui.createRequest = function(request, data, callbackFunction) {
-  var key = request;
   switch (typeof data) {
     case 'object': 
       if ((typeof callbackFunction !== 'undefined') && 
@@ -50,7 +50,7 @@ ui.createRequest = function(request, data, callbackFunction) {
   ui.responseStorage[storageIndex] = new Object(
     {'request': request, 'responseId': storageIndex, 'callbackFunction': callbackFunction}
   );
-  var jsonRequest = {'request': request, 'value': data, 'responseId': storageIndex, 'key': key};
+  var jsonRequest = {'request': request, 'value': data, 'responseId': storageIndex};
   return jsonRequest;
 };
 
@@ -103,14 +103,7 @@ ui.backend = function (request, data, callbackFunction) {
       var url = defaultPostTarget; 
     }
     var responseHandler = function(response) {
-      var key = jsonRequest.key;
-      if ((typeof response === "object") && (key in response)) {
-        ui.applyResponse(response[key], jsonRequest.responseId);
-      }
-      else {
-        ui.applyResponse(response, jsonRequest.responseId);
-      }
-
+      ui.applyResponse(response, jsonRequest.responseId);
     };
     if (typeof fetch !== "undefined") { // chrome and other modern browsers
       var opts = {
@@ -130,11 +123,8 @@ ui.backend = function (request, data, callbackFunction) {
             ui.globalToken = globalToken;
             ui.lastToken = Date.now();
           }
-          if (response.json) {
-            return response.json();
-          }
         }
-        return response;
+        return response.text();
       }).then(responseHandler).catch(function(err) {
         if (console && console.log) {
           console.log(err);
@@ -147,7 +137,7 @@ ui.backend = function (request, data, callbackFunction) {
       if (ui.globalToken && (ui.globalToken.length > 0)) {
         xhr.setRequestHeader("global-token", ui.globalToken);
       }
-      xhr.responseType = "json";
+      xhr.responseType = "text";
       xhr.onreadystatechange = function() {
         if (xhr.readyState !== 4) {
           return; // not finished yet, check next state
@@ -159,12 +149,7 @@ ui.backend = function (request, data, callbackFunction) {
           if (globalToken && (globalToken.length > 0)) {
             ui.globalToken = globalToken;
           }
-          if (typeof response === "string") {
-            responseHandler(JSON.parse(response));
-          }
-          else {
-            responseHandler(response);
-          }
+          responseHandler(response);
         }
         else {
           // request error
@@ -184,13 +169,7 @@ ui.backend = function (request, data, callbackFunction) {
       jsonRequest = ui.createRequest(request, data, callbackFunction);
       var response = backend.call(JSON.stringify(jsonRequest));
       if (typeof response !== "undefined") {
-        var key = jsonRequest.key;
-        if ((typeof response === "object") && (key in response)) {
-          ui.applyResponse(response[key], jsonRequest.responseId);
-        }
-        else {
-          ui.applyResponse(response, jsonRequest.responseId);
-        }
+        ui.applyResponse(response, jsonRequest.responseId);
       }
  
     }

@@ -7,7 +7,7 @@ let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
 let mainApp = srcDir / application & ".nim"
 let libraryFile =  srcDir / application & "_c.nim"
-let srcFiles = [mainApp, libraryFile]
+let srcFiles = [mainApp, libraryFile, srcDir / "backend-helper.js"]
 let buildDir = "out"
 let thisDir = system.currentSourcePath().parentDir() 
 

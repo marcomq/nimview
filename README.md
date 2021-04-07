@@ -97,7 +97,7 @@ It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
 Keep in mind that the webserver will expose all files and subfolders that in the same directory as the index.html.
 
 ## Javascript and HTML UI
-(simlified, using a button, only the important part)
+(simlified, using a button, only the important part) 
 ```
 <script src="backend-helper.js"></script>
 <script type="text/javascript">
@@ -129,7 +129,9 @@ There probably will not be any separate error callback to keep it simple.
 Nimview just has a single string as input and return parameter. It is therefore recommended to use Json to encode your values on the client. 
 Use a parser on the back-end to read all values and send Json back to the client. By this, you have an unlimited amount of input and output
 parameter values.
-This is amazingly easy when using python or Nim as back-end. This may also simplify automated testing, as you can store the specific strings as Json and only check specific Json values.
+This is easy when using python or Nim as back-end. This may also simplify automated testing, as you can store the specific strings as Json 
+and only check specific Json values. Notice, that all registered functions return only strings, so the server will also just return a string value. 
+If you need Json, you need to parse this value in javascript manually, for example with JSON.parse().
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
 
 ## Development workflow
