@@ -73,7 +73,7 @@ If you want to actually trigger some server code from a button, you can do follo
 
 ```
 import nimview
-def echoAndModify(value):
+def echoAndModify(value): # One input value in the function signature is required
     print ("From front-end: " + value)
     return (value + " appended")
 

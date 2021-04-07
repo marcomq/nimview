@@ -7,15 +7,21 @@ import times, jester, std/sysrand, base64, locks
 
 var L: Lock
 initLock(L)
+
+type GlobalToken = object 
+    token: array[32, byte]
+    generated: times.DateTime
+
+
 # generate 5 tokens that rotate
-var tokens: array[5, tuple[
-    token: array[32, byte], 
-    generated: times.DateTime]]
+var tokens = cast[ptr array[5, GlobalToken]](
+    allocShared0(sizeof(array[5, GlobalToken]))
+)
 
 proc checkIfTokenExists(token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
-    for i in 0 ..< globalToken.tokens.len:
-        if token == globalToken.tokens[i].token:
+    for i in 0 ..< globalToken.tokens[].len:
+        if token == globalToken.tokens[][i].token:
             return true
     return false
 
@@ -42,7 +48,7 @@ proc getFreshToken*(): array[32, byte] =
     var currentTime = times.now()
     const interval = 60
     let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod 5 # a new token every interval seconds
-    var currentToken = addr globalToken.tokens[frame]
+    var currentToken = addr globalToken.tokens[][frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:
         tokenPlusInterval = currentToken[].generated + interval.seconds

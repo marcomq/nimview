@@ -8,13 +8,19 @@ def echoAndModify(value):
     print (value)
     return (value + " appended by python")
 
+def echoAndModify2():
+    print ("received")
+    return (" appended by python")
+
 def stopNimview(value):
     nimview.stopDesktop()
     return ""
 
 nimview.addRequest("echoAndModify", echoAndModify)
+nimview.addRequest("echoAndModify2", echoAndModify2)
 nimview.addRequest("stopNimview", stopNimview)
 
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":\"this is a test\",\"responseId\":0,\"responseKey\":\"test\"}")
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":\"this is a test\",\"responseId\":2,\"responseKey\":\"test\"}")
 nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":1,\"responseKey\":\"test\"}")
 # nimview.startDesktop("tests/minimal_ui_sample/index.html")

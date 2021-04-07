@@ -8,6 +8,6 @@ def echoAndModify(value):
     print (value)
     return (value + " appended by python")
 
+nimview.setUseServer(True)
 nimview.addRequest("echoAndModify", echoAndModify)
-nimview.useServer = True
 nimview.start("minimal_ui_sample/index.html") # current dir needs to be relative to this

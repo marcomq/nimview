@@ -82,9 +82,11 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   let request = $jsonMessage["request"].getStr()
   if request == "getGlobalToken":
     return
-  var value = $jsonMessage["value"].getStr()
-  if (value == ""):
-    value = $jsonMessage["value"]
+  var value = ""
+  if jsonMessage.hasKey("value"):
+    value = $jsonMessage["value"].getStr()
+    if (value == ""):
+      value = $jsonMessage["value"]
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   result = dispatchRequest(request, value)
@@ -177,10 +179,10 @@ when not defined(just_core):
             # if not a file, assume this is a json request
             var jsonMessage: JsonNode
             debug request.body
-            if unlikely(request.body == ""):
-              jsonMessage = parseJson(uri.decodeUrl(requestPath))
-            else:
-              jsonMessage = parseJson(request.body)
+            # if unlikely(request.body == ""):
+            #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
+            # else:
+            jsonMessage = parseJson(request.body)
             resultId = jsonMessage["responseId"].getInt()
             {.gcsafe.}:
               var currentToken = globalToken.byteToString(globalToken.getFreshToken())
