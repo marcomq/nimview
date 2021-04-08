@@ -27,6 +27,7 @@ else:
 
 type ReqUnknownException* = object of CatchableError
 type ReqDeniedException* = object of CatchableError
+type ServerException* = object of CatchableError
 
 var reqMap {.threadVar.}: Table[string, proc(value: string): string {.gcsafe.}] 
 var requestLogger {.threadVar.}: FileLogger
@@ -71,7 +72,11 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
 proc dispatchRequest*(request: string, value: string): string {.exportpy.} =
   ## Global string dispatcher that will trigger a previously registered functions
   nimview.reqMap.withValue(request, callbackFunc) do: # if request available, run request callback
-    result = callbackFunc[](value)
+    try:
+      result = callbackFunc[](value)
+    except:
+      raise newException(ServerException, "Server error calling function '" & 
+        request & "': " & getCurrentExceptionMsg())
   do:
     raise newException(ReqUnknownException, "404 - Request unknown")
 
@@ -193,9 +198,11 @@ when not defined(just_core):
         except ReqUnknownException:
           respond Http404, nimview.responseHttpHeader, $ %* {"error": "404",
               "value": getCurrentExceptionMsg(), "resultId": resultId}
-
         except ReqDeniedException:
           respond Http403, nimview.responseHttpHeader, $ %* {"error": "403",
+              "value": getCurrentExceptionMsg(), "resultId": resultId}
+        except ServerException:
+          respond Http500, nimview.responseHttpHeader, $ %* {"error": "500",
               "value": getCurrentExceptionMsg(), "resultId": resultId}
         except:
           respond Http500, nimview.responseHttpHeader, $ %* {"error": "500",

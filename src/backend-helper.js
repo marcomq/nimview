@@ -94,6 +94,15 @@ ui.backend = function (request, data, callbackFunction) {
   // Simulate running in Webview, but using a HTTP server
   // It will not be possible to use MS Edge for debugging, as this has similar identifiers as Webview on Windows 
   // query server with HTTP instead of calling webview callback
+    if ((typeof ui.lastToken === 'undefined') && (request != "getGlobalToken")) {
+      window.setTimeout(function() { 
+        if (typeof ui.lastToken === 'undefined') {
+          ui.lastToken = "";
+        }
+        ui.backend(request, data, callbackFunction); 
+      }, 200);
+      return
+    }
     jsonRequest = ui.createRequest(request, data, callbackFunction);
     var postData = JSON.stringify(jsonRequest);
     if (defaultPostTarget == "") {
