@@ -67,6 +67,7 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
   ## `window.ui.backend(request, value, function(response) {...})`
   ## with the specific "request" value.
   ## There is a wrapper for python, C and C++ to handle strings in each specific programming language
+  ## Notice for python: There is no check for correct function signature!
   nimview.reqMap[request] = callback
 
 proc dispatchRequest*(request: string, value: string): string {.exportpy.} =
@@ -92,6 +93,8 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
     value = $jsonMessage["value"].getStr()
     if (value == ""):
       value = $jsonMessage["value"]
+      if value == "\"\"":
+        value = ""
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   result = dispatchRequest(request, value)
@@ -103,8 +106,10 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
     result = dispatchJsonRequest(jsonMessage)
   except ReqUnknownException:
     warn "Request is unknown in " & escapedArgv
+  except ServerException:
+     warn "Error calling function, args: " & escapedArgv
   except:
-    warn "Couldn't parse specific line arg: " & escapedArgv
+    warn "Error during specific line arg: " & escapedArgv
 
 proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   ## Will open, parse a file of previously logged requests and re-runs those requests.

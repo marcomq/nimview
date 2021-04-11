@@ -20,7 +20,9 @@ nimview.addRequest("echoAndModify", echoAndModify)
 nimview.addRequest("echoAndModify2", echoAndModify2)
 nimview.addRequest("stopNimview", stopNimview)
 
-nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":\"this is a test\",\"responseId\":0,\"responseKey\":\"test\"}")
-nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":\"this is a test\",\"responseId\":2,\"responseKey\":\"test\"}")
-nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":1,\"responseKey\":\"test\"}")
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":\"this is a test\",\"responseId\":0}")
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"responseId\":4}")
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":\"\",\"responseId\":2}") ## will cause a warning
+nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":1}")
+print ("all tests passed")
 # nimview.startDesktop("tests/minimal_ui_sample/index.html")

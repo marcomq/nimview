@@ -52,6 +52,8 @@ proc buildPyLib() =
     os.removeDir(buildDir / "tmp_py")
     execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
       " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
+    os.copyFile(outputLib, thisDir / "tests" / application & "." & pyDllExtension)
+    os.copyFile(outputLib, thisDir / "examples" / application & "." & pyDllExtension)
 
 proc buildLibs() = 
   ## C/C++ libraries
