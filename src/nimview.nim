@@ -21,6 +21,7 @@ when not defined(just_core):
   var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
 else:
   const compileWithWebview = false
+  var myWebView = nil
   # Just core features. Disable jester, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -98,6 +99,20 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   result = dispatchRequest(request, value)
+
+proc selectFolderDialog*(title: string): string  {.exportpy.} =
+  ## Will open a "sect folder dialog" if in webview mode and return the selection.
+  ## Will return emptys string in webserver mode
+  when compileWithWebview:
+    if not myWebView.isNil():
+      result = myWebView.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
+
+proc selectFileDialog*(title: string): string  {.exportpy.} =
+  ## Will open a "sect file dialog" if in webview mode and return the selection.
+  ## Will return emptys string in webserver mode
+  when compileWithWebview:
+    if not myWebView.isNil():
+      result = myWebView.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
 proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   ## Will handle previously logged request json and forward those to registered functions.

@@ -180,16 +180,19 @@ You might write the same Code and the same UI for your Cloud application as for 
 
 ### Difference to Eel and Neel
 There are some cool similar frameworks: The very popular framework [eel](https://github.com/ChrisKnott/Eel) for python 
-and its cousin [neel](https://github.com/Niminem/Neel) for nim.
-There are 2 major differences: 
+and its cousin [neel](https://github.com/Niminem/Neel) for nim. 
+While you may create an app faster with eel / neel, there are 2 major differences: 
 - Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. 
-This is not any goal here with Nimview. 
+This is not the way Nimview works.
   Nimview will just make it easy to trigger back-end routes from Javascript but will not expose Javascript functions to the back-end side. 
   If you want to do so, you need to parse the back-end’s response and call the function with this data. 
-  This makes it possible to use multiple HTML / JS user interfaces for the same back-end code without worrying about javascript functions.
-- With Nimview, you also don't need a webserver running that might take requests from any other user on localhost. 
+  While this seems to unnecessary, it makes it possible to use multiple HTML / JS 
+  user interfaces for the same back-end code without worrying about javascript callback functions.
+- With Nimview, you also don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
 This improves security and makes it possible to run multiple applications without having port conflicts.
-
+- Nimview includes a simple global token check that may be able to prevent most
+  CSRF attacks when the server is running on localhost. 
+ 
 ### Difference to Flask
 [Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
 But Nimview is written in Nim and creates static binaries that can run in a minimal tiny Docker container that doesn't need an installed python environment. So you might create containers for your application that have just a few MB. So those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker by compiling with `-d:useServer`, or you need to include GTK libraries in your container.
@@ -206,9 +209,11 @@ Following CSRF protections are already included in Nimview:
 - Nimview stores 5 global random non-session tokens that renew each other every 60 seconds. A valid token is required for any Ajax request except "getGlobalToken".
 The token is queried automatically with a "getGlobalToken" request when the application starts. If the token is missing or wrong, there is a "403" error for ajax requests.
 
-This isn't a full CSRF protection, as the token isn't bound to a session and all users that can read responses from localhost can also use this token and perform an attack.
+This isn't a full CSRF protection, as the token isn't bound to a session and all 
+users that can read responses from localhost could also use this token to 
+perform an attack (even if they may already send request directly to localhost).
 But together with the "SameSite" directive of Jester, this might already prevent most common CSRF attacks.
-The token check can also be disabled with `nimview.setUseGlobalToken(false)` for debugging,
+The token check can also be disabled with `nimview.setUseGlobalToken(false)` for debugging, development,
 or in case that there is already a session-based CSRF mitigation used by middleware. 
 
 ### Multithreading
