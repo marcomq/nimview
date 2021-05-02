@@ -75,7 +75,7 @@ proc buildLibs() =
     else: 
       " " & buildDir & "/tmp_dll/*.o "
     execCmd "gcc -shared -o " & outputLib & " -I" & buildDir & "/tmp_dll/" & " " & minGwSymbols & webviewlLibs # generate .dll and .a
-    echo "Python and shared C libraries build completed. Files have been created in build folder."
+    echo "Python and shared C libraries build completed. Files have been created in '" & buildDir & "' folder."
 
 proc buildRelease() =
   execNim "c --app:gui -d:release -d:useStdLib --out:"  & buildDir / application & " " & " " & mainApp
