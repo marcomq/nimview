@@ -27,15 +27,46 @@ else:
   macro exportpy(def: untyped): untyped =
     result = def
 
-type ReqUnknownException* = object of CatchableError
 type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
+type ReqUnknownException* = object of CatchableError
+    
+include requestMap
 
-var reqMap {.threadVar.}: Table[string, proc (values: JsonNode): string] 
-var requestLogger {.threadVar.}: FileLogger
+when not defined(just_core):
+  proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
+    addRequest(request, proc (values: JsonNode): string =
+      var argSeq = newSeq[PPyObject]()
+      if (values.kind == JArray):
+        newSeq(argSeq, values.len)
+        for i in 0 ..< values.len:
+          argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
+      elif (values.kind != JNull):
+        argSeq.add(parseAny[string](values).toPyObjectArgument())
+      result = callback(argSeq),
+      "[values]")
+
+proc enableRequestLogger*() {.exportpy.} =
+  ## Start to log all requests with content, even passwords, into file "requests.log".
+  ## The file can be used for automated tests, to archive and replay all actions.
+  if requestLogger.isNil:
+    debug "creating request logger, further requests will be logged to file and flushed at application end"
+    if not os.fileExists("requests.log"):
+      var createFile = system.open("requests.log", system.fmWrite)
+      createFile.close()
+    var requestLoggerTmp = newFileLogger("requests.log", fmtStr = "")
+
+    requestLogger.swap(requestLoggerTmp)
+  requestLogger.levelThreshold = logging.lvlAll
+
+proc disableRequestLogger*() {.exportpy.} =
+  ## Will stop to log to "requests.log" (default)
+  if not requestLogger.isNil:
+    requestLogger.levelThreshold = logging.lvlNone
+
 var useServer* = not compileWithWebview or 
   (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
-var useGlobalToken* = true
+var useGlobalToken* = not defined(debug)
 
 proc setUseServer*(val: bool) {.exportpy.} =
   useServer = val
@@ -45,137 +76,9 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
 
 logging.addHandler(newConsoleLogger())
 
-proc enableRequestLogger*() {.exportpy.} =
-  ## Start to log all requests with content, even passwords, into file "requests.log".
-  ## The file can be used for automated tests, to archive and replay all actions.
-  if nimview.requestLogger.isNil:
-    debug "creating request logger, further requests will be logged to file and flushed at application end"
-    if not os.fileExists("requests.log"):
-      var createFile = system.open("requests.log", system.fmWrite)
-      createFile.close()
-    var requestLoggerTmp = newFileLogger("requests.log", fmtStr = "")
-
-    nimview.requestLogger.swap(requestLoggerTmp)
-  nimview.requestLogger.levelThreshold = logging.lvlAll
-
-proc disableRequestLogger*() {.exportpy.} =
-  ## Will stop to log to "requests.log" (default)
-  if not requestLogger.isNil:
-    requestLogger.levelThreshold = logging.lvlNone
-
-proc parseAny[T](value: string): T =
-  when T is string:
-    result = value
-  elif T is JsonNode:
-    result = json.parseJsonvalue(value)
-  elif T is bool:
-    result = strUtils.parseBool(value)
-  elif T is enum:
-    result = strUtils.parseEnum(value)
-  elif T is uint:
-    result = strUtils.parseUInt(value)
-  elif T is int:
-    result = strUtils.parseInt(value)
-  elif T is float:
-    result = strUtils.parseFloat(value)
-  # when T is array:
-  #   result = strUtils.parseEnum(value)
-
-template withStringFailover[T](value: JsonNode, jsonType: JsonNodeKind, body: untyped) =
-    if value.kind == jsonType:
-      body
-    elif value.kind == JString:
-      result = parseAny[T](value.getStr())
-    else: 
-      result = parseAny[T]($value)
-
-proc parseAny[T](value: JsonNode): T =
-  when T is JsonNode:
-    result = value
-  elif T is (int or uint):
-    withStringFailover[T](value, Jint):
-      result = value.getInt()
-  elif T is float:
-    withStringFailover[T](value, JFloat):
-      result = value.getFloat()
-  elif T is bool:
-    withStringFailover[T](value, JBool):
-      result = value.getBool()
-  elif T is string:
-    if value.kind == JString:
-      result = value.getStr()
-    else: 
-      result = parseAny[T]($value)
-  elif T is varargs[string]:
-    if (value.kind == JArray):
-      newSeq(result, value.len)
-      for i in value.len:
-        result[i] = parseAny[string](value[i])
-    else:
-      result = value.to(T)
-  else: 
-    result = value.to(T)
-
-proc addRequest*(request: string, callback: proc(values: JsonNode): string) =
-  {.gcsafe.}: 
-    nimview.reqMap[request] = callback
-
-proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
-   nimview.addRequest(request, proc (values: JsonNode): string =
-    var argSeq = newSeq[PPyObject]()
-    if (values.kind == JArray):
-      newSeq(argSeq, values.len)
-      for i in 0 ..< values.len:
-        argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
-    elif (values.kind != JNull):
-      argSeq.add(parseAny[string](values).toPyObjectArgument())
-    result = callback(argSeq))
-
-proc addRequest*[T](request: string, callback: proc(value: T): string) =
-    nimview.addRequest(request, proc (values: JsonNode): string =
-      result = callback(parseAny[T](values)))
-
-proc addRequest*[T1, T2](request: string, callback: proc(value1: T1, value2: T2): string) =
-    nimview.addRequest(request, proc (values: JsonNode): string = 
-      if values.len > 1:
-        result = callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
-      else:
-        raise newException(ServerException, "Called request '" & request & "' contains less than 2 arguments"))
-
-proc addRequest*[T1, T2, T3](request: string, callback: proc(value1: T1, value2: T2, value3: T3): string) =
-    nimview.addRequest(request, proc (values: JsonNode): string = 
-      if values.len > 2:
-        result = callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]))
-      else:
-        raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"))
-
-proc addRequest*(request: string, callback: proc(): string) =
-    nimview.addRequest(request, proc (values: JsonNode): string = 
-      callback())
-
-proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe.}) =
-  ## This will register a function "callback" that can run on back-end.
-  ## "addRequest" will be performed with "value" each time the javascript client calls:
-  ## `window.ui.backend(request, value, function(response) {...})`
-  ## with the specific "request" value.
-  ## There are also overloaded functions for less or additional parameters
-  ## There is a wrapper for python, C and C++ to handle strings in each specific programming language
-  ## Notice for python: There is no check for correct function signature!
-  nimview.addRequest[string](request, callback)
-
-proc getCallbackFunc(request: string): proc(values: JsonNode): string =
-  nimview.reqMap.withValue(request, callbackFunc) do: # if request available, run request callback
-    try:
-      result = callbackFunc[]
-    except:
-      raise newException(ServerException, "Server error calling request '" & 
-        request & "': " & getCurrentExceptionMsg())
-  do:
-    raise newException(ReqUnknownException, "404 - Request unknown")
-
 proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
-  nimview.getCallbackFunc(request)(%value) # % converts to json
+  getCallbackFunc(request)(%value) # % converts to json
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND jester
@@ -186,7 +89,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
     return
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
-  let callbackFunc = nimview.getCallbackFunc(request)
+  let callbackFunc = getCallbackFunc(request)
   result = callbackFunc(jsonMessage["value"])
 
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
@@ -444,22 +347,25 @@ proc main() =
   when not defined(noMain):
     debug "starting nim main"
     when system.appType != "lib" and not defined(just_core):
-      nimview.addRequest("appendSomething4", proc(): string =
+      addRequest("appendSomething4", proc(): string =
         debug "called func"
         result = "'' modified by Nim Backend")
 
-      nimview.addRequest("appendSomething", proc(val: int): string =
+      addRequest("appendSomething", proc(val: int): string =
         result = ":)'" & $(val) & "' modified by Nim Backend")
+
+      addRequest("appendSomething3", proc(val: int, val2: string): string =
+        result = ":)'" & $(val) & " " & $(val2) & "' modified by Nim Backend")
 
       let argv = os.commandLineParams()
       for arg in argv:
-        nimview.readAndParseJsonCmdFile(arg)
+        readAndParseJsonCmdFile(arg)
       # let indexHtmlFile = "../examples/vue/dist/index.html"
       let indexHtmlFile = "../examples/svelte/public/index.html"
-      nimview.enableRequestLogger()
+      enableRequestLogger()
       # nimview.startDesktop(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
-      nimview.start(indexHtmlFile)
+      start(indexHtmlFile)
 
 when isMainModule:
   main()

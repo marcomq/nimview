@@ -4,6 +4,23 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+    {
+        "name": "(gdb) Anfügen",
+        "type": "cppdbg",
+        "request": "attach",
+        "program": "${workspaceFolder}/out/nimview.pyd",
+        "processId": "${command:pickProcess}",
+        "MIMode": "gdb",
+        // "miDebuggerPath": "/path/to/gdb",
+        "setupCommands": [
+            {
+                "description": "Automatische Strukturierung und Einrückung für \"gdb\" aktivieren",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ]
+    },
         {
             "name": "nim debug (gdb) ",
             "type": "cppdbg",
