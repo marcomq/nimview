@@ -43,16 +43,15 @@ const indexContent =
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
     addRequest(request, proc (values: JsonNode): string =
-      var argSeq = newSeq[PPyObject]()
-      if (values.kind == JArray):
-        newSeq(argSeq, values.len)
-        for i in 0 ..< values.len:
-          argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
-      elif (values.kind != JNull):
-        argSeq.add(parseAny[string](values).toPyObjectArgument())
-      result = callback(argSeq),
+        var argSeq = newSeq[PPyObject]()
+        if (values.kind == JArray):
+          newSeq(argSeq, values.len)
+          for i in 0 ..< values.len:
+            argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
+        elif (values.kind != JNull):
+          argSeq.add(parseAny[string](values).toPyObjectArgument())
+        result = callback(argSeq),
       "[values]")
-
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
@@ -94,7 +93,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## and forward those values to the string dispatcher.
   let request = $jsonMessage["request"].getStr()
   if request == "getGlobalToken":
-    return
+    return $ %* {"useGlobalToken": useGlobalToken}
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   let callbackFunc = getCallbackFunc(request)
@@ -134,7 +133,7 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
     var line: TaintedString
     while (file.readLine(line)):
       # TODO: escape line if source file cannot be trusted
-      let retVal = nimview.dispatchCommandLineArg(line.string)
+      let retVal = dispatchCommandLineArg(line.string)
       debug retVal
     close(file)
   else:
@@ -150,16 +149,12 @@ when not defined(just_core):
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
     ## Modify this, if you want to add some authentication, input format validation
     ## or if you want to process HttpHeaders.
-    if not nimview.useGlobalToken or globalToken.checkToken(headers):
+    if not useGlobalToken or globalToken.checkToken(headers):
         return dispatchJsonRequest(jsonMessage)
     else:
         let request = $jsonMessage["request"].getStr()
         if request != "getGlobalToken":
             raise newException(ReqDeniedException, "403 - Token expired")
-
-  template respond(code: untyped, header: untyped, message: untyped): untyped =
-    mixin resp
-    jester.resp code, header, message
 
   proc handleRequest(request: Request): Future[ResponseData] {.async.} =
     ## used by HttpServer
@@ -167,71 +162,74 @@ when not defined(just_core):
       var response: string
       var requestPath: string = request.pathInfo
       var resultId = 0
+      var header = @{"Content-Type": "application/javascript"}
+      let separatorFound = requestPath.rfind({'#', '?'})
+      if separatorFound != -1:
+        requestPath = requestPath[0 ..< separatorFound]
       case requestPath
+      of "/", "/index.html":
+        if (not indexContent.isEmptyOrWhitespace()):
+          header = @{"Content-Type": "text/html;charset=utf-8"}
+          header.add(responseHttpHeader)
+          resp Http200, header, indexContent
+        else: 
+          requestPath = "/index.html"
       of "/backend-helper.js":
-        var header = @{"Content-Type": "application/javascript"}
-        header.add(nimview.responseHttpHeader)
-        respond Http200, header, nimview.backendHelperJs
+        header.add(responseHttpHeader)
+        resp Http200, header, backendHelperJs
       of "/backend-functions.js":
-        var header = @{"Content-Type": "application/javascript"}
-        header.add(nimview.responseHttpHeader)
-        respond Http200, header, getJsFunctions()
+        header.add(responseHttpHeader)
+        resp Http200, header, getJsFunctions()
       else:
-        try:
-          let separatorFound = requestPath.rfind({'#', '?'})
-          if separatorFound != -1:
-            requestPath = requestPath[0 ..< separatorFound]
-          if (requestPath == "/"):
-            requestPath = "/index.html"
+        discard
+      try:
+        var potentialFilename = request.getStaticDir() & "/" &
+            requestPath.replace("..", "")
+        if os.fileExists(potentialFilename):
+          debug "Sending " & potentialFilename
+          # jester.sendFile(potentialFilename)
+          let fileData = splitFile(potentialFilename)
+          let contentType = case fileData.ext:
+            of ".json": "application/json;charset=utf-8"
+            of ".js": "text/javascript;charset=utf-8"
+            of ".css": "text/css;charset=utf-8"
+            of ".jpg": "image/jpeg"
+            of ".txt": "text/plain;charset=utf-8"
+            of ".map": "application/octet-stream"
+            else: "text/html;charset=utf-8"
+          header = @{"Content-Type": contentType}
+          header.add(responseHttpHeader)
+          resp Http200, header, system.readFile(potentialFilename)
+        else:
+          if (request.body == ""):
+            raise newException(ReqUnknownException, "404 - File not found")
 
-          var potentialFilename = request.getStaticDir() & "/" &
-              requestPath.replace("..", "")
-          if os.fileExists(potentialFilename):
-            debug "Sending " & potentialFilename
-            # jester.sendFile(potentialFilename)
-            let fileData = splitFile(potentialFilename)
-            let contentType = case fileData.ext:
-              of ".json": "application/json;charset=utf-8"
-              of ".js": "text/javascript;charset=utf-8"
-              of ".css": "text/css;charset=utf-8"
-              of ".jpg": "image/jpeg"
-              of ".txt": "text/plain;charset=utf-8"
-              of ".map": "application/octet-stream"
-              else: "text/html;charset=utf-8"
-            var header = @{"Content-Type": contentType}
-            header.add(nimview.responseHttpHeader)
-            respond Http200, header, system.readFile(potentialFilename)
-          else:
-            if (request.body == ""):
-              raise newException(ReqUnknownException, "404 - File not found")
+          # if not a file, assume this is a json request
+          var jsonMessage: JsonNode
+          debug request.body
+          # if unlikely(request.body == ""):
+          #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
+          # else:
+          jsonMessage = parseJson(request.body)
+          {.gcsafe.}:
+            var currentToken = globalToken.byteToString(globalToken.getFreshToken())
+            response = dispatchHttpRequest(jsonMessage, request.headers)
+            var header = @{"Global-Token": currentToken}
+            resp Http200, header, response
 
-            # if not a file, assume this is a json request
-            var jsonMessage: JsonNode
-            debug request.body
-            # if unlikely(request.body == ""):
-            #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
-            # else:
-            jsonMessage = parseJson(request.body)
-            resultId = jsonMessage["responseId"].getInt()
-            {.gcsafe.}:
-              var currentToken = globalToken.byteToString(globalToken.getFreshToken())
-              response = dispatchHttpRequest(jsonMessage, request.headers)
-              var header = @{"Global-Token": currentToken}
-              respond Http200, header, response
-
-        except ReqUnknownException:
-          respond Http404, nimview.responseHttpHeader, $ %* {"error": "404",
-              "value": getCurrentExceptionMsg(), "resultId": resultId}
-        except ReqDeniedException:
-          respond Http403, nimview.responseHttpHeader, $ %* {"error": "403",
-              "value": getCurrentExceptionMsg(), "resultId": resultId}
-        except ServerException:
-          respond Http500, nimview.responseHttpHeader, $ %* {"error": "500",
-              "value": getCurrentExceptionMsg(), "resultId": resultId}
-        except:
-          respond Http500, nimview.responseHttpHeader, $ %* {"error": "500",
-              "value": "request doesn't contain valid json",
-              "resultId": resultId}
+      except ReqUnknownException:
+        resp Http404, responseHttpHeader, $ %* {"error": "404",
+            "value": getCurrentExceptionMsg(), "resultId": resultId}
+      except ReqDeniedException:
+        resp Http403, responseHttpHeader, $ %* {"error": "403",
+            "value": getCurrentExceptionMsg(), "resultId": resultId}
+      except ServerException:
+        resp Http500, responseHttpHeader, $ %* {"error": "500",
+            "value": getCurrentExceptionMsg(), "resultId": resultId}
+      except:
+        resp Http500, responseHttpHeader, $ %* {"error": "500",
+            "value": "request doesn't contain valid json",
+            "resultId": resultId}
         
   proc getCurrentAppDir(): string =
       let applicationName = os.getAppFilename().extractFilename()
@@ -249,11 +247,11 @@ when not defined(just_core):
         # read index html file and check if it actually requires backend helper
         let indexHtmlContent = system.readFile(indexHtml)
         if indexHtmlContent.contains("backend-helper.js"):
-          let sourceJs = nimview.getCurrentAppDir() / "../src/backend-helper.js"
+          let sourceJs = getCurrentAppDir() / "../src/backend-helper.js"
           if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
             debug "writing to " & targetJs
-            if nimview.backendHelperJs != "":
-              system.writeFile(targetJs, nimview.backendHelperJs)
+            if backendHelperJs != "":
+              system.writeFile(targetJs, backendHelperJs)
           elif (os.fileExists(sourceJs)):
               debug "symlinking to " & targetJs
               os.createSymlink(sourceJs, targetJs)
@@ -264,6 +262,11 @@ when not defined(just_core):
     if not os.fileExists(filePath):
       raise newException(IOError, message)
 
+  proc toDataUrl(stream: string): string {.compileTime.} =
+    ## creates a dada url and escapes %
+    ## encoding all would be correct, but IE is slow when doing so
+    result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+
   proc getAbsPath(indexHtmlFile: string): (string, string) =
     let separatorFound = indexHtmlFile.rfind({'#', '?'})
     if separatorFound == -1:
@@ -272,32 +275,32 @@ when not defined(just_core):
       result[0] = indexHtmlFile[0 ..< separatorFound]
       result[1] = indexHtmlFile[separatorFound .. ^1]
     if (not os.isAbsolute(result[0])):
-      result[0] = nimview.getCurrentAppDir() / indexHtmlFile
+      result[0] = getCurrentAppDir() / indexHtmlFile
 
   proc startHttpServer*(indexHtmlFile: string, port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-    let (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
-    nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+    let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+    checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
       "; cannot start UI; the UI folder needs to be relative to the binary")
     discard parameter # needs to be inserted into url manually
     when not defined release:
-      nimview.backendHelperJs = nimview.backendHelperJsStatic
+      backendHelperJs = backendHelperJsStatic
       try:
-        nimview.backendHelperJs = system.readFile(nimview.getCurrentAppDir() / "../src/backend-helper.js")
+        backendHelperJs = system.readFile(getCurrentAppDir() / "../src/backend-helper.js")
       except: 
         discard
-    nimview.copyBackendHelper(indexHtmlPath)
+    copyBackendHelper(indexHtmlPath)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
-    nimview.responseHttpHeader = @{"Access-Control-Allow-Origin": origin}
+    responseHttpHeader = @{"Access-Control-Allow-Origin": origin}
     let settings = jester.newSettings(
         port = Port(port),
         bindAddr = bindAddr,
         staticDir = indexHtmlPath.parentDir())
-    var myJester = jester.initJester(nimview.handleRequest, settings = settings)
+    var myJester = jester.initJester(handleRequest, settings = settings)
     # debug "open default browser"
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
     myJester.serve()
@@ -309,9 +312,8 @@ when not defined(just_core):
       if not myWebView.isNil():
         myWebView.terminate()
 
-  proc startDesktopWithUrl*(url: string, title: string = "nimview",
-      width: int = 640, height: int = 480, resizable: bool = true,
-          debug: bool = defined release)  =
+  proc startDesktopWithUrl*(url: string, title: string, width: int, height: int, 
+      resizable: bool, debug: bool)  =
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
       # var fullScreen = true
@@ -338,28 +340,21 @@ when not defined(just_core):
       myWebView.exit()
       dealloc(myWebView)
 
-  proc toData(stream: string): string {.compileTime.} =
-      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%"))
-      
-  proc startStaticDesktop(title: string = "nimview",
-      width: int = 640, height: int = 480, resizable: bool = true,
-          debug: bool = defined release) = 
-    startDesktopWithUrl(toData(indexContent), title, width, height, resizable, debug)
-
-  proc startDesktop*(indexHtmlFile: string, title: string = "nimview",
-      width: int = 640, height: int = 480, resizable: bool = true,
-          debug: bool = defined release) {.exportpy.} = 
-    if (indexContent != ""):
-      startStaticDesktop(title, width, height, resizable, debug)
+  proc startDesktop*(indexHtmlFile: string = "../dist/index.html", 
+        title: string = "nimview",
+        width: int = 640, height: int = 480, resizable: bool = true,
+        debug: bool = defined release) {.exportpy.} = 
+    if (indexHtmlFile.contains("dist/index.html") and not indexContent.isEmptyOrWhitespace()):
+      startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
     else:
-      let (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
-      nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+      let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+      checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
-      nimview.copyBackendHelper(indexHtmlPath)
+      copyBackendHelper(indexHtmlPath)
       startDesktopWithUrl( "file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
-
-  proc start*(indexHtmlFile: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview",
+  proc start*(indexHtmlFile: string = "../dist/index.html", port: int = 8000, 
+        bindAddr: string = "localhost", title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
@@ -389,11 +384,10 @@ proc main() =
       let argv = os.commandLineParams()
       for arg in argv:
         readAndParseJsonCmdFile(arg)
-      # let indexHtmlFile = "../examples/vue/dist/index.html"
+      let indexHtmlFile = "../examples/vue/dist/index.html"
       enableRequestLogger()
-      # nimview.startDesktop(indexHtmlFile)
-      # nimview.startHttpServer(indexHtmlFile)
-      startStaticDesktop("../examples/svelte/public/index.html")
+      startDesktop(indexHtmlFile)
+      # startHttpServer(indexHtmlFile)
 
 when isMainModule:
   main()

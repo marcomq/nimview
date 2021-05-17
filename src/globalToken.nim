@@ -51,7 +51,8 @@ proc getFreshToken*(): array[32, byte] =
     var currentToken = addr globalToken.tokens[][frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:
-        tokenPlusInterval = currentToken[].generated + interval.seconds
+        if currentToken[].generated.isInitialized():
+            tokenPlusInterval = currentToken[].generated + interval.seconds
     except:
         discard
     withLock(L):    
