@@ -101,7 +101,7 @@ ui.backend = function (request, data, callbackFunction) {
         }
         ui.backend(request, data, callbackFunction); 
       }, 200);
-      return
+      return;
     }
     jsonRequest = ui.createRequest(request, data, callbackFunction);
     var postData = JSON.stringify(jsonRequest);

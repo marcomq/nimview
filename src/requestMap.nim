@@ -3,22 +3,16 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-# import logging, tables, json, os
+import tables, json, os, strformat
+import nimview, typetraits
 
-# when not defined(just_core):
-#   import nimpy
-#   from nimpy/py_types import PPyObject
-# else:
-#   macro exportpy(def: untyped): untyped =
-#     result = def
 
 type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
   jsSignature: string
 
-var reqMap* {.threadVar.}: Table[string, ReqFunction] 
-
-var requestLogger* {.threadVar.}: FileLogger
+var reqMapStore = cast[ptr Table[string, ReqFunction]](allocShared0(sizeof(Table[string, ReqFunction])))
+var reqMap* {.threadVar.}: Table[string, ReqFunction]
 
 proc parseAny[T](value: string): T =
   when T is string:
@@ -46,7 +40,7 @@ template withStringFailover[T](value: JsonNode, jsonType: JsonNodeKind, body: un
     else: 
       result = parseAny[T]($value)
 
-proc parseAny[T](value: JsonNode): T =
+proc parseAny*[T](value: JsonNode): T =
   when T is JsonNode:
     result = value
   elif T is (int or uint):
@@ -74,18 +68,18 @@ proc parseAny[T](value: JsonNode): T =
     result = value.to(T)
 
 proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSignature = "value") =
-  {.gcsafe.}: 
-    reqMap[request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
+  {.gcsafe.}:
+    reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
 
 proc addRequest*[T](request: string, callback: proc(value: T): string) =
-    addRequest(request, proc (values: JsonNode): string =
-      result = callback(parseAny[T](values)), 
-      "value")
+  addRequest(request, proc (values: JsonNode): string =
+      callback(parseAny[T](values)),
+      name(T))
       
 proc addRequest*[T](request: string, callback: proc(value: T)) =
-    addRequest(request, proc (values: JsonNode): string =
+  addRequest(request, proc (values: JsonNode): string =
       callback(parseAny[T](values)), 
-      "value")
+      name(T))
 
 template runWithBody(minLength: int, body: untyped) =
   proc localFunc(values {.inject.}: JsonNode): string =
@@ -108,15 +102,18 @@ proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: 
         callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
-      "value1, value2")
+      name(T1) & ", " & name(T2))
 
 proc addRequest*[T1, T2, T3](request: string, callback: proc(value1: T1, value2: T2, value3: T3): string) =
+    var val1: T1
+    var val2: T2
+    var val3: T3
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 2:
         result = callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
-      "value1, value2, value3")
+      name(T1) & ", " & name(T2) & ", " & name(T3))
 
 proc addRequest*(request: string, callback: proc(): string) =
     addRequest(request, proc (values: JsonNode): string = callback(), "")
@@ -137,7 +134,13 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
 proc addRequest*(request: string, callback: proc(value: string) {.gcsafe.}) =
   addRequest[string](request, callback)
 
+proc fillReqMap() =
+  if reqMap.len == 0:
+    {.gcsafe.}:
+      reqMap = reqMapStore[]
+
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
+  fillReqMap()
   reqMap.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
       result = callbackFunc[].nimCallback
@@ -146,3 +149,8 @@ proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
         request & "': " & getCurrentExceptionMsg())
   do:
     raise newException(ReqUnknownException, "404 - Request unknown")
+
+proc getJsFunctions*(): string =
+  fillReqMap()
+  for key, value in reqMap.mpairs:
+    result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"

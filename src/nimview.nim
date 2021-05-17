@@ -5,12 +5,11 @@
 
 import os, system, tables
 import json, logging, macros
-
 # run "nake release" or "nake debug" to compile
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
-  import strutils
+  import strutils, uri
   import nimpy
   from nimpy/py_types import PPyObject
   import jester
@@ -31,8 +30,16 @@ type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
     
-include requestMap
+import requestMap
+export requestMap
 
+var requestLogger* {.threadVar.}: FileLogger
+
+const indexContent = 
+  if fileExists(getProjectPath() / "../dist/index.html"):
+    staticRead(getProjectPath() / "../dist/index.html")
+  else:
+    ""
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
     addRequest(request, proc (values: JsonNode): string =
@@ -45,6 +52,7 @@ when not defined(just_core):
         argSeq.add(parseAny[string](values).toPyObjectArgument())
       result = callback(argSeq),
       "[values]")
+
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
@@ -164,6 +172,10 @@ when not defined(just_core):
         var header = @{"Content-Type": "application/javascript"}
         header.add(nimview.responseHttpHeader)
         respond Http200, header, nimview.backendHelperJs
+      of "/backend-functions.js":
+        var header = @{"Content-Type": "application/javascript"}
+        header.add(nimview.responseHttpHeader)
+        respond Http200, header, getJsFunctions()
       else:
         try:
           let separatorFound = requestPath.rfind({'#', '?'})
@@ -223,7 +235,7 @@ when not defined(just_core):
         
   proc getCurrentAppDir(): string =
       let applicationName = os.getAppFilename().extractFilename()
-      debug applicationName
+      # debug applicationName
       if (applicationName.startsWith("python") or applicationName.startsWith("platform-python")):
         result = os.getCurrentDir()
       else:
@@ -248,6 +260,10 @@ when not defined(just_core):
     except:
       logging.error "backend-helper.js not copied"
 
+  proc checkFileExists(filePath: string, message: string) =
+    if not os.fileExists(filePath):
+      raise newException(IOError, message)
+
   proc getAbsPath(indexHtmlFile: string): (string, string) =
     let separatorFound = indexHtmlFile.rfind({'#', '?'})
     if separatorFound == -1:
@@ -258,18 +274,14 @@ when not defined(just_core):
     if (not os.isAbsolute(result[0])):
       result[0] = nimview.getCurrentAppDir() / indexHtmlFile
 
-  proc checkFileExists(filePath: string, message: string) =
-    if not os.fileExists(filePath):
-      raise newException(IOError, message)
-
   proc startHttpServer*(indexHtmlFile: string, port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-    var (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
-    discard parameter # needs to be inserted into url manually
+    let (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
     nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
       "; cannot start UI; the UI folder needs to be relative to the binary")
+    discard parameter # needs to be inserted into url manually
     when not defined release:
       nimview.backendHelperJs = nimview.backendHelperJsStatic
       try:
@@ -297,18 +309,14 @@ when not defined(just_core):
       if not myWebView.isNil():
         myWebView.terminate()
 
-  proc startDesktop*(indexHtmlFile: string, title: string = "nimview",
+  proc startDesktopWithUrl*(url: string, title: string = "nimview",
       width: int = 640, height: int = 480, resizable: bool = true,
-          debug: bool = defined release) {.exportpy.} =
+          debug: bool = defined release)  =
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
-      var (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
-      nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
-        "; cannot start UI; the UI folder needs to be relative to the binary")
-      nimview.copyBackendHelper(indexHtmlPath)
       # var fullScreen = true
-      myWebView = webview.newWebView(title, "file://" / indexHtmlPath & parameter, width,
-          height, resizable = resizable, debug = debug)
+      myWebView = webview.newWebView(title, url, width,
+           height, resizable = resizable, debug = debug)
       myWebView.bindProc("backend", "alert", proc (message: string) =
         {.gcsafe.}:
           myWebView.info("alert", message))
@@ -329,6 +337,27 @@ when not defined(just_core):
       myWebView.run()
       myWebView.exit()
       dealloc(myWebView)
+
+  proc toData(stream: string): string {.compileTime.} =
+      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%"))
+      
+  proc startStaticDesktop(title: string = "nimview",
+      width: int = 640, height: int = 480, resizable: bool = true,
+          debug: bool = defined release) = 
+    startDesktopWithUrl(toData(indexContent), title, width, height, resizable, debug)
+
+  proc startDesktop*(indexHtmlFile: string, title: string = "nimview",
+      width: int = 640, height: int = 480, resizable: bool = true,
+          debug: bool = defined release) {.exportpy.} = 
+    if (indexContent != ""):
+      startStaticDesktop(title, width, height, resizable, debug)
+    else:
+      let (indexHtmlPath, parameter) = nimview.getAbsPath(indexHtmlFile)
+      nimview.checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+        "; cannot start UI; the UI folder needs to be relative to the binary")
+      nimview.copyBackendHelper(indexHtmlPath)
+      startDesktopWithUrl( "file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
+
 
   proc start*(indexHtmlFile: string, port: int = 8000, bindAddr: string = "localhost", title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
@@ -351,7 +380,7 @@ proc main() =
         debug "called func"
         result = "'' modified by Nim Backend")
 
-      addRequest("appendSomething", proc(val: int): string =
+      addRequest("appendSomething", proc(val: string): string =
         result = ":)'" & $(val) & "' modified by Nim Backend")
 
       addRequest("appendSomething3", proc(val: int, val2: string): string =
@@ -361,11 +390,10 @@ proc main() =
       for arg in argv:
         readAndParseJsonCmdFile(arg)
       # let indexHtmlFile = "../examples/vue/dist/index.html"
-      let indexHtmlFile = "../examples/svelte/public/index.html"
       enableRequestLogger()
       # nimview.startDesktop(indexHtmlFile)
       # nimview.startHttpServer(indexHtmlFile)
-      start(indexHtmlFile)
+      startStaticDesktop("../examples/svelte/public/index.html")
 
 when isMainModule:
   main()
