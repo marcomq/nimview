@@ -140,11 +140,6 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
     logging.error "File does not exist: " & filename
 
 when not defined(just_core):
-  when defined release:
-    const backendHelperJs = system.staticRead("backend-helper.js")
-  else:
-    const backendHelperJsStatic = system.staticRead("backend-helper.js")
-    var backendHelperJs {.threadVar.}: string
 
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
     ## Modify this, if you want to add some authentication, input format validation
@@ -168,15 +163,12 @@ when not defined(just_core):
         requestPath = requestPath[0 ..< separatorFound]
       case requestPath
       of "/", "/index.html":
-        if (not indexContent.isEmptyOrWhitespace()):
-          header = @{"Content-Type": "text/html;charset=utf-8"}
-          header.add(responseHttpHeader)
-          resp Http200, header, indexContent
-        else: 
-          requestPath = "/index.html"
-      of "/backend-helper.js":
-        header.add(responseHttpHeader)
-        resp Http200, header, backendHelperJs
+        when defined release:
+          if not indexContent.isEmptyOrWhitespace():
+            header = @{"Content-Type": "text/html;charset=utf-8"}
+            header.add(responseHttpHeader)
+            resp Http200, header, indexContent
+        requestPath = "/index.html"
       of "/backend-functions.js":
         header.add(responseHttpHeader)
         resp Http200, header, getJsFunctions()
@@ -250,8 +242,7 @@ when not defined(just_core):
           let sourceJs = getCurrentAppDir() / "../src/backend-helper.js"
           if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
             debug "writing to " & targetJs
-            if backendHelperJs != "":
-              system.writeFile(targetJs, backendHelperJs)
+            os.copyFile(sourceJs, targetJs)
           elif (os.fileExists(sourceJs)):
               debug "symlinking to " & targetJs
               os.createSymlink(sourceJs, targetJs)
@@ -277,21 +268,17 @@ when not defined(just_core):
     if (not os.isAbsolute(result[0])):
       result[0] = getCurrentAppDir() / indexHtmlFile
 
-  proc startHttpServer*(indexHtmlFile: string, port: int = 8000,
+  proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
     ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
-    checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
-      "; cannot start UI; the UI folder needs to be relative to the binary")
     discard parameter # needs to be inserted into url manually
     when not defined release:
-      backendHelperJs = backendHelperJsStatic
-      try:
-        backendHelperJs = system.readFile(getCurrentAppDir() / "../src/backend-helper.js")
-      except: 
-        discard
-    copyBackendHelper(indexHtmlPath)
+      if indexContent.isEmptyOrWhitespace() or indexHtmlFile != "../dist/index.html":
+        checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+          "; cannot start UI; the UI folder needs to be relative to the binary")
+        copyBackendHelper(indexHtmlPath)
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
@@ -351,7 +338,7 @@ when not defined(just_core):
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
       copyBackendHelper(indexHtmlPath)
-      startDesktopWithUrl( "file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
+      startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
   proc start*(indexHtmlFile: string = "../dist/index.html", port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",
