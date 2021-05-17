@@ -10,7 +10,7 @@ proc main() =
   let argv = os.commandLineParams()
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
-  nimview.start("../dist/index.html")
+  nimview.startHttpServer()
   
 when isMainModule:
   main()
