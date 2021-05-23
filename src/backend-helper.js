@@ -23,6 +23,7 @@ ui.createRequest = function(request, data, callbackFunction) {
       if ((typeof callbackFunction !== 'undefined') && 
           (typeof callbackFunction !== 'function') && 
           (callbackFunction in data)) {
+        // vue object modification
         var key = callbackFunction;
         var outputValueObj = data;
         callbackFunction = function(response) { outputValueObj[key] = response; }; 

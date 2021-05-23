@@ -97,7 +97,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   if not requestLogger.isNil:
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   let callbackFunc = getCallbackFunc(request)
-  result = callbackFunc(jsonMessage["value"])
+  result = callbackFunc(jsonMessage["data"])
 
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect folder dialog" if in webview mode and return the selection.
@@ -138,6 +138,8 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
     close(file)
   else:
     logging.error "File does not exist: " & filename
+
+addRequest("getJsFunctions", getJsFunctions)
 
 when not defined(just_core):
 
@@ -239,7 +241,7 @@ when not defined(just_core):
         # read index html file and check if it actually requires backend helper
         let indexHtmlContent = system.readFile(indexHtml)
         if indexHtmlContent.contains("backend-helper.js"):
-          let sourceJs = getCurrentAppDir() / "../src/backend-helper.js"
+          let sourceJs = getCurrentAppDir() / "../src/js/backend-helper.js"
           if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
             debug "writing to " & targetJs
             os.copyFile(sourceJs, targetJs)
@@ -279,6 +281,8 @@ when not defined(just_core):
         checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
           "; cannot start UI; the UI folder needs to be relative to the binary")
         copyBackendHelper(indexHtmlPath)
+    when defined debug:
+      echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
@@ -299,17 +303,17 @@ when not defined(just_core):
       if not myWebView.isNil():
         myWebView.terminate()
 
-  proc startDesktopWithUrl*(url: string, title: string, width: int, height: int, 
+  proc startDesktopWithUrl(url: string, title: string, width: int, height: int, 
       resizable: bool, debug: bool)  =
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
       # var fullScreen = true
       myWebView = webview.newWebView(title, url, width,
            height, resizable = resizable, debug = debug)
-      myWebView.bindProc("backend", "alert", proc (message: string) =
+      myWebView.bindProc("nimview", "alert", proc (message: string) =
         {.gcsafe.}:
           myWebView.info("alert", message))
-      myWebView.bindProc("backend", "call", proc (message: string) =
+      myWebView.bindProc("nimview", "call", proc (message: string) =
         info message
         let jsonMessage = json.parseJson(message)
         let resonseId = jsonMessage["responseId"].getInt()

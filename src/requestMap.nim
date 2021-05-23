@@ -3,9 +3,8 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import tables, json, os, strformat
+import tables, json, os, strformat, macros
 import nimview, typetraits
-
 
 type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
@@ -68,60 +67,6 @@ proc parseAny*[T](value: JsonNode): T =
     result = value.to(T)
 
 proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSignature = "value") =
-  {.gcsafe.}:
-    reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
-
-proc addRequest*[T](request: string, callback: proc(value: T): string) =
-  addRequest(request, proc (values: JsonNode): string =
-      callback(parseAny[T](values)),
-      name(T))
-      
-proc addRequest*[T](request: string, callback: proc(value: T)) =
-  addRequest(request, proc (values: JsonNode): string =
-      callback(parseAny[T](values)), 
-      name(T))
-
-template runWithBody(minLength: int, body: untyped) =
-  proc localFunc(values {.inject.}: JsonNode): string =
-    if values.len >= minLength:
-      body
-    else:
-      raise newException(ServerException, "Called request '" & request & "' contains less than " & $minLength & " arguments")
-  var jsonValues = ""
-  for i in 0 ..< minLength:
-    jsonValues &= (if i != 0: ", " else: "") & "value" & $i
-  addRequest(request, localFunc, jsonValues)
-  
-# proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: T2): R) =
-#   runWithBody(2):
-#      callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
-
-proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: T2): R) =
-    addRequest(request, proc (values: JsonNode): string = 
-      if values.len > 2:
-        callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
-      else:
-        raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
-      name(T1) & ", " & name(T2))
-
-proc addRequest*[T1, T2, T3](request: string, callback: proc(value1: T1, value2: T2, value3: T3): string) =
-    var val1: T1
-    var val2: T2
-    var val3: T3
-    addRequest(request, proc (values: JsonNode): string = 
-      if values.len > 2:
-        result = callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]))
-      else:
-        raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
-      name(T1) & ", " & name(T2) & ", " & name(T3))
-
-proc addRequest*(request: string, callback: proc(): string) =
-    addRequest(request, proc (values: JsonNode): string = callback(), "")
-
-# proc addRequest*(request: string, callback: proc(): string|void) =
-#    addRequest(request, proc (values: JsonNode): string = callback(), "")
-
-proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe.}) =
   ## This will register a function "callback" that can run on back-end.
   ## "addRequest" will be performed with "value" each time the javascript client calls:
   ## `window.ui.backend(request, value, function(response) {...})`
@@ -129,10 +74,46 @@ proc addRequest*(request: string, callback: proc(value: string): string {.gcsafe
   ## There are also overloaded functions for less or additional parameters
   ## There is a wrapper for python, C and C++ to handle strings in each specific programming language
   ## Notice for python: There is no check for correct function signature!
-  addRequest[string](request, callback)
+  {.gcsafe.}:
+    reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
+
+proc addRequest*[T1, R](request: string, callback: proc(value1: T1): R) =
+    addRequest(request, proc (values: JsonNode): string = 
+      if values.len > 0:
+        callback(parseAny[T1](values[0]))
+      else:
+        raise newException(ServerException, "Called request '" & request & "' needs to contain at least 1 argument"),
+      name(T1))
+
+proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: T2): R) =
+    addRequest(request, proc (values: JsonNode): string = 
+      if values.len > 1:
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
+      else:
+        raise newException(ServerException, "Called request '" & request & "' contains less than 2 arguments"),
+      name(T1) & ", " & name(T2))
+
+proc addRequest*[T1, T2, T3, R](request: string, callback: proc(value1: T1, value2: T2, value3: T3): R) =
+    addRequest(request, proc (values: JsonNode): string = 
+      if values.len > 2:
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]))
+      else:
+        raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
+      name(T1) & ", " & name(T2) & ", " & name(T3))
+
+proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4): R) =
+    addRequest(request, proc (values: JsonNode): string = 
+      if values.len > 3:
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]), parseAny[T4](values[4]))
+      else:
+        raise newException(ServerException, "Called request '" & request & "' contains less than 4 arguments"),
+      name(T1) & ", " & name(T2) & ", " & name(T3)", " & name(T4))
+
+proc addRequest*(request: string, callback: proc(): string|void) =
+  addRequest(request, proc (values: JsonNode): string = callback(), "")
   
-proc addRequest*(request: string, callback: proc(value: string) {.gcsafe.}) =
-  addRequest[string](request, callback)
+# proc addRequest*(request: string, callback: proc(value: string): string|void) =
+#   addRequest[string, void](request, callback)
 
 proc fillReqMap() =
   if reqMap.len == 0:
@@ -152,5 +133,9 @@ proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
 
 proc getJsFunctions*(): string =
   fillReqMap()
-  for key, value in reqMap.mpairs:
-    result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
+  var requestSeq = newJArray()
+  for key in reqMap.keys:
+    requestSeq.add(newJString(key))
+    # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
+  echo $requestSeq
+  return $requestSeq

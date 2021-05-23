@@ -1,4 +1,5 @@
 import os
+
 import ../../../src/nimview
 # start with "nimble svelte" from parent directory
 
@@ -10,7 +11,7 @@ proc main() =
   let argv = os.commandLineParams()
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
-  nimview.startHttpServer()
+  nimview.start()
   
 when isMainModule:
   main()

@@ -37,7 +37,6 @@ export default {
     // https://github.com/rollup/rollup-plugin-commonjs
     resolve(),
     commonjs(),
-    // added by angelo
     json(), 
 
     // Watch the `public` directory and refresh the

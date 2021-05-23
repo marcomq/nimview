@@ -1,9 +1,11 @@
 <script>
+  import ui from "../nimview"
   let search = ""
   let elements = []
-  let runSearch = function() {
+  let runSearch = () => {
     elements = elements.concat({text: search});
-    window.ui.backend("appendSomething", search, function(response) { 
+    ui.backend.appendSomething(search ,3).then(response => {
+      console.log(response)
       search = response; 
     });
   };
