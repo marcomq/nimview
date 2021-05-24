@@ -3,12 +3,13 @@
   let search = ""
   let elements = []
   let runSearch = () => {
-    elements = elements.concat({text: search});
-    ui.backend.appendSomething(search ,3).then(response => {
+    elements = elements.concat({text: search})
+    ui.addRequest("appendSomething")
+    ui.appendSomething(search ,3).then(response => {
       console.log(response)
-      search = response; 
-    });
-  };
+      search = response
+    })
+  }
 </script>
 
 <div class="container sample">

@@ -13,10 +13,12 @@ type GlobalToken = object
     generated: times.DateTime
 
 
-# generate 5 tokens that rotate
-var tokens = cast[ptr array[5, GlobalToken]](
-    allocShared0(sizeof(array[5, GlobalToken]))
+# generate 3 tokens that rotate
+var tokens = cast[ptr array[3, GlobalToken]](
+    allocShared0(sizeof(array[3, GlobalToken]))
 )
+for i in 0..<tokens[].len:
+    tokens[i].generated = times.now() - 5.minutes
 
 proc checkIfTokenExists(token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
@@ -60,6 +62,6 @@ proc getFreshToken*(): array[32, byte] =
             let randomValue = sysrand.urandom(32)
             for i in 0 ..< randomValue.len:
                 result[i] = randomValue[i]
-            currentToken[].generated.swap(currentTime)
-            currentToken[].token.swap(result)
+            currentToken[].generated = currentTime
+            currentToken[].token = result
         result = currentToken[].token

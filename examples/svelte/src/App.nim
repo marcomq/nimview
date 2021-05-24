@@ -12,6 +12,7 @@ proc main() =
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
   nimview.start()
+  # nimview.startHttpServer()
   
 when isMainModule:
   main()

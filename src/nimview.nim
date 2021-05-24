@@ -91,7 +91,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND jester
   ## This will extract specific values that were prepared by backend-helper.js
   ## and forward those values to the string dispatcher.
-  let request = $jsonMessage["request"].getStr()
+  let request = jsonMessage["request"].getStr()
   if request == "getGlobalToken":
     return $ %* {"useGlobalToken": useGlobalToken}
   if not requestLogger.isNil:
@@ -139,8 +139,6 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   else:
     logging.error "File does not exist: " & filename
 
-addRequest("getJsFunctions", getJsFunctions)
-
 when not defined(just_core):
 
   proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
@@ -149,33 +147,29 @@ when not defined(just_core):
     if not useGlobalToken or globalToken.checkToken(headers):
         return dispatchJsonRequest(jsonMessage)
     else:
-        let request = $jsonMessage["request"].getStr()
-        if request != "getGlobalToken":
-            raise newException(ReqDeniedException, "403 - Token expired")
+        let request = jsonMessage["request"].getStr()
+        if request == "getGlobalToken":
+          return $ %* {"useGlobalToken": useGlobalToken}
+        else:
+          raise newException(ReqDeniedException, "403 - Token expired")
 
   proc handleRequest(request: Request): Future[ResponseData] {.async.} =
     ## used by HttpServer
     block route:
       var response: string
       var requestPath: string = request.pathInfo
-      var resultId = 0
       var header = @{"Content-Type": "application/javascript"}
       let separatorFound = requestPath.rfind({'#', '?'})
       if separatorFound != -1:
         requestPath = requestPath[0 ..< separatorFound]
-      case requestPath
-      of "/", "/index.html":
+      if requestPath == "/":
+        requestPath = "/index.html"
+      if requestPath == "/index.html":
         when defined release:
           if not indexContent.isEmptyOrWhitespace():
             header = @{"Content-Type": "text/html;charset=utf-8"}
             header.add(responseHttpHeader)
             resp Http200, header, indexContent
-        requestPath = "/index.html"
-      of "/backend-functions.js":
-        header.add(responseHttpHeader)
-        resp Http200, header, getJsFunctions()
-      else:
-        discard
       try:
         var potentialFilename = request.getStaticDir() & "/" &
             requestPath.replace("..", "")
@@ -208,22 +202,24 @@ when not defined(just_core):
           {.gcsafe.}:
             var currentToken = globalToken.byteToString(globalToken.getFreshToken())
             response = dispatchHttpRequest(jsonMessage, request.headers)
-            var header = @{"Global-Token": currentToken}
+            var header = @{"global-token": currentToken}
             resp Http200, header, response
 
       except ReqUnknownException:
         resp Http404, responseHttpHeader, $ %* {"error": "404",
-            "value": getCurrentExceptionMsg(), "resultId": resultId}
+            "value": getCurrentExceptionMsg()}
       except ReqDeniedException:
         resp Http403, responseHttpHeader, $ %* {"error": "403",
-            "value": getCurrentExceptionMsg(), "resultId": resultId}
+            "value": getCurrentExceptionMsg()}
       except ServerException:
         resp Http500, responseHttpHeader, $ %* {"error": "500",
-            "value": getCurrentExceptionMsg(), "resultId": resultId}
+            "value": getCurrentExceptionMsg()}
+      except JsonParsingError, KeyError:
+        resp Http500, responseHttpHeader, $ %* {"error": "500",
+            "value": "request doesn't contain valid json"}
       except:
         resp Http500, responseHttpHeader, $ %* {"error": "500",
-            "value": "request doesn't contain valid json",
-            "resultId": resultId}
+            "value": "server error: " & getCurrentExceptionMsg()}
         
   proc getCurrentAppDir(): string =
       let applicationName = os.getAppFilename().extractFilename()
@@ -316,14 +312,19 @@ when not defined(just_core):
       myWebView.bindProc("nimview", "call", proc (message: string) =
         info message
         let jsonMessage = json.parseJson(message)
-        let resonseId = jsonMessage["responseId"].getInt()
-        let response = dispatchJsonRequest(jsonMessage)
-        let evalJsCode = "window.ui.applyResponse('" & 
-            response.replace("\\", "\\\\").replace("\'", "\\'") &
-            "'," & $resonseId & ");"
+        let requestId = jsonMessage["requestId"].getInt()
+        var evalJsCode: string 
+        try:
+          let response = dispatchJsonRequest(jsonMessage)
+          evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
+              response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
+        except: 
+          evalJsCode = "window.ui.discardResponse(" & $requestId & ");" 
+        debug evalJsCode
         {.gcsafe.}:
           let responseCode = myWebView.eval(evalJsCode)
           discard responseCode
+
       )
 #[    proc changeColor() = myWebView.setColor(210,210,210,100)
       proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#

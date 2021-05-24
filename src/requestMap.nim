@@ -11,7 +11,6 @@ type ReqFunction* = object
   jsSignature: string
 
 var reqMapStore = cast[ptr Table[string, ReqFunction]](allocShared0(sizeof(Table[string, ReqFunction])))
-var reqMap* {.threadVar.}: Table[string, ReqFunction]
 
 proc parseAny[T](value: string): T =
   when T is string:
@@ -76,6 +75,7 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
   ## Notice for python: There is no check for correct function signature!
   {.gcsafe.}:
     reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
+    echo "Adding request " & $ reqMapStore[]
 
 proc addRequest*[T1, R](request: string, callback: proc(value1: T1): R) =
     addRequest(request, proc (values: JsonNode): string = 
@@ -112,17 +112,22 @@ proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, 
 proc addRequest*(request: string, callback: proc(): string|void) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
   
-# proc addRequest*(request: string, callback: proc(value: string): string|void) =
-#   addRequest[string, void](request, callback)
+#proc addRequest*(request: string, callback: proc(value: string): string|void) =
+#  addRequest(request, proc (values: JsonNode): string = callback(parseAny[string](values[0])), "")
 
-proc fillReqMap() =
-  if reqMap.len == 0:
-    {.gcsafe.}:
-      reqMap = reqMapStore[]
+proc getRequests(): string =
+  {.gcsafe.}:
+    echo "Checking request " & $ reqMapStore[]
+    var requestSeq = newJArray()
+    for key in reqMapStore[].keys:
+      requestSeq.add(newJString(key))
+      echo key
+      # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
+    return $requestSeq
 
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
-  fillReqMap()
-  reqMap.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
+  echo getRequests()
+  reqMapStore[].withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
       result = callbackFunc[].nimCallback
     except:
@@ -131,11 +136,4 @@ proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
   do:
     raise newException(ReqUnknownException, "404 - Request unknown")
 
-proc getJsFunctions*(): string =
-  fillReqMap()
-  var requestSeq = newJArray()
-  for key in reqMap.keys:
-    requestSeq.add(newJString(key))
-    # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
-  echo $requestSeq
-  return $requestSeq
+addRequest("getRequests", getRequests)
