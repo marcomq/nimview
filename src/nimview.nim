@@ -5,6 +5,7 @@
 
 import os, system, tables
 import json, logging, macros
+import asynchttpserver, asyncdispatch
 # run "nake release" or "nake debug" to compile
 
 when not defined(just_core):
@@ -12,47 +13,46 @@ when not defined(just_core):
   import strutils, uri
   import nimpy
   from nimpy/py_types import PPyObject
-  import asynchttpserver, asyncdispatch
-  import globalToken
   # import browsers
   when compileWithWebview:
     import webview except debug
     var myWebView: Webview
-  var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 else:
   const compileWithWebview = false
   var myWebView = nil
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
+  type PPyObject = string
 
 type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
-    
+import globalToken 
 import requestMap
 export requestMap
 
+var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
-var staticDir: string
+var staticDir {.threadVar.}: string
+var httpServerRunning = true
 
 const indexContent = 
   if fileExists(getProjectPath() / "../dist/index.html"):
     staticRead(getProjectPath() / "../dist/index.html")
   else:
     ""
-when not defined(just_core):
-  proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
-    addRequest(request, proc (values: JsonNode): string =
-        var argSeq = newSeq[PPyObject]()
-        if (values.kind == JArray):
-          newSeq(argSeq, values.len)
-          for i in 0 ..< values.len:
-            argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
-        elif (values.kind != JNull):
-          argSeq.add(parseAny[string](values).toPyObjectArgument())
-        result = callback(argSeq),
-      "[values]")
+proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
+  addRequest(request, proc (values: JsonNode): string =
+      var argSeq = newSeq[PPyObject]()
+      if (values.kind == JArray):
+        newSeq(argSeq, values.len)
+        for i in 0 ..< values.len:
+          argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
+      elif (values.kind != JNull):
+        argSeq.add(parseAny[string](values).toPyObjectArgument())
+      result = callback(argSeq),
+    "[values]")
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
@@ -66,6 +66,8 @@ proc enableRequestLogger*() {.exportpy.} =
 
     requestLogger.swap(requestLoggerTmp)
   requestLogger.levelThreshold = logging.lvlAll
+
+logging.addHandler(newConsoleLogger())
 
 proc disableRequestLogger*() {.exportpy.} =
   ## Will stop to log to "requests.log" (default)
@@ -81,8 +83,6 @@ proc setUseServer*(val: bool) {.exportpy.} =
 
 proc setUseGlobalToken*(val: bool) {.exportpy.} =
   useGlobalToken = val
-
-logging.addHandler(newConsoleLogger())
 
 proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
@@ -140,164 +140,172 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   else:
     logging.error "File does not exist: " & filename
 
-when not defined(just_core):
 
-  proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
-    ## Modify this, if you want to add some authentication, input format validation
-    ## or if you want to process HttpHeaders.
-    if not useGlobalToken or globalToken.checkToken(headers):
-        return dispatchJsonRequest(jsonMessage)
-    else:
-        let request = jsonMessage["request"].getStr()
-        if request == "getGlobalToken":
-          return $ %* {"useGlobalToken": useGlobalToken}
-        else:
-          raise newException(ReqDeniedException, "403 - Token expired")
+proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
+  ## Modify this, if you want to add some authentication, input format validation
+  ## or if you want to process HttpHeaders.
+  if not useGlobalToken or globalToken.checkToken(headers):
+      return dispatchJsonRequest(jsonMessage)
+  else:
+      let request = jsonMessage["request"].getStr()
+      if request == "getGlobalToken":
+        return $ %* {"useGlobalToken": useGlobalToken}
+      else:
+        raise newException(ReqDeniedException, "403 - Token expired")
 
-  proc handleRequest(request: Request): Future[void] {.gcsafe, async.} =
-    ## used by HttpServer
-    var response: string
-    var requestPath: string = request.url.path
-    var header = @[("Content-Type", "application/javascript")]
-    let separatorFound = requestPath.rfind({'#', '?'})
-    if separatorFound != -1:
-      requestPath = requestPath[0 ..< separatorFound]
-    if requestPath == "/":
-      requestPath = "/index.html"
-    if requestPath == "/index.html":
-      when defined(release):
-        if not indexContent.isEmptyOrWhitespace():
-          header = @[("Content-Type", "text/html;charset=utf-8")]
-          header.add(responseHttpHeader)
-          await request.respond(Http200, indexContent, newHttpHeaders(header))
-          return
-          
-    try:
-      var potentialFilename = staticDir & "/" &
-          requestPath.replace("..", "")
-      if os.fileExists(potentialFilename):
-        debug "Sending " & potentialFilename
-        let fileData = splitFile(potentialFilename)
-        let contentType = case fileData.ext:
-          of ".json": "application/json;charset=utf-8"
-          of ".js": "text/javascript;charset=utf-8"
-          of ".css": "text/css;charset=utf-8"
-          of ".jpg": "image/jpeg"
-          of ".txt": "text/plain;charset=utf-8"
-          of ".map": "application/octet-stream"
-          else: "text/html;charset=utf-8"
-        header = @[("Content-Type", contentType)]
+proc handleRequest(request: Request): Future[void] {.async.} =
+  ## used by HttpServer
+  var response: string
+  var requestPath: string = request.url.path
+  var header = @[("Content-Type", "application/javascript")]
+  let separatorFound = requestPath.rfind({'#', '?'})
+  if separatorFound != -1:
+    requestPath = requestPath[0 ..< separatorFound]
+  if requestPath == "/":
+    requestPath = "/index.html"
+  if requestPath == "/index.html":
+    when defined(release):
+      if not indexContent.isEmptyOrWhitespace():
+        header = @[("Content-Type", "text/html;charset=utf-8")]
         header.add(responseHttpHeader)
-        await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
-      else:
-        if (request.body == ""):
-          raise newException(ReqUnknownException, "404 - File not found")
-
-        # if not a file, assume this is a json request
-        var jsonMessage: JsonNode
-        debug request.body
-        # if unlikely(request.body == ""):
-        #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
-        # else:
-        jsonMessage = parseJson(request.body)
-        {.gcsafe.}:
-          var currentToken = globalToken.byteToString(globalToken.getFreshToken())
-          response = dispatchHttpRequest(jsonMessage, request.headers)
-          var header = @{"global-token": currentToken}
-          await request.respond(Http200, response, newHttpHeaders(header))
-
-    except ReqUnknownException: 
-      await request.respond(Http404, 
-        $ %* {"error": "404", "value": getCurrentExceptionMsg()}, 
-        newHttpHeaders(responseHttpHeader))
-    except ReqDeniedException:
-      await request.respond(Http403, 
-        $ %* {"error": "403", "value": getCurrentExceptionMsg()}, 
-        newHttpHeaders(responseHttpHeader))
-    except ServerException:        
-      await request.respond(Http500, 
-        $ %* {"error": "500", "value": getCurrentExceptionMsg()}, 
-        newHttpHeaders(responseHttpHeader))
-    except JsonParsingError, KeyError:
-      await request.respond(Http500, 
-        $ %* {"error": "500", "value": "request doesn't contain valid json"}, 
-        newHttpHeaders(responseHttpHeader))
-    except:
-      await request.respond(Http500, 
-        $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
-        newHttpHeaders(responseHttpHeader))
+        await request.respond(Http200, indexContent, newHttpHeaders(header))
+        return
         
-  proc getCurrentAppDir(): string =
-      let applicationName = os.getAppFilename().extractFilename()
-      # debug applicationName
-      if (applicationName.startsWith("python") or applicationName.startsWith("platform-python")):
-        result = os.getCurrentDir()
-      else:
-        result = os.getAppDir()
+  try:
+    var potentialFilename = staticDir & "/" &
+        requestPath.replace("..", "")
+    if os.fileExists(potentialFilename):
+      debug "Sending " & potentialFilename
+      let fileData = splitFile(potentialFilename)
+      let contentType = case fileData.ext:
+        of ".json": "application/json;charset=utf-8"
+        of ".js": "text/javascript;charset=utf-8"
+        of ".css": "text/css;charset=utf-8"
+        of ".jpg": "image/jpeg"
+        of ".txt": "text/plain;charset=utf-8"
+        of ".map": "application/octet-stream"
+        else: "text/html;charset=utf-8"
+      header = @[("Content-Type", contentType)]
+      header.add(responseHttpHeader)
+      await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
+    else:
+      if (request.body == ""):
+        raise newException(ReqUnknownException, "404 - File not found")
 
-  proc copyBackendHelper (indexHtml: string) =
-    let folder = indexHtml.parentDir()
-    let targetJs = folder / "backend-helper.js"
-    try:
-      if not os.fileExists(targetJs) and indexHtml.endsWith(".html"):
-        # read index html file and check if it actually requires backend helper
-        let indexHtmlContent = system.readFile(indexHtml)
-        if indexHtmlContent.contains("backend-helper.js"):
-          let sourceJs = getCurrentAppDir() / "../src/js/backend-helper.js"
-          if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and not defined(release))):
-            debug "writing to " & targetJs
-            os.copyFile(sourceJs, targetJs)
-          elif (os.fileExists(sourceJs)):
-              debug "symlinking to " & targetJs
-              os.createSymlink(sourceJs, targetJs)
-    except:
-      logging.error "backend-helper.js not copied"
+      # if not a file, assume this is a json request
+      var jsonMessage: JsonNode
+      debug request.body
+      # if unlikely(request.body == ""):
+      #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
+      # else:
+      jsonMessage = parseJson(request.body)
+      {.gcsafe.}:
+        var currentToken = globalToken.byteToString(globalToken.getFreshToken())
+        response = dispatchHttpRequest(jsonMessage, request.headers)
+        var header = @{"global-token": currentToken}
+        await request.respond(Http200, response, newHttpHeaders(header))
 
-  proc checkFileExists(filePath: string, message: string) =
-    if not os.fileExists(filePath):
-      raise newException(IOError, message)
+  except ReqUnknownException: 
+    await request.respond(Http404, 
+      $ %* {"error": "404", "value": getCurrentExceptionMsg()}, 
+      newHttpHeaders(responseHttpHeader))
+  except ReqDeniedException:
+    await request.respond(Http403, 
+      $ %* {"error": "403", "value": getCurrentExceptionMsg()}, 
+      newHttpHeaders(responseHttpHeader))
+  except ServerException:        
+    await request.respond(Http500, 
+      $ %* {"error": "500", "value": getCurrentExceptionMsg()}, 
+      newHttpHeaders(responseHttpHeader))
+  except JsonParsingError, KeyError:
+    await request.respond(Http500, 
+      $ %* {"error": "500", "value": "request doesn't contain valid json"}, 
+      newHttpHeaders(responseHttpHeader))
+  except:
+    await request.respond(Http500, 
+      $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
+      newHttpHeaders(responseHttpHeader))
+      
+proc getCurrentAppDir(): string =
+    let applicationName = os.getAppFilename().extractFilename()
+    # debug applicationName
+    if (applicationName.startsWith("python") or applicationName.startsWith("platform-python")):
+      result = os.getCurrentDir()
+    else:
+      result = os.getAppDir()
 
+proc copyBackendHelper (indexHtml: string) =
+  let folder = indexHtml.parentDir()
+  let targetJs = folder / "backend-helper.js"
+  try:
+    if not os.fileExists(targetJs) and indexHtml.endsWith(".html"):
+      # read index html file and check if it actually requires backend helper
+      let indexHtmlContent = system.readFile(indexHtml)
+      if indexHtmlContent.contains("backend-helper.js"):
+        let sourceJs = getCurrentAppDir() / "../src/js/backend-helper.js"
+        if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and not defined(release))):
+          debug "writing to " & targetJs
+          os.copyFile(sourceJs, targetJs)
+        elif (os.fileExists(sourceJs)):
+            debug "symlinking to " & targetJs
+            os.createSymlink(sourceJs, targetJs)
+  except:
+    logging.error "backend-helper.js not copied"
+
+proc checkFileExists(filePath: string, message: string) =
+  if not os.fileExists(filePath):
+    raise newException(IOError, message)
+
+proc getAbsPath(indexHtmlFile: string): (string, string) =
+  let separatorFound = indexHtmlFile.rfind({'#', '?'})
+  if separatorFound == -1:
+    result[0] = indexHtmlFile
+  else:
+    result[0] = indexHtmlFile[0 ..< separatorFound]
+    result[1] = indexHtmlFile[separatorFound .. ^1]
+  if (not os.isAbsolute(result[0])):
+    result[0] = getCurrentAppDir() / indexHtmlFile
+
+proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 8000,
+    bindAddr: string = "localhost") {.exportpy.} =
+  ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
+  ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
+  let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+  discard parameter # needs to be inserted into url manually
+  when not defined(release):
+    if indexContent.isEmptyOrWhitespace() or indexHtmlFile != "../dist/index.html":
+      checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+        "; cannot start UI; the UI folder needs to be relative to the binary")
+      copyBackendHelper(indexHtmlPath)
+    debug "Starting internal webserver on http://" & bindAddr & ":" & $port
+    echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
+  var origin = "http://" & bindAddr
+  if (bindAddr == "0.0.0.0"):
+    origin = "*"
+  responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
+  staticDir = indexHtmlPath.parentDir()
+  var server = newAsyncHttpServer()
+  listen(server, Port(port), bindAddr)
+  while httpServerRunning:
+    if server.shouldAcceptRequest():
+      asyncCheck server.acceptRequest(handleRequest)
+    else:
+      poll()
+  # debug "open default browser"
+  # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
+
+proc stopHttpServer*() {.exportpy.} =
+  ## Will stop the Http server - will not wait for stop
+  httpServerRunning = false
+
+when not defined(just_core):
   proc toDataUrl(stream: string): string {.compileTime.} =
     ## creates a dada url and escapes %
     ## encoding all would be correct, but IE is slow when doing so
     result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
 
-  proc getAbsPath(indexHtmlFile: string): (string, string) =
-    let separatorFound = indexHtmlFile.rfind({'#', '?'})
-    if separatorFound == -1:
-      result[0] = indexHtmlFile
-    else:
-      result[0] = indexHtmlFile[0 ..< separatorFound]
-      result[1] = indexHtmlFile[separatorFound .. ^1]
-    if (not os.isAbsolute(result[0])):
-      result[0] = getCurrentAppDir() / indexHtmlFile
-
-  proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 8000,
-      bindAddr: string = "localhost") {.exportpy.} =
-    ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
-    ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-    let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
-    discard parameter # needs to be inserted into url manually
-    when not defined(release):
-      if indexContent.isEmptyOrWhitespace() or indexHtmlFile != "../dist/index.html":
-        checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
-          "; cannot start UI; the UI folder needs to be relative to the binary")
-        copyBackendHelper(indexHtmlPath)
-      debug "Starting internal webserver on http://" & bindAddr & ":" & $port
-      echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
-    var origin = "http://" & bindAddr
-    if (bindAddr == "0.0.0.0"):
-      origin = "*"
-    responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
-    staticDir = indexHtmlPath.parentDir()
-    var server = newAsyncHttpServer()
-    {.gcsafe.}:
-      waitFor server.serve(Port(port), handleRequest, address=bindAddr)
-    # debug "open default browser"
-    # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
-
   proc stopDesktop*() {.exportpy.} =
-    ## Will stop the Http server - may trigger application exit.
+    ## Will stop the Desktop app - may trigger application exit.
     when compileWithWebview:
       debug "stopping ..."
       if not myWebView.isNil():
