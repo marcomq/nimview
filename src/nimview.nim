@@ -12,17 +12,17 @@ when not defined(just_core):
   import strutils, uri
   import nimpy
   from nimpy/py_types import PPyObject
-  import jester
+  import asynchttpserver, asyncdispatch
   import globalToken
   # import browsers
   when compileWithWebview:
     import webview except debug
     var myWebView: Webview
-  var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting Jester
+  var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 else:
   const compileWithWebview = false
   var myWebView = nil
-  # Just core features. Disable jester, webview nimpy and exportpy
+  # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
 
@@ -34,6 +34,7 @@ import requestMap
 export requestMap
 
 var requestLogger* {.threadVar.}: FileLogger
+var staticDir: string
 
 const indexContent = 
   if fileExists(getProjectPath() / "../dist/index.html"):
@@ -72,8 +73,8 @@ proc disableRequestLogger*() {.exportpy.} =
     requestLogger.levelThreshold = logging.lvlNone
 
 var useServer* = not compileWithWebview or 
-  (defined(useServer) or defined(debug) or (os.fileExists("/.dockerenv")))
-var useGlobalToken* = not defined(debug)
+  (defined(useServer) or not defined(release) or (os.fileExists("/.dockerenv")))
+var useGlobalToken* = defined(release)
 
 proc setUseServer*(val: bool) {.exportpy.} =
   useServer = val
@@ -88,7 +89,7 @@ proc dispatchRequest*(request: string, value: string): string =
   getCallbackFunc(request)(%value) # % converts to json
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
-  ## Global json dispatcher that will be called from webview AND jester
+  ## Global json dispatcher that will be called from webview AND httpserver
   ## This will extract specific values that were prepared by backend-helper.js
   ## and forward those values to the string dispatcher.
   let request = jsonMessage["request"].getStr()
@@ -153,73 +154,78 @@ when not defined(just_core):
         else:
           raise newException(ReqDeniedException, "403 - Token expired")
 
-  proc handleRequest(request: Request): Future[ResponseData] {.async.} =
+  proc handleRequest(request: Request): Future[void] {.gcsafe, async.} =
     ## used by HttpServer
-    block route:
-      var response: string
-      var requestPath: string = request.pathInfo
-      var header = @{"Content-Type": "application/javascript"}
-      let separatorFound = requestPath.rfind({'#', '?'})
-      if separatorFound != -1:
-        requestPath = requestPath[0 ..< separatorFound]
-      if requestPath == "/":
-        requestPath = "/index.html"
-      if requestPath == "/index.html":
-        when defined release:
-          if not indexContent.isEmptyOrWhitespace():
-            header = @{"Content-Type": "text/html;charset=utf-8"}
-            header.add(responseHttpHeader)
-            resp Http200, header, indexContent
-      try:
-        var potentialFilename = request.getStaticDir() & "/" &
-            requestPath.replace("..", "")
-        if os.fileExists(potentialFilename):
-          debug "Sending " & potentialFilename
-          # jester.sendFile(potentialFilename)
-          let fileData = splitFile(potentialFilename)
-          let contentType = case fileData.ext:
-            of ".json": "application/json;charset=utf-8"
-            of ".js": "text/javascript;charset=utf-8"
-            of ".css": "text/css;charset=utf-8"
-            of ".jpg": "image/jpeg"
-            of ".txt": "text/plain;charset=utf-8"
-            of ".map": "application/octet-stream"
-            else: "text/html;charset=utf-8"
-          header = @{"Content-Type": contentType}
+    var response: string
+    var requestPath: string = request.url.path
+    var header = @[("Content-Type", "application/javascript")]
+    let separatorFound = requestPath.rfind({'#', '?'})
+    if separatorFound != -1:
+      requestPath = requestPath[0 ..< separatorFound]
+    if requestPath == "/":
+      requestPath = "/index.html"
+    if requestPath == "/index.html":
+      when defined(release):
+        if not indexContent.isEmptyOrWhitespace():
+          header = @[("Content-Type", "text/html;charset=utf-8")]
           header.add(responseHttpHeader)
-          resp Http200, header, system.readFile(potentialFilename)
-        else:
-          if (request.body == ""):
-            raise newException(ReqUnknownException, "404 - File not found")
+          await request.respond(Http200, indexContent, newHttpHeaders(header))
+          return
+          
+    try:
+      var potentialFilename = staticDir & "/" &
+          requestPath.replace("..", "")
+      if os.fileExists(potentialFilename):
+        debug "Sending " & potentialFilename
+        let fileData = splitFile(potentialFilename)
+        let contentType = case fileData.ext:
+          of ".json": "application/json;charset=utf-8"
+          of ".js": "text/javascript;charset=utf-8"
+          of ".css": "text/css;charset=utf-8"
+          of ".jpg": "image/jpeg"
+          of ".txt": "text/plain;charset=utf-8"
+          of ".map": "application/octet-stream"
+          else: "text/html;charset=utf-8"
+        header = @[("Content-Type", contentType)]
+        header.add(responseHttpHeader)
+        await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
+      else:
+        if (request.body == ""):
+          raise newException(ReqUnknownException, "404 - File not found")
 
-          # if not a file, assume this is a json request
-          var jsonMessage: JsonNode
-          debug request.body
-          # if unlikely(request.body == ""):
-          #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
-          # else:
-          jsonMessage = parseJson(request.body)
-          {.gcsafe.}:
-            var currentToken = globalToken.byteToString(globalToken.getFreshToken())
-            response = dispatchHttpRequest(jsonMessage, request.headers)
-            var header = @{"global-token": currentToken}
-            resp Http200, header, response
+        # if not a file, assume this is a json request
+        var jsonMessage: JsonNode
+        debug request.body
+        # if unlikely(request.body == ""):
+        #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
+        # else:
+        jsonMessage = parseJson(request.body)
+        {.gcsafe.}:
+          var currentToken = globalToken.byteToString(globalToken.getFreshToken())
+          response = dispatchHttpRequest(jsonMessage, request.headers)
+          var header = @{"global-token": currentToken}
+          await request.respond(Http200, response, newHttpHeaders(header))
 
-      except ReqUnknownException:
-        resp Http404, responseHttpHeader, $ %* {"error": "404",
-            "value": getCurrentExceptionMsg()}
-      except ReqDeniedException:
-        resp Http403, responseHttpHeader, $ %* {"error": "403",
-            "value": getCurrentExceptionMsg()}
-      except ServerException:
-        resp Http500, responseHttpHeader, $ %* {"error": "500",
-            "value": getCurrentExceptionMsg()}
-      except JsonParsingError, KeyError:
-        resp Http500, responseHttpHeader, $ %* {"error": "500",
-            "value": "request doesn't contain valid json"}
-      except:
-        resp Http500, responseHttpHeader, $ %* {"error": "500",
-            "value": "server error: " & getCurrentExceptionMsg()}
+    except ReqUnknownException: 
+      await request.respond(Http404, 
+        $ %* {"error": "404", "value": getCurrentExceptionMsg()}, 
+        newHttpHeaders(responseHttpHeader))
+    except ReqDeniedException:
+      await request.respond(Http403, 
+        $ %* {"error": "403", "value": getCurrentExceptionMsg()}, 
+        newHttpHeaders(responseHttpHeader))
+    except ServerException:        
+      await request.respond(Http500, 
+        $ %* {"error": "500", "value": getCurrentExceptionMsg()}, 
+        newHttpHeaders(responseHttpHeader))
+    except JsonParsingError, KeyError:
+      await request.respond(Http500, 
+        $ %* {"error": "500", "value": "request doesn't contain valid json"}, 
+        newHttpHeaders(responseHttpHeader))
+    except:
+      await request.respond(Http500, 
+        $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
+        newHttpHeaders(responseHttpHeader))
         
   proc getCurrentAppDir(): string =
       let applicationName = os.getAppFilename().extractFilename()
@@ -238,7 +244,7 @@ when not defined(just_core):
         let indexHtmlContent = system.readFile(indexHtml)
         if indexHtmlContent.contains("backend-helper.js"):
           let sourceJs = getCurrentAppDir() / "../src/js/backend-helper.js"
-          if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and defined(debug))):
+          if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and not defined(release))):
             debug "writing to " & targetJs
             os.copyFile(sourceJs, targetJs)
           elif (os.fileExists(sourceJs)):
@@ -268,29 +274,27 @@ when not defined(just_core):
 
   proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 8000,
       bindAddr: string = "localhost") {.exportpy.} =
-    ## Start Http server (Jester) in blocking mode. indexHtmlFile will displayed for "/".
+    ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
     ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
     discard parameter # needs to be inserted into url manually
-    when not defined release:
+    when not defined(release):
       if indexContent.isEmptyOrWhitespace() or indexHtmlFile != "../dist/index.html":
         checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
           "; cannot start UI; the UI folder needs to be relative to the binary")
         copyBackendHelper(indexHtmlPath)
-    when defined debug:
+      debug "Starting internal webserver on http://" & bindAddr & ":" & $port
       echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
-    responseHttpHeader = @{"Access-Control-Allow-Origin": origin}
-    let settings = jester.newSettings(
-        port = Port(port),
-        bindAddr = bindAddr,
-        staticDir = indexHtmlPath.parentDir())
-    var myJester = jester.initJester(handleRequest, settings = settings)
+    responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
+    staticDir = indexHtmlPath.parentDir()
+    var server = newAsyncHttpServer()
+    {.gcsafe.}:
+      waitFor server.serve(Port(port), handleRequest, address=bindAddr)
     # debug "open default browser"
     # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
-    myJester.serve()
 
   proc stopDesktop*() {.exportpy.} =
     ## Will stop the Http server - may trigger application exit.
@@ -335,7 +339,7 @@ when not defined(just_core):
   proc startDesktop*(indexHtmlFile: string = "../dist/index.html", 
         title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true,
-        debug: bool = defined release) {.exportpy.} = 
+        debug: bool = defined(release)) {.exportpy.} = 
     if (indexHtmlFile.contains("dist/index.html") and not indexContent.isEmptyOrWhitespace()):
       startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
     else:

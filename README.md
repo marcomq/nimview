@@ -30,9 +30,9 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 
 The target of this project was to have a simple, ultra lightweight cross platform, cross programming language UI layer for desktop, cloud and moblile applications. Nimview applications have just a few MB in static executable size and are targeted to be easy to write, easy to read, stable and easy to test. The RAM consumption of basic Nimview applications is usually less than 20 MB.
 
-This project is mostly a wrapper of two other great Nim projects: [Webview](https://github.com/oskca/webview) and [Jester](https://github.com/dom96/jester)
+This project is mostly a wrapper of another great Nim projects: [Webview](https://github.com/oskca/webview) 
 
-While Webview is used to display HTML as a simple desktop window, Jester is used as a webserver to serve the HTML to a browser. Nimview is just an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications and Jester web applications. There is also a specific Android project to interact with android applications [here](https://github.com/marcomq/nimview_android).
+While Webview is used to display HTML as a simple desktop window, nim AsyncHttpServer is used as a webserver to serve the HTML to a browser. Nimview is just an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications and web applications. There is also a specific Android project to interact with android applications [here](https://github.com/marcomq/nimview_android).
 
 Technically, the UI layer will be completely HTML/CSS/JS based and the back-end should be using either Nim, C/C++ or Python code directly. 
 Nim mostly acts as a "glue" layer as it can create python and C libraries easily. As long as you write Nim code, you might integrate the code in C/C++, Python or even Android. 
@@ -194,7 +194,7 @@ This improves security and makes it possible to run multiple applications withou
   CSRF attacks when the server is running on localhost. 
  
 ### Difference to Flask
-[Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/Jester probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
+[Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/AsyncHttpServer probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
 But Nimview is written in Nim and creates static binaries that can run in a minimal tiny Docker container that doesn't need an installed python environment. So you might create containers for your application that have just a few MB. So those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker by compiling with `-d:useServer`, or you need to include GTK libraries in your container.
 
 ### CSRF and Security
@@ -204,15 +204,13 @@ of web-applications as long as Webview is used.
 
 However, if you create a web-application, you need perform most security mitigations by yourself, by middleware or by the javascript framework you are using. 
 You may check [owasp.org](owasp.org)
-Following CSRF protections are already included in Nimview:
-- Jester, the webserver of Nimview includes a "SameSite" directive for cookies.
-- Nimview stores 5 global random non-session tokens that renew each other every 60 seconds. A valid token is required for any Ajax request except "getGlobalToken".
+Following CSRF protections are already included in Nimview: Nimview stores 3 global random non-session tokens that renew each other every 60 seconds. A valid token is required for any Ajax request except "getGlobalToken".
 The token is queried automatically with a "getGlobalToken" request when the application starts. If the token is missing or wrong, there is a "403" error for ajax requests.
 
 This isn't a full CSRF protection, as the token isn't bound to a session and all 
 users that can read responses from localhost could also use this token to 
 perform an attack (even if they may already send request directly to localhost).
-But together with the "SameSite" directive of Jester, this might already prevent most common CSRF attacks.
+If you add a "Samesite" directive for cookies, you might already prevent most common CSRF attack vectors.
 The token check can also be disabled with `nimview.setUseGlobalToken(false)` for debugging, development,
 or in case that there is already a session-based CSRF mitigation used by middleware. 
 

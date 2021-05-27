@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import times, jester, std/sysrand, base64, locks
+import times, asynchttpserver, std/sysrand, base64, locks
 
 var L: Lock
 initLock(L)
@@ -49,7 +49,7 @@ proc checkToken*(headers: HttpHeaders): bool =
 proc getFreshToken*(): array[32, byte] =
     var currentTime = times.now()
     const interval = 60
-    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod 5 # a new token every interval seconds
+    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod tokens[].len # a new token every interval seconds
     var currentToken = addr globalToken.tokens[][frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:

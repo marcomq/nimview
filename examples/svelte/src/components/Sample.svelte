@@ -1,12 +1,11 @@
 <script>
-  import ui from "../nimview"
+  import backend from "../nimview"
   let search = ""
   let elements = []
   let runSearch = () => {
     elements = elements.concat({text: search})
-    ui.addRequest("appendSomething")
-    ui.appendSomething(search ,3).then(response => {
-      console.log(response)
+    backend.appendSomething(search ,3).then(response => {
+      // console.log(response)
       search = response
     })
   }

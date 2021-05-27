@@ -75,7 +75,7 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
   ## Notice for python: There is no check for correct function signature!
   {.gcsafe.}:
     reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
-    echo "Adding request " & $ reqMapStore[]
+    echo "Adding request " & request
 
 proc addRequest*[T1, R](request: string, callback: proc(value1: T1): R) =
     addRequest(request, proc (values: JsonNode): string = 
@@ -117,16 +117,13 @@ proc addRequest*(request: string, callback: proc(): string|void) =
 
 proc getRequests(): string =
   {.gcsafe.}:
-    echo "Checking request " & $ reqMapStore[]
     var requestSeq = newJArray()
     for key in reqMapStore[].keys:
       requestSeq.add(newJString(key))
-      echo key
       # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
     return $requestSeq
 
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
-  echo getRequests()
   reqMapStore[].withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
       result = callbackFunc[].nimCallback

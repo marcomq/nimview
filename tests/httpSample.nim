@@ -7,5 +7,5 @@ import ../src/nimview
 
 nimview.addRequest("appendSomething", proc (value: string): string =
     echo value
-    result = "'" & value & "' modified by Jester Backend")
+    result = "'" & value & "' modified by Web Backend")
 nimview.startHttpServer("../examples/vue/dist/index.html")
