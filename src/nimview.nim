@@ -6,6 +6,7 @@
 import os, system, tables
 import json, logging, macros
 import asynchttpserver, asyncdispatch
+import nake
 # run "nake release" or "nake debug" to compile
 
 when not defined(just_core):
@@ -284,13 +285,17 @@ proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 
     origin = "*"
   responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
   staticDir = indexHtmlPath.parentDir()
-  var server = newAsyncHttpServer()
-  listen(server, Port(port), bindAddr)
-  while httpServerRunning:
-    if server.shouldAcceptRequest():
-      asyncCheck server.acceptRequest(handleRequest)
-    else:
-      poll()
+  # {.gcsafe.}:
+  #   waitFor server.serve(Port(port), handleRequest, address=bindAddr)
+  proc serve() {.async.} = 
+    var server = newAsyncHttpServer()
+    listen(server, Port(port), bindAddr)
+    while httpServerRunning:
+      if server.shouldAcceptRequest():
+        await server.acceptRequest(handleRequest)
+      else:
+        poll()
+  waitFor serve()
   # debug "open default browser"
   # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
 
@@ -332,10 +337,8 @@ when not defined(just_core):
               response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
         except: 
           evalJsCode = "window.ui.discardResponse(" & $requestId & ");" 
-        debug evalJsCode
-        {.gcsafe.}:
-          let responseCode = myWebView.eval(evalJsCode)
-          discard responseCode
+        let responseCode = myWebView.eval(evalJsCode)
+        discard responseCode
 
       )
 #[    proc changeColor() = myWebView.setColor(210,210,210,100)
@@ -371,27 +374,32 @@ when not defined(just_core):
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable)
 
-proc main() =
-  when not defined(noMain):
-    debug "starting nim main"
-    when system.appType != "lib" and not defined(just_core):
-      addRequest("appendSomething4", proc(): string =
-        debug "called func"
-        result = "'' modified by Nim Backend")
-
-      addRequest("appendSomething", proc(val: string): string =
-        result = ":)'" & $(val) & "' modified by Nim Backend")
-
-      addRequest("appendSomething3", proc(val: int, val2: string): string =
-        result = ":)'" & $(val) & " " & $(val2) & "' modified by Nim Backend")
-
-      let argv = os.commandLineParams()
-      for arg in argv:
-        readAndParseJsonCmdFile(arg)
-      let indexHtmlFile = "../examples/vue/dist/index.html"
-      enableRequestLogger()
-      startDesktop(indexHtmlFile)
-      # startHttpServer(indexHtmlFile)
 
 when isMainModule:
-  main()
+  proc main() =
+    when not defined(noMain):
+      debug "starting nim main"
+      when system.appType != "lib" and not defined(just_core):
+        addRequest("appendSomething4", proc(): string =
+          debug "called func"
+          result = "'' modified by Nim Backend")
+
+        addRequest("appendSomething", proc(val: string): string =
+          result = ":)'" & $(val) & "' modified by Nim Backend")
+
+        addRequest("appendSomething3", proc(val: int, val2: string): string =
+          result = ":)'" & $(val) & " " & $(val2) & "' modified by Nim Backend")
+
+        let argv = os.commandLineParams()
+        for arg in argv:
+          readAndParseJsonCmdFile(arg)
+        let indexHtmlFile = "../examples/vue/dist/index.html"
+        enableRequestLogger()
+        startDesktop(indexHtmlFile)
+        # startHttpServer(indexHtmlFile)
+  when system.appType != "lib" and not defined(noMain):
+    task "test", "test":
+      echo "test"
+    task "run", "run":
+      main()
+

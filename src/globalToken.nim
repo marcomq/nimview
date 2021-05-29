@@ -14,16 +14,15 @@ type GlobalToken = object
 
 
 # generate 3 tokens that rotate
-var tokens = cast[ptr array[3, GlobalToken]](
-    allocShared0(sizeof(array[3, GlobalToken]))
-)
-for i in 0..<tokens[].len:
+var tokens: array[3, GlobalToken]
+
+for i in 0..<tokens.len:
     tokens[i].generated = times.now() - 5.minutes
 
 proc checkIfTokenExists(token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
-    for i in 0 ..< globalToken.tokens[].len:
-        if token == globalToken.tokens[][i].token:
+    for i in 0 ..< globalToken.tokens.len:
+        if token == globalToken.tokens[i].token:
             return true
     return false
 
@@ -49,8 +48,8 @@ proc checkToken*(headers: HttpHeaders): bool =
 proc getFreshToken*(): array[32, byte] =
     var currentTime = times.now()
     const interval = 60
-    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod tokens[].len # a new token every interval seconds
-    var currentToken = addr globalToken.tokens[][frame]
+    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod tokens.len # a new token every interval seconds
+    var currentToken = addr globalToken.tokens[frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:
         if currentToken[].generated.isInitialized():

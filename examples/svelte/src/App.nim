@@ -1,7 +1,6 @@
 import os
 
-import ../../../src/nimview
-# start with "nimble svelte" from parent directory
+import nimview
 
 proc appendSomething(value: string): string {.noSideEffect.} =
   result = "'" & value & "' modified by svelte sample"
@@ -11,8 +10,8 @@ proc main() =
   let argv = os.commandLineParams()
   for arg in argv:
     nimview.readAndParseJsonCmdFile(arg)
-  nimview.start()
-  # nimview.startHttpServer()
+  # nimview.start()
+  nimview.startHttpServer()
   
 when isMainModule:
   main()

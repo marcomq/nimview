@@ -10,7 +10,7 @@ type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
   jsSignature: string
 
-var reqMapStore = cast[ptr Table[string, ReqFunction]](allocShared0(sizeof(Table[string, ReqFunction])))
+var reqMapStore = Table[string, ReqFunction]()
 
 proc parseAny[T](value: string): T =
   when T is string:
@@ -74,7 +74,7 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
   ## There is a wrapper for python, C and C++ to handle strings in each specific programming language
   ## Notice for python: There is no check for correct function signature!
   {.gcsafe.}:
-    reqMapStore[][request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
+    reqMapStore[request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
     echo "Adding request " & request
 
 proc addRequest*[T1, R](request: string, callback: proc(value1: T1): R) =
@@ -118,13 +118,13 @@ proc addRequest*(request: string, callback: proc(): string|void) =
 proc getRequests(): string =
   {.gcsafe.}:
     var requestSeq = newJArray()
-    for key in reqMapStore[].keys:
+    for key in reqMapStore.keys:
       requestSeq.add(newJString(key))
       # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
     return $requestSeq
 
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
-  reqMapStore[].withValue(request, callbackFunc) do: # if request available, run request callbackFunc
+  reqMapStore.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
       result = callbackFunc[].nimCallback
     except:
