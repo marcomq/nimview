@@ -36,6 +36,7 @@
     "core-js": "^3.12.1",
     "d3-dsv": "^2.0.0",
     "jquery": "^3.6.0",
-    "whatwg-fetch": "^3.6.2"
+    "whatwg-fetch": "^3.6.2",
+    "nimview": "^0.2.0"
   }
 }

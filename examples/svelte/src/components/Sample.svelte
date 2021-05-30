@@ -1,5 +1,5 @@
 <script>
-  import backend from "../nimview"
+  import backend from "nimview"
   // backend.init().then(() => console.log("ready"))
   let search = ""
   let elements = []
