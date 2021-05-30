@@ -118,8 +118,8 @@ proc addRequest*(request: string, callback: proc(): string|void) =
 proc getRequests(): string =
   {.gcsafe.}:
     var requestSeq = newJArray()
-    for key in reqMapStore.keys:
-      requestSeq.add(newJString(key))
+    for key, value in reqMapStore:
+      requestSeq.add(%* [key, value.jsSignature])
       # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
     return $requestSeq
 

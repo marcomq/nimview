@@ -6,7 +6,6 @@
 import os, system, tables
 import json, logging, macros
 import asynchttpserver, asyncdispatch
-import nake
 # run "nake release" or "nake debug" to compile
 
 when not defined(just_core):
@@ -38,9 +37,14 @@ var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
 var httpServerRunning = true
 
+const defaultIndex = 
+  when defined(debug):
+    "../public/index.html"
+  else:
+    "../dist/index.html"
 const indexContent = 
-  if fileExists(getProjectPath() / "../dist/index.html"):
-    staticRead(getProjectPath() / "../dist/index.html")
+  if fileExists(getProjectPath() / defaultIndex):
+    staticRead(getProjectPath() / defaultIndex)
   else:
     ""
 proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
@@ -173,8 +177,8 @@ proc handleRequest(request: Request): Future[void] {.async.} =
         return
         
   try:
-    var potentialFilename = staticDir & "/" &
-        requestPath.replace("..", "")
+    var potentialFilename = staticDir /
+        requestPath.replace("../", "").replace("..", "")
     if os.fileExists(potentialFilename):
       debug "Sending " & potentialFilename
       let fileData = splitFile(potentialFilename)
@@ -267,14 +271,15 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
   if (not os.isAbsolute(result[0])):
     result[0] = getCurrentAppDir() / indexHtmlFile
 
-proc startHttpServer*(indexHtmlFile: string = "../dist/index.html", port: int = 8000,
+proc startHttpServer*(indexHtmlFile: string = defaultIndex, 
+    port: int = 8000,
     bindAddr: string = "localhost") {.exportpy.} =
   ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
   ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
   let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
   discard parameter # needs to be inserted into url manually
   when not defined(release):
-    if indexContent.isEmptyOrWhitespace() or indexHtmlFile != "../dist/index.html":
+    if indexContent.isEmptyOrWhitespace() or indexHtmlFile != defaultIndex:
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
       copyBackendHelper(indexHtmlPath)
@@ -347,11 +352,11 @@ when not defined(just_core):
       myWebView.exit()
       dealloc(myWebView)
 
-  proc startDesktop*(indexHtmlFile: string = "../dist/index.html", 
+  proc startDesktop*(indexHtmlFile: string = defaultIndex, 
         title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true,
         debug: bool = defined(release)) {.exportpy.} = 
-    if (indexHtmlFile.contains("dist/index.html") and not indexContent.isEmptyOrWhitespace()):
+    if (indexHtmlFile.contains(defaultIndex.replace("../", "")) and not indexContent.isEmptyOrWhitespace()):
       startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
     else:
       let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
@@ -360,7 +365,7 @@ when not defined(just_core):
       copyBackendHelper(indexHtmlPath)
       startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
-  proc start*(indexHtmlFile: string = "../dist/index.html", port: int = 8000, 
+  proc start*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
@@ -397,9 +402,5 @@ when isMainModule:
         enableRequestLogger()
         startDesktop(indexHtmlFile)
         # startHttpServer(indexHtmlFile)
-  when system.appType != "lib" and not defined(noMain):
-    task "test", "test":
-      echo "test"
-    task "run", "run":
-      main()
+  main()
 

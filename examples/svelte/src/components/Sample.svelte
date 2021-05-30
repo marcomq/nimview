@@ -1,16 +1,16 @@
 <script>
   import backend from "../nimview"
+  // backend.init().then(() => console.log("ready"))
   let search = ""
   let elements = []
   let runSearch = () => {
     elements = elements.concat({text: search})
-    backend.appendSomething(search ,3).then(response => {
+    backend.appendSomething(search).then(response => {
       // console.log(response)
       search = response
     })
   }
 </script>
-
 <div class="container sample">
   <li class="form-inline">
     <form class="form-inline">
