@@ -1,0 +1,7 @@
+/node_modules/
+/public/build/
+/public/vendor/
+/dist/
+
+.DS_Store
+storage.json

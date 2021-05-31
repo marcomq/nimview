@@ -28,7 +28,8 @@ else:
 type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
-import globalToken 
+import globalToken
+import storage
 import requestMap
 export requestMap
 
@@ -47,6 +48,11 @@ const indexContent =
     staticRead(getProjectPath() / defaultIndex)
   else:
     ""
+
+proc enableStorage*() =
+  addRequest("getStoredVal", getStoredVal)
+  addRequest("setStoredVal", setStoredVal)
+
 proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
   addRequest(request, proc (values: JsonNode): string =
       var argSeq = newSeq[PPyObject]()
@@ -398,8 +404,9 @@ when isMainModule:
         let argv = os.commandLineParams()
         for arg in argv:
           readAndParseJsonCmdFile(arg)
-        let indexHtmlFile = "../examples/vue/dist/index.html"
+        let indexHtmlFile = "../examples/svelte/dist/index.html"
         enableRequestLogger()
+        enableStorage()
         startDesktop(indexHtmlFile)
         # startHttpServer(indexHtmlFile)
   main()
