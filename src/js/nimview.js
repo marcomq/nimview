@@ -58,7 +58,7 @@ ui.addRequest = (requestOrArray) => {
                 requestOpts.headers["global-token"] = ui.globalToken
             }
             if (data.length != Math.min(signature.length, signature.split(",").length) && console && console.log) {
-            	console.log("Request signature might not fit: '" & request & "' signature: '" & signature & "' data: '" & JSON.stringify(data) & "'") 
+                console.log("Request signature might not fit: '" & request & "' signature: '" & signature & "' data: '" & JSON.stringify(data) & "'") 
             }
             return fetch(host + "/" + url, requestOpts).then((response) => {
                 if (response) {
@@ -142,7 +142,6 @@ ui.initRequests = (async () => {
 backend.waitInit = () => {
     // everything else was complicate when using webview on windows
     return new Promise((resolve, reject) => {
-        ui.initRequests()
         let waitLoop = () => {
             if (ui.initFinished) {
                 return resolve()
@@ -151,10 +150,10 @@ backend.waitInit = () => {
                 return reject()
             }
             else {
-                setTimeout(waitLoop, 20)
+                setTimeout(waitLoop, 5)
             }
         }
-        waitLoop()
+        setTimeout(waitLoop, 1)
     })
 }
 window.ui = ui

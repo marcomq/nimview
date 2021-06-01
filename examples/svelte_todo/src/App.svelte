@@ -1,5 +1,6 @@
 <script>
 	import backend from "nimview"
+	// import { onMount } from "svelte"
 	let currentItem = ""
 	let items = []
 	let addItem = () => {
@@ -36,7 +37,7 @@
 		}
 	}
 	// onMount(async () => {
-	// 	backend.waitInit().then(() => {getAll()})
+	//  	backend.waitInit().then(() => {getAll()})
 	// })
 	$: backend.waitInit().then(() => {getAll()})
 </script>
