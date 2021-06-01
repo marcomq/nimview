@@ -1,6 +1,6 @@
 {
   "name": "nimview",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "This package is part of marcomq/nimview",
   "main": "nimview.js",
   "scripts": {
@@ -16,8 +16,11 @@
   ],
   "author": "Marco Mengelkoch",
   "license": "MIT",
+  "homepage": "https://github.com/marcomq/nimview#readme",
   "bugs": {
     "url": "https://github.com/marcomq/nimview/issues"
   },
-  "homepage": "https://github.com/marcomq/nimview#readme"
+  "dependencies": {
+    "whatwg-fetch": "^3.6.2"
+  }
 }
