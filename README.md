@@ -7,6 +7,13 @@
 
 A lightweight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of online / offline applications based on a HTML/CSS/JS layer to be displayed with Webview or a browser. The application can run on cloud and on desktop with the same binary application.
 
+## Features
+- Compile to single executable binary that includes the UI
+- Platforms: Windows, Linux, MacOS, Android
+- Desktop and web mode
+- Use any HTML/CSS/JS based UI you want - Svelte, Vue, React etc...
+- Functions added on Backend are immediately available in Javascript Frontend
+
 ## Table of Contents
 - [About](#about)
 - [Demo binary](#demo-binary)
@@ -20,11 +27,15 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 - [Why not Electron or CEF](#why-not-electron-or-cef)
 - [Difference to Eel](#difference-to-eel)
 - [Difference to Flask](#difference-to-flask)
+- [Wails](#wails)
 - [CSRF and Security](#csrf-and-security)
 - [Multithreading](#multithreading)
+- [IE 11 or - "Why is my page blank?](#multithreading)
+- [Limitations](#limitations)
 - [Using UI from existing web-applications](#using-ui-from-existing-web-applications)
 - [Setup from source](#setup-from-source)
 - [Documentation](#documnentation)
+
 
 ## About
 
@@ -81,7 +92,7 @@ nimview.addRequest("echoAndModify", echoAndModify)
 nimview.start("minimal_ui_sample/index.html")
 ```
 
-The same in nim:
+The same in Nim:
 
 ## Minimal Nim example
 ```
@@ -89,44 +100,34 @@ import nimview
 nimview.addRequest("echoAndModify", proc (value: string): string =
   echo "From front-end: " & value
   result = "'" & value & "' modified by back-end")
-nimview.start("minimal_ui_sample/index.html")
+nimview.start()
 ```
 
-These examples will take the "minimal_ui_sample/index.html" file relative to the binary / python file.
-It's parent folder "minimal_ui_sample" will act as root "/" for all URLs.
-Keep in mind that the webserver will expose all files and subfolders that in the same directory as the index.html.
+Nimview will automatically use "../public/index.html" as as entry page in debug mode
+and "../dist/index.html" in release mode. In release mode, the index.html entry point
+will also be compiled into the release binary. If there are no further dependencies,
+the release binary can just run without further UI files.
+Keep in mind that when running in webserver mode, it will expose all files and subfolders that in the same directory as the index.html.
 
 ## Javascript and HTML UI
-(simlified, using a button, only the important part) 
-```
-<script src="backend-helper.js"></script>
-<script type="text/javascript">
-    function sampleFunction() {
-        window.ui.backend('echoAndModify', document.getElementById('sampleInput').value, function(response) { 
-            alert(response); 
-        });
-    }
-</script>
-<input id="sampleInput" type="text" value="Hello World" />
-<button onclick=sampleFunction>click</button>
-```
+Keep in mind that the index.html is "inlined" for release mode and that any "defer" 
+keyword is not working for your script tags. So your javascript may be ready before
+the DOM is ready for Jasascript. You may still trigger to load the 
+javascript deferred when using 
+`document.addEventListener("DOMContentLoaded", function(event) { `
+to init your javascript when the DOM is ready, for example in your "main.js" for Svelte or Vue.
 
-`window.ui.backend(request, value, callback)` can take up to 3 parameters:
-- the first one is the request function that is registered on back-end.
-- the second one is the value that is sent to the back-end
-- the third value is a callback function.
- 
-An alternative signature, optimized for Vue.js is following:
-`window.ui.backend(request, object, key)`
-In this case, `object[key]` will be sent to back-end and there is an automated callback that will update `object[key]` with the back-end response. 
-This is not expected to work with Svelte, as the modification of the object would be hidden for Svelte and doesn't add the reactivity you might expect.
-
-You need to include your own error handler in the callback, as there is no separate error callback function. 
-There probably will not be any separate error callback to keep it simple.
+If you want to trigger back-end code from Javascript, you can do following
+async callback:
+```
+import backend from "nimview"
+backend.echoAndModify("test").then((resp) => {console.log(resp)})
+```
 
 
 ## Exchange data with UI
-Nimview just has a single string as input and return parameter. It is therefore recommended to use Json to encode your values on the client. 
+Nimview register functions to take maximum 4 arguments. If you need more or if you have 
+more complex data, it is recommended to use Json to encode your values on the client. 
 Use a parser on the back-end to read all values and send Json back to the client. By this, you have an unlimited amount of input and output
 parameter values.
 This is easy when using python or Nim as back-end. This may also simplify automated testing, as you can store the specific strings as Json 
@@ -139,16 +140,24 @@ You need to compile the back-end and usually the front-end too, when using vue o
 you will have the freedom to only restart the back-end if you have back-end changes and 
 use some autoreload feature of webpack (vue) and rollit (svelte) for the frontend.
 
-The setup/install after installing nim would be: 
+The setup/install with Svelte after installing nim would be: 
 - `nimble install nimview`
-- `npm install --prefix <path_to_ui_folder>`
+- `npx degit marcomq/nimview/examples/svelte myProject`
+- `cd myProject`
+- `npm install`
 
-The development workflow would be:
-- start your back-end in debug mode with vs code or terminal, run: `nake debug && ./nimview_debug`
-- start your frontend npm in autoreload with vs code or terminal, run `npm run dev --prefix <path_to_ui_folder>`
+To create a release version, just run
+- `npm run build`
+- `nim c -d:release --app:gui src/App.nim`
+
+But if you want to change code easily, the development workflow would be:
+- start your back-end in debug mode with vs code or terminal, run: 
+- `nim c -r -d:debug src/App.nim`
+- start your frontend npm in autoreload with vs code or terminal, run 
+- `npm run dev`
 - open a browser with url http://localhost:5000 to see the current front-end code result that is served by node.js
 - change your front-end code, the page will reload automatically
-- change your back-end code and use the debug restart button in vs code when finished
+- change your back-end code and re-run `nim c -r -d:debug src/App.nim` or restart the VS Code debugger
 - keep in mind that http://localhost:5000 is only a development url, the Javascript generated for production would be reachable by default at http://localhost:8000
 
 ### Why Nim
@@ -161,11 +170,12 @@ You can also include C/C++ code as the output of Nim is just plain C. Additional
 There are many JS frameworks to choose to create responsive user interfaces.
 Svelte will create the fastest and best readable front-end code. But it is completely up to you which framework you will choose, as Vue and React have much more plugins and add-ons.
 
-There is an example for Vue + Bootstrap in tests/vue and one for Svelte in tests/svelte.
+There is an example for Vue + Bootstrap 4 in tests/vue and one for Svelte in tests/svelte.
 I already used to work with React and Redux. I really liked the advantage of using modules and using webpack, 
 but I didn't like the verbosity of React or writing map-reducers for Redux, so I didn't add an example for React yet.
-The main logic is in nimview.nim and backend-helper.js. Make sure to include backend-helper.js either in the static HTML includes. 
-There is a minimal sample in tests/minimal_sample.nim that doesn't need any additionl JS library. 
+
+For the Windows target, you need to choose a IE 11 compatible CSS library. Bootstrap 5 
+for example isn't compatible with IE 11 anymore.
 
 ### Why not Electron or CEF
 Electron and CEF are great frameworks and both were an inspiration to this helper here. 
@@ -183,19 +193,26 @@ There are some cool similar frameworks: The very popular framework [eel](https:/
 and its cousin [neel](https://github.com/Niminem/Neel) for nim. 
 While you may create an app faster with eel / neel, there are 2 major differences: 
 - Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. 
-This is not the way Nimview works.
+The later one will not be possible with Nimview.
   Nimview will just make it easy to trigger back-end routes from Javascript but will not expose Javascript functions to the back-end side. 
   If you want to do so, you need to parse the back-end’s response and call the function with this data. 
-  While this seems to unnecessary, it makes it possible to use multiple HTML / JS 
-  user interfaces for the same back-end code without worrying about javascript callback functions.
+  This makes it easy to switch to multiple HTML / JS user interfaces for the same back-end code without worrying about javascript callback functions.
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
-This improves security and makes it possible to run multiple applications without having port conflicts.
-- Nimview includes a simple global token check that may be able to prevent most
+This improves security as you don't need to worry about open ports or other attack vectors that need to be considered when running a webserver application. It also makes it easy to run multiple applications without having port conflicts.
+- Nimview includes a simple global token check in release mode that may be able to prevent most
   CSRF attacks when the server is running on localhost. 
+- Nimview can compile to a single executable binary which makes deployemnt and distribution 
+very easy.
  
 ### Difference to Flask
 [Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/AsyncHttpServer probably cannot compete with the completeness of Flask for simple python cloud applications. Nimview for example will not support server side template engines as flask does.
 But Nimview is written in Nim and creates static binaries that can run in a minimal tiny Docker container that doesn't need an installed python environment. So you might create containers for your application that have just a few MB. So those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker by compiling with `-d:useServer`, or you need to include GTK libraries in your container.
+
+### Wails
+After releasing the first 0.1.0 version of Nimview, I found out about [Wails](https://github.com/wailsapp/wails). And if I would have found Wails in the first place, I maybe wouldn't have 
+written Nimview and maybe I would have learned Go instead of Nim. So - Wails became a big inspiration for Nimview 0.2.0: Compilation to a single static binary was added and the client 
+automatically adds functions that can take multiple arguments. 
+There are still some differences to Nimview: The current version of nimview builds faster and can also include additional javascript in the index.html file, without having big issues.
 
 ### CSRF and Security
 Nimview was made with security in mind. For the Webview `startDesktop` mode, no network ports are opened to display the UI. The webserver is mostly just for debugging, 
@@ -211,11 +228,20 @@ This isn't a full CSRF protection, as the token isn't bound to a session and all
 users that can read responses from localhost could also use this token to 
 perform an attack (even if they may already send request directly to localhost).
 If you add a "Samesite" directive for cookies, you might already prevent most common CSRF attack vectors.
-The token check can also be disabled with `nimview.setUseGlobalToken(false)` for debugging, development,
+The token check can also be disabled with `setUseGlobalToken(false)` for debugging, development,
 or in case that there is already a session-based CSRF mitigation used by middleware. 
 
 ### Multithreading
-Nim has a thread local heap and most variables in Nimview are declared thread local. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
+Nimview is build to run single-threaded. You may still run functions that create multiple threads or access a thread-pool. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
+
+### IE 11 or - "Why is my page blank?"
+Nimview uses IE 11 on Windows. Unfortunately, IE 11 doesn't understand modern Javascript
+or ES6. Just writing modern Javascript will result in a blank white page. 
+You therefore need to transform your code with Babel or other tools. 
+Check the examples for this.
+It might be possible to use Webview2 in future on Windows to get rid of IE 11, but this 
+is depending on external Nim libraries that offer a wrapper for Webview.
+At the time of writing, there is no simple and stable library supporting Webview 2 for Nim.
 
 ### Using UI from existing web-applications
 For Desktop applications, it is required to use relative file paths in all your HTML. The paths must point to a directory relative of the binary to the given index html file.
