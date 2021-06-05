@@ -114,7 +114,9 @@ Keep in mind that the index.html is "inlined" for release mode and that any "def
 keyword is not working for your script tags. So your javascript may be ready before
 the DOM is ready for Jasascript. You may still trigger to load the 
 javascript deferred when using 
-`document.addEventListener("DOMContentLoaded", function(event) { `
+```
+document.addEventListener("DOMContentLoaded", function(event) { 
+```
 to init your javascript when the DOM is ready, for example in your "main.js" for Svelte or Vue.
 
 If you want to trigger back-end code from Javascript, you can do following
@@ -210,9 +212,9 @@ But Nimview is written in Nim and creates static binaries that can run in a mini
 
 ### Wails
 After releasing the first 0.1.0 version of Nimview, I found out about [Wails](https://github.com/wailsapp/wails). And if I would have found Wails in the first place, I maybe wouldn't have 
-written Nimview and maybe I would have learned Go instead of Nim. So - Wails became a big inspiration for Nimview 0.2.0: Compilation to a single static binary was added and the client 
+written Nimview and maybe I would have preferred Go instead of Nim. So - Wails became a big inspiration for Nimview 0.2.0: Compilation to a single static binary was added and the client 
 automatically adds functions that can take multiple arguments. 
-There are still some differences to Nimview: The current version of nimview builds faster and can also include additional javascript in the index.html file, without having big issues.
+Nimview is much smaller, creates smaller binaries and you may use C++ or Python code easier.
 
 ### CSRF and Security
 Nimview was made with security in mind. For the Webview `startDesktop` mode, no network ports are opened to display the UI. The webserver is mostly just for debugging, 

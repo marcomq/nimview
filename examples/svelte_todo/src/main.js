@@ -1,11 +1,10 @@
-
 import App from './App.svelte';
 
 var app
-document.addEventListener("DOMContentLoaded", function(event) { 
+document.addEventListener("DOMContentLoaded", function() { 
     app = new App({
-		target: document.body,	
-	})
+        target: document.body,	
+    })
 })
 
 export default app

@@ -18,7 +18,7 @@ export default {
     sourcemap: true,
     format: 'iife',
     name: 'app',
-    file: 'public/build/bundle.js'
+    file: 'dist/build/bundle.js'
   },
   plugins: [
     svelte({
@@ -40,11 +40,11 @@ export default {
     commonjs(),
     json(), 
 
-    // Watch the `public` directory and refresh the
+    // Watch the `dist` directory and refresh the
     // browser on changes when not in production
-    !production && livereload('public'),
+    !production && livereload('dist'),
     !production && dev({
-      dirs: ['public'],
+      dirs: ['dist'],
       port: 5000, 
       proxy: { 
         '*': 'localhost:8000',
@@ -54,10 +54,10 @@ export default {
     copy({
       targets: [{ 
         src: ['node_modules/bootstrap/dist/js/*.min.*', 'node_modules/bootstrap/dist/css/*.min.*'],
-        dest: 'public/vendor/bootstrap' 
+        dest: 'dist/vendor/bootstrap' 
       },{ 
         src: ['node_modules/jquery/dist/*.min.*'],
-        dest: 'public/vendor/jquery' 
+        dest: 'dist/vendor/jquery' 
       }],
       copyOnce: true
     }),

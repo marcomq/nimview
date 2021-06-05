@@ -40,9 +40,9 @@ var httpServerRunning = true
 
 const defaultIndex = 
   when defined(debug):
-    "../public/index.html"
-  else:
     "../dist/index.html"
+  else:
+    "../dist/nimview.html"
 const indexContent = 
   if fileExists(getProjectPath() / defaultIndex):
     staticRead(getProjectPath() / defaultIndex)
@@ -317,7 +317,8 @@ proc stopHttpServer*() {.exportpy.} =
 when not defined(just_core):
   proc toDataUrl(stream: string): string {.compileTime.} =
     ## creates a dada url and escapes %
-    ## encoding all would be correct, but IE is slow when doing so
+    ## encoding all would be correct, but IE is super slow when doing so
+    # result = "data:text/html, " & stream.encodeUrl() 
     result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
 
   proc stopDesktop*() {.exportpy.} =
