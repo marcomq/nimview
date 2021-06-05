@@ -1,12 +1,11 @@
 import svelte from 'rollup-plugin-svelte'
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
+import { babel } from '@rollup/plugin-babel'
 import livereload from 'rollup-plugin-livereload'
 import { terser } from 'rollup-plugin-terser'
 import dev from 'rollup-plugin-dev'
 import json from 'rollup-plugin-json'
-import babel from 'rollup-plugin-babel'
-import copy from 'rollup-plugin-copy'
 import css from 'rollup-plugin-css-only'
 
 
@@ -51,22 +50,11 @@ export default {
         '/*': 'localhost:8000/',
       }
     }),
-    copy({
-      targets: [{ 
-        src: ['node_modules/bootstrap/dist/js/*.min.*', 'node_modules/bootstrap/dist/css/*.min.*'],
-        dest: 'dist/vendor/bootstrap' 
-      },{ 
-        src: ['node_modules/jquery/dist/*.min.*'],
-        dest: 'dist/vendor/jquery' 
-      }],
-      copyOnce: true
-    }),
-
     // added by angelo
     // compile to good old IE11 compatible ES5
     babel({
       extensions: [ '.js', '.mjs', '.html', '.svelte' ],
-      runtimeHelpers: true,
+      babelHelpers: 'runtime',
       exclude: [ 'node_modules/@babel/**', 'node_modules/core-js/**' ],
       presets: [
         [

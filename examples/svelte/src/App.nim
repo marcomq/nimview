@@ -7,9 +7,6 @@ proc appendSomething(value: string): string {.noSideEffect.} =
 
 proc main() =
   nimview.addRequest("appendSomething", appendSomething)
-  let argv = os.commandLineParams()
-  for arg in argv:
-    nimview.readAndParseJsonCmdFile(arg)
   nimview.start()
   # nimview.startHttpServer()
   

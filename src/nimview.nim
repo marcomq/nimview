@@ -30,6 +30,7 @@ type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
 import globalToken
 import storage
+export storage
 import requestMap
 export requestMap
 
@@ -50,6 +51,7 @@ const indexContent =
     ""
 
 proc enableStorage*() =
+  initStorage()
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
 
