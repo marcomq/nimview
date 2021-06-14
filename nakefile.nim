@@ -6,8 +6,7 @@ let srcDir = "src"
 let vueDir = "examples/vue"
 let svelteDir = "examples/svelte"
 let mainApp = srcDir / application & ".nim"
-let libraryFile =  srcDir / application & "_c.nim"
-let srcFiles = [mainApp, libraryFile, srcDir / "backend-helper.js"]
+let srcFiles = [mainApp, srcDir / "requestMap.nim", srcDir / "storage.nim", srcDir / "globalToken.nim"]
 let buildDir = "out"
 let thisDir = system.currentSourcePath().parentDir() 
 
@@ -64,7 +63,7 @@ proc buildLibs() =
   if headerFile.needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_dll")
     execNim "c --passC:-fpic -d:release -d:useStdLib --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
-      " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & libraryFile # creates header and compiled .o files
+      " --app:lib --noLinking:on --header:" &  application & ".h --compileOnly:off " & " " & mainApp # creates header and compiled .o files
     os.copyFile(headerFile, thisDir / srcDir / application & ".h")
 
     let minGwSymbols = when defined(windows): 
@@ -106,7 +105,7 @@ proc buildGenericObjects() =
   if headerFile.needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_c")
     execNim "c -d:release -d:useStdLib --noMain:on -d:noMain --noLinking --header:" & application & ".h --nimcache=./" & buildDir & 
-      "/tmp_c --app:staticLib --out:"  & buildDir / application & " " & " " & libraryFile 
+      "/tmp_c --app:staticLib --out:"  & buildDir / application & " " & " " & mainApp 
 
 proc runTests() =
   buildLibs()

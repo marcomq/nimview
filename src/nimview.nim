@@ -31,15 +31,14 @@ type ReqUnknownException* = object of CatchableError
 import globalToken
 import storage
 export storage
-import requestMap
-export requestMap
+include requestMap
 
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
 var httpServerRunning = true
 
-const defaultIndex = 
+const defaultIndex* = 
   when defined(debug):
     "../dist/index.html"
   else:
@@ -100,6 +99,9 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
 proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
   getCallbackFunc(request)(%value) # % converts to json
+
+proc dispatchRequest*(request, value: cstring): cstring {.exportc.} =
+  result = $dispatchRequest($request, $value)
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND httpserver
@@ -139,6 +141,9 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   except:
     warn "Error during specific line arg: " & escapedArgv
 
+proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} =
+  result = $dispatchCommandLineArg($escapedArgv)
+
 proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   ## Will open, parse a file of previously logged requests and re-runs those requests.
   if (os.fileExists(filename)):
@@ -153,6 +158,8 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   else:
     logging.error "File does not exist: " & filename
 
+proc readAndParseJsonCmdFile*(filename: cstring) {.exportc.} =
+  readAndParseJsonCmdFile($filename)
 
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
   ## Modify this, if you want to add some authentication, input format validation
@@ -312,7 +319,12 @@ proc startHttpServer*(indexHtmlFile: string = defaultIndex,
   # debug "open default browser"
   # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
 
-proc stopHttpServer*() {.exportpy.} =
+proc startHttpServer*(indexHtmlFile: cstring, 
+    port: int = 8000,
+    bindAddr: cstring = "localhost") {.exportc.} = 
+  startHttpServer($indexHtmlFile, port, $bindAddr)
+
+proc stopHttpServer*() {.exportpy, exportc.} =
   ## Will stop the Http server - will not wait for stop
   httpServerRunning = false
 
@@ -323,7 +335,7 @@ when not defined(just_core):
     # result = "data:text/html, " & stream.encodeUrl() 
     result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
 
-  proc stopDesktop*() {.exportpy.} =
+  proc stopDesktop*() {.exportpy, exportc.} =
     ## Will stop the Desktop app - may trigger application exit.
     when compileWithWebview:
       debug "stopping ..."
@@ -374,6 +386,12 @@ when not defined(just_core):
       copyBackendHelper(indexHtmlPath)
       startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
+  proc startDesktop*(indexHtmlFile: cstring, 
+        title: cstring = "nimview",
+        width: cint = 640, height: cint = 480, resizable: cint = 1,
+        debug: cint = 0) {.exportc.} = 
+      startDesktop($indexHtmlFile, $title, width, height, resizable, debug)
+
   proc start*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
@@ -388,6 +406,10 @@ when not defined(just_core):
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable)
 
+  proc start*(indexHtmlFile: cstring, port: cint = 8000, 
+        bindAddr: cstring = "localhost", title: cstring = "nimview",
+        width: cint = 640, height: cint = 480, resizable: cint = 1) {.exportc.} =
+      start($indexHtmlFile, port, $bindAddr, $title, width, height, resizable)
 
 when isMainModule:
   proc main() =
