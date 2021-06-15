@@ -40,6 +40,6 @@
     "bootstrap": "^4.6.0",
     "core-js": "^3.14.0",
     "jquery": "^3.6.0",
-    "nimview": "^0.2.2"
+    "nimview": "^0.2.4"
   }
 }

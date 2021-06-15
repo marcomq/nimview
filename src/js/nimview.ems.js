@@ -6,16 +6,27 @@
 
 import "whatwg-fetch"
 
-let ui = window.ui 
-if (typeof ui === "undefined") {
+let ui
+if (typeof window.ui !== "object") {
     ui = {}
     ui.resolveStorage = {}
     ui.requestCounter = 0
     ui.initStarted = false
     ui.initFinished = false
     ui.initFailed = false
+    window.ui = ui
 }
-let backend = window.backend || {}
+else {
+    ui = window.ui
+}
+let backend
+if (typeof window.backend !== "object") { 
+    backend = {}
+    window.backend = backend
+}
+else {
+    backend = window.backend
+}
 let defaultPostTarget = ""
 let host = "" // might cause "cors" errors if defined
 
@@ -28,10 +39,12 @@ const createRequestId = () => {
 
 ui.alert = function (str) {
     if (typeof window.nimview === 'undefined') {
-      alert(str);
+      alert(str)
     }
     else {
-        window.nimview.alert(str);
+        if (typeof window.nimview.alert === 'function') {
+            window.nimview.alert(str)
+        }
     }
 }
 
@@ -43,7 +56,7 @@ ui.addRequest = (requestOrArray) => {
     let request = requestOrArray[0] + ""
     let signature = requestOrArray[1]  + "" // for debugging
     backend[request] = (async (...data) => {
-        if (typeof window.nimview == 'undefined') {
+        if (typeof window.nimview !== 'undefined') {
             // http-server
             const postData = JSON.stringify({request: request, data: data})
             const requestOpts = { 
@@ -159,7 +172,5 @@ backend.waitInit = () => {
         setTimeout(waitLoop, 1)
     })
 }
-window.ui = ui
-window.backend = backend
 window.setTimeout(ui.initRequests, 1)
 export default backend

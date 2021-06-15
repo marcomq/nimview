@@ -168,5 +168,8 @@ namespace nimview {
     };
     auto dispatchCommandLineArg = ::dispatchCommandLineArg;
     auto readAndParseJsonCmdFile = ::readAndParseJsonCmdFile;
+    auto enableStorage = ::enableStorage;
+    auto stopHttpServer = ::stopHttpServer;
+    auto stopDesktop = ::stopDesktop;
     
 }

@@ -43,13 +43,19 @@ const defaultIndex* =
     "../dist/index.html"
   else:
     "../dist/nimview.html"
-const indexContent = 
+var indexContent {.threadVar.}: string
+const indexContentStatic = 
   if fileExists(getProjectPath() / defaultIndex):
     staticRead(getProjectPath() / defaultIndex)
   else:
     ""
+const useStaticIndexContent =
+  when declared(doNotLoadIndexContent):
+    true
+  else:
+    false
 
-proc enableStorage*() =
+proc enableStorage*() {.exportc.} =
   initStorage()
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
@@ -105,7 +111,7 @@ proc dispatchRequest*(request, value: cstring): cstring {.exportc.} =
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND httpserver
-  ## This will extract specific values that were prepared by backend-helper.js
+  ## This will extract specific values that were prepared by nimview.js
   ## and forward those values to the string dispatcher.
   let request = jsonMessage["request"].getStr()
   if request == "getGlobalToken":
@@ -185,7 +191,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
     requestPath = "/index.html"
   if requestPath == "/index.html":
     when defined(release):
-      if not indexContent.isEmptyOrWhitespace():
+      if not indexContent.isEmptyOrWhitespace() and indexContent == indexContentStatic:
         header = @[("Content-Type", "text/html;charset=utf-8")]
         header.add(responseHttpHeader)
         await request.respond(Http200, indexContent, newHttpHeaders(header))
@@ -254,24 +260,6 @@ proc getCurrentAppDir(): string =
     else:
       result = os.getAppDir()
 
-proc copyBackendHelper (indexHtml: string) =
-  let folder = indexHtml.parentDir()
-  let targetJs = folder / "backend-helper.js"
-  try:
-    if not os.fileExists(targetJs) and indexHtml.endsWith(".html"):
-      # read index html file and check if it actually requires backend helper
-      let indexHtmlContent = system.readFile(indexHtml)
-      if indexHtmlContent.contains("backend-helper.js"):
-        let sourceJs = getCurrentAppDir() / "../src/js/backend-helper.js"
-        if (not os.fileExists(sourceJs) or ((system.hostOS == "windows") and not defined(release))):
-          debug "writing to " & targetJs
-          os.copyFile(sourceJs, targetJs)
-        elif (os.fileExists(sourceJs)):
-            debug "symlinking to " & targetJs
-            os.createSymlink(sourceJs, targetJs)
-  except:
-    logging.error "backend-helper.js not copied"
-
 proc checkFileExists(filePath: string, message: string) =
   if not os.fileExists(filePath):
     raise newException(IOError, message)
@@ -286,19 +274,30 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
   if (not os.isAbsolute(result[0])):
     result[0] = getCurrentAppDir() / indexHtmlFile
 
+proc updateIndexContent(indexHtmlFile: string) =
+  if not useStaticIndexContent:
+    if os.fileExists(indexHtmlFile):
+      if (not indexHtmlFile.contains(defaultIndex.replace("../", "")) or
+        (os.getFileSize(indexHtmlFile) != indexContentStatic.len)):
+        indexContent = system.readFile(indexHtmlFile)
+  if indexContent.isEmptyOrWhitespace:
+    debug "Using default dist/index.html"
+    indexContent = indexContentStatic
+
 proc startHttpServer*(indexHtmlFile: string = defaultIndex, 
     port: int = 8000,
     bindAddr: string = "localhost") {.exportpy.} =
   ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
   ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
   let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+  updateIndexContent(indexHtmlPath)
   discard parameter # needs to be inserted into url manually
   when not defined(release):
-    if indexContent.isEmptyOrWhitespace() or indexHtmlFile != defaultIndex:
+    if indexContent.isEmptyOrWhitespace():
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
-      copyBackendHelper(indexHtmlPath)
-    debug "Starting internal webserver on http://" & bindAddr & ":" & $port
+  debug "Starting internal webserver on http://" & bindAddr & ":" & $port
+  when not defined(release):
     echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
   var origin = "http://" & bindAddr
   if (bindAddr == "0.0.0.0"):
@@ -329,7 +328,7 @@ proc stopHttpServer*() {.exportpy, exportc.} =
   httpServerRunning = false
 
 when not defined(just_core):
-  proc toDataUrl(stream: string): string {.compileTime.} =
+  proc toDataUrl(stream: string): string =
     ## creates a dada url and escapes %
     ## encoding all would be correct, but IE is super slow when doing so
     # result = "data:text/html, " & stream.encodeUrl() 
@@ -377,13 +376,15 @@ when not defined(just_core):
         title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true,
         debug: bool = defined(release)) {.exportpy.} = 
-    if (indexHtmlFile.contains(defaultIndex.replace("../", "")) and not indexContent.isEmptyOrWhitespace()):
-      startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
-    else:
-      let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+    let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+    discard parameter
+    updateIndexContent(indexHtmlPath)
+    when not defined(release):
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
-      copyBackendHelper(indexHtmlPath)
+    if parameter.isEmptyOrWhitespace():
+      startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
+    else:
       startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
   proc startDesktop*(indexHtmlFile: cstring, 

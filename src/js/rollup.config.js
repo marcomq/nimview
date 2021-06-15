@@ -1,60 +1,57 @@
-import { nodeResolve } from '@rollup/plugin-node-resolve'
+import resolve from '@rollup/plugin-node-resolve'
 import { terser } from 'rollup-plugin-terser'
 import { babel } from '@rollup/plugin-babel'
 import commonjs from '@rollup/plugin-commonjs'
 
 
 const production = !process.env.ROLLUP_WATCH
-
+const babelCfg = {
+  extensions: [ '.js'],
+  babelHelpers: 'runtime',
+  exclude: [ 'node_modules/@babel/**', 'node_modules/core-js/**' ],
+  presets: [
+    [
+      '@babel/preset-env',
+      {
+        targets: {
+          ie: '11'
+        },
+        useBuiltIns: 'usage',
+        corejs: 2
+      }
+    ]
+  ],
+  plugins: [
+    '@babel/plugin-syntax-dynamic-import',
+    [
+      '@babel/plugin-transform-runtime',
+      {
+        "absoluteRuntime": false
+      }
+    ]
+  ]
+}
 export default {
-  input: 'nimview_ems.js',
-  output: {
+  input: 'nimview.ems.js',
+  output: [{
     sourcemap: true,
     format: 'cjs',
     name: 'nimview',
+    file: 'nimview.cjs.js',
+    exports: 'auto'
+  }, {
+    sourcemap: true,
+    format: 'iife',
+    name: 'nimview',
     file: 'nimview.js',
-    exports: 'default'
-  },
+    exports: 'auto'
+  }], 
   plugins: [
-    // If you have external dependencies installed from
-    // npm, you'll most likely need these plugins. In
-    // some cases you'll need additional configuration 
-    // consult the documentation for details:
-    // https://github.com/rollup/rollup-plugin-commonjs
-		nodeResolve({
-			browser: true
-		}),
-    commonjs(),
-    // compile to good old IE11 compatible ES5
-    babel({
-      extensions: [ '.js'],
-      babelHelpers: 'runtime',
-      exclude: [ 'node_modules/@babel/**', 'node_modules/core-js/**' ],
-      presets: [
-        [
-          '@babel/preset-env',
-          {
-            targets: {
-              ie: '11'
-            },
-            useBuiltIns: 'usage',
-            corejs: 3
-          }
-        ]
-      ],
-      plugins: [
-        '@babel/plugin-syntax-dynamic-import',
-        [
-          '@babel/plugin-transform-runtime',
-          {
-            useESModules: true
-          }
-        ]
-      ]
+    resolve({
+      browser: true
     }),
-
-    // If we're building for production (npm run build
-    // instead of npm run dev), minify
+    commonjs(),
+    babel(babelCfg),
     production && terser()
   ],
   watch: {
