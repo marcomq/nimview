@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import times, jester, std/sysrand, base64, locks
+import times, asynchttpserver, std/sysrand, base64, locks
 
 var L: Lock
 initLock(L)
@@ -13,15 +13,16 @@ type GlobalToken = object
     generated: times.DateTime
 
 
-# generate 5 tokens that rotate
-var tokens = cast[ptr array[5, GlobalToken]](
-    allocShared0(sizeof(array[5, GlobalToken]))
-)
+# generate 3 tokens that rotate
+var tokens: array[3, GlobalToken]
+
+for i in 0..<tokens.len:
+    tokens[i].generated = times.now() - 5.minutes
 
 proc checkIfTokenExists(token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
-    for i in 0 ..< globalToken.tokens[].len:
-        if token == globalToken.tokens[][i].token:
+    for i in 0 ..< globalToken.tokens.len:
+        if token == globalToken.tokens[i].token:
             return true
     return false
 
@@ -47,11 +48,12 @@ proc checkToken*(headers: HttpHeaders): bool =
 proc getFreshToken*(): array[32, byte] =
     var currentTime = times.now()
     const interval = 60
-    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod 5 # a new token every interval seconds
-    var currentToken = addr globalToken.tokens[][frame]
+    let frame = (currentTime.minute * 60 + currentTime.second).div(interval) mod tokens.len # a new token every interval seconds
+    var currentToken = addr globalToken.tokens[frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:
-        tokenPlusInterval = currentToken[].generated + interval.seconds
+        if currentToken[].generated.isInitialized():
+            tokenPlusInterval = currentToken[].generated + interval.seconds
     except:
         discard
     withLock(L):    
@@ -59,6 +61,6 @@ proc getFreshToken*(): array[32, byte] =
             let randomValue = sysrand.urandom(32)
             for i in 0 ..< randomValue.len:
                 result[i] = randomValue[i]
-            currentToken[].generated.swap(currentTime)
-            currentToken[].token.swap(result)
+            currentToken[].generated = currentTime
+            currentToken[].token = result
         result = currentToken[].token

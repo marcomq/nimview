@@ -1,4 +1,5 @@
 <script>
+import backend from "nimview"
 export default {
   data() {
     return {
@@ -8,8 +9,8 @@ export default {
   },
   methods: {
     runSearch() {
-      this.backend("appendSomething", this, 'search'); // calling the backend
       this.elements.push({val: this.search})
+      backend.appendSomething(this.search).then((resp) => {this.search = resp}) // calling the backend
     }
   }
 };

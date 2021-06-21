@@ -23,6 +23,7 @@ ui.createRequest = function(request, data, callbackFunction) {
       if ((typeof callbackFunction !== 'undefined') && 
           (typeof callbackFunction !== 'function') && 
           (callbackFunction in data)) {
+        // vue object modification
         var key = callbackFunction;
         var outputValueObj = data;
         callbackFunction = function(response) { outputValueObj[key] = response; }; 
@@ -101,7 +102,7 @@ ui.backend = function (request, data, callbackFunction) {
         }
         ui.backend(request, data, callbackFunction); 
       }, 200);
-      return
+      return;
     }
     jsonRequest = ui.createRequest(request, data, callbackFunction);
     var postData = JSON.stringify(jsonRequest);

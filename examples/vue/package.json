@@ -5,21 +5,23 @@
   "scripts": {
     "dev": "vue-cli-service serve",
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "build": "vue-cli-service build && inliner -m --videos --preserve-comments dist/index.html > dist/inlined.html",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
     "bootstrap": "^4.6.0",
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.10.0",
-    "vue": "^2.6.11"
+    "vue": "^2.6.11",
+    "nimview": "^0.2.4"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.5.12",
     "@vue/cli-plugin-eslint": "^4.5.12",
     "@vue/cli-service": "^4.5.12",
+    "@tauri-apps/tauri-inliner": "^1.14.1",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
+    "eslint": "^6.8.0",
     "eslint-plugin-vue": "^6.2.2",
     "vue-template-compiler": "^2.6.11"
   },

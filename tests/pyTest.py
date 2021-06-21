@@ -9,8 +9,13 @@ def echoAndModify(value):
     return (value + " appended by python")
 
 def echoAndModify2():
-    print ("received")
+    print ("received nil")
     return (" appended by python")
+
+def echoAndModify3(value1, value2):
+    result = value1 + " "+ value2 + " both received"
+    print (result)
+    return (result + " by python")
 
 def stopNimview(value):
     nimview.stopDesktop()
@@ -18,11 +23,13 @@ def stopNimview(value):
 
 nimview.addRequest("echoAndModify", echoAndModify)
 nimview.addRequest("echoAndModify2", echoAndModify2)
+nimview.addRequest("echoAndModify3", echoAndModify3)
 nimview.addRequest("stopNimview", stopNimview)
 
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":\"this is a test\",\"responseId\":0}")
-nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"responseId\":4}")
-nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":\"\",\"responseId\":2}") ## will cause a warning
-nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":1}")
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":[],\"responseId\":3}") # will cause an error
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":[],\"responseId\":4}") 
+nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify3\",\"value\":[\"first\",\"second\"],\"responseId\":5}") 
+nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":6}")
 print ("all tests passed")
 # nimview.startDesktop("tests/minimal_ui_sample/index.html")
