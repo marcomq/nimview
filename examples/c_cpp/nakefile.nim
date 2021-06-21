@@ -82,7 +82,7 @@ proc buildDll() =
     else: 
       " " & buildDir & "/tmp_dll/*.o "
     execCmd "gcc -shared -o " & outputLib & " -I" & buildDir & "/tmp_dll/" & " " & minGwSymbols & webviewlLibs # generate .dll and .a
-    echo "Python and shared C libraries build completed. Files have been created in '" & buildDir & "' folder."
+    echo "Shared C libraries build completed. Files have been created in '" & buildDir & "' folder."
 
 proc runTests() =
   buildGenericObjects()
@@ -90,9 +90,6 @@ proc runTests() =
   buildCSample()
   if not defined(macosx):
     buildCppSample()
-  execCmd os.getCurrentDir() / buildDir / "c_test.exe"
-  execCmd "python tests/pyTest.py"
-  execCmd "nimble install -y"
 
 proc generateDocs() = 
   execNim "doc -o:docs/" & library & ".html " & mainApp
@@ -115,5 +112,3 @@ task "docs", "Generate doc":
 task "test", "Run tests":
   runTests()
   echo "all tests passed"
-  # generateDocs()
-  # execCmd "npm run build --prefix " & svelteDir

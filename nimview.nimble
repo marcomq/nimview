@@ -38,5 +38,8 @@ else:
   echo "no nimdistros"
 
 task test, "Run tests":
+  cd examples/c_cpp
   let nake = system.findExe("nake")
+  exec  nake & " test"
+  cd ../../examples/python
   exec  nake & " test"
