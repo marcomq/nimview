@@ -11,6 +11,7 @@ extern "C" {
 #endif
 #include <string>
 #include <sstream>
+#include <iostream>
 #include <map>
 #include <type_traits>
 #include <utility>
@@ -86,7 +87,7 @@ namespace nimview {
             }
         };
         auto cFunc = castToFunction<COUNTER>(lambda);
-        addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
+        nimview_addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
     }
     template<unsigned int COUNTER, typename T1, typename T2 = std::string> 
     void addRequestImpl(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
@@ -105,7 +106,7 @@ namespace nimview {
             }
         };
         auto cFunc = castToFunction<COUNTER>(lambda);
-        addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
+        nimview_addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
     }
     template<unsigned int COUNTER, typename T1 = const std::string&> 
     void addRequestImpl(const std::string &request, const std::function<std::string(T1)> &callback) {
@@ -124,7 +125,7 @@ namespace nimview {
             }
         };
         auto cFunc = castToFunction<COUNTER>(lambda);
-        addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), cFunc, free);
     }
     void addRequest2(const std::string &request, const std::function<std::string(const std::string&)> &callback) {
         addRequestImpl<__COUNTER__, std::string>(request, callback);
@@ -132,12 +133,12 @@ namespace nimview {
 
 #ifndef JUST_CORE
     void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  {
-        nimMain(); 
-        ::startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
+        nimMain();
+        ::nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
     };
     void startHttpServer(const char* folder, int port = 8000, const char* bindAddr = "localhost")  { 
         nimMain();
-        ::startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
+        ::nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
     };
     void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  {
         nimMain();
@@ -150,26 +151,26 @@ namespace nimview {
             runWithGui = false;
         #endif
         if (runWithGui) {
-            nimview::startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, false);
+            nimview::startDesktop(folder, title, width, height, resizable, false);
         }
         else {
-            nimview::startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
+            nimview::startHttpServer(folder, port, bindAddr);
         }
     }
 #endif
     char* dispatchRequest(char* request, char* value) {
         nimMain();
-        return ::dispatchRequest(request, value);
+        return ::nimview_dispatchRequest(request, value);
     };
     std::string dispatchRequest(const std::string &request, const std::string &value) {
         nimMain();
         // free of return value should be performed by nim gc
-        return ::dispatchRequest(const_cast<char*>(request.c_str()), const_cast<char*>(value.c_str())); 
+        return ::nimview_dispatchRequest(const_cast<char*>(request.c_str()), const_cast<char*>(value.c_str())); 
     };
-    auto dispatchCommandLineArg = ::dispatchCommandLineArg;
-    auto readAndParseJsonCmdFile = ::readAndParseJsonCmdFile;
-    auto enableStorage = ::enableStorage;
-    auto stopHttpServer = ::stopHttpServer;
-    auto stopDesktop = ::stopDesktop;
+    auto dispatchCommandLineArg = ::nimview_dispatchCommandLineArg;
+    auto readAndParseJsonCmdFile = ::nimview_readAndParseJsonCmdFile;
+    auto enableStorage = ::nimview_enableStorage;
+    auto stopHttpServer = ::nimview_stopHttpServer;
+    auto stopDesktop = ::nimview_stopDesktop;
     
 }

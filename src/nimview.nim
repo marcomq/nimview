@@ -1,5 +1,5 @@
 # Nimview UI Library 
-# Copyright (C) 2021, by Marco Mengelkoch
+# © Copyright 2021, by Marco Mengelkoch
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
@@ -7,6 +7,8 @@ import os, system, tables
 import json, logging, macros
 import asynchttpserver, asyncdispatch
 # run "nake release" or "nake debug" to compile
+
+const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
@@ -42,7 +44,7 @@ const defaultIndex* =
   when defined(debug):
     "../dist/index.html"
   else:
-    "../dist/nimview.html"
+    "../dist/inlined.html"
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
   if fileExists(getProjectPath() / defaultIndex):
@@ -55,7 +57,7 @@ const useStaticIndexContent =
   else:
     false
 
-proc enableStorage*() {.exportc.} =
+proc enableStorage*() {.exportc: "nimview_$1".} =
   initStorage()
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
@@ -106,7 +108,7 @@ proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
   getCallbackFunc(request)(%value) # % converts to json
 
-proc dispatchRequest*(request, value: cstring): cstring {.exportc.} =
+proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
   result = $dispatchRequest($request, $value)
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
@@ -147,7 +149,7 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   except:
     warn "Error during specific line arg: " & escapedArgv
 
-proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc.} =
+proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc: "nimview_$1".} =
   result = $dispatchCommandLineArg($escapedArgv)
 
 proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
@@ -164,7 +166,7 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   else:
     logging.error "File does not exist: " & filename
 
-proc readAndParseJsonCmdFile*(filename: cstring) {.exportc.} =
+proc readAndParseJsonCmdFile*(filename: cstring) {.exportc: "nimview_$1".} =
   readAndParseJsonCmdFile($filename)
 
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
@@ -320,10 +322,10 @@ proc startHttpServer*(indexHtmlFile: string = defaultIndex,
 
 proc startHttpServer*(indexHtmlFile: cstring, 
     port: int = 8000,
-    bindAddr: cstring = "localhost") {.exportc.} = 
+    bindAddr: cstring = "localhost") {.exportc: "nimview_$1".} = 
   startHttpServer($indexHtmlFile, port, $bindAddr)
 
-proc stopHttpServer*() {.exportpy, exportc.} =
+proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
   ## Will stop the Http server - will not wait for stop
   httpServerRunning = false
 
@@ -334,7 +336,7 @@ when not defined(just_core):
     # result = "data:text/html, " & stream.encodeUrl() 
     result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
 
-  proc stopDesktop*() {.exportpy, exportc.} =
+  proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
     when compileWithWebview:
       debug "stopping ..."
@@ -361,7 +363,7 @@ when not defined(just_core):
           evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
               response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
         except: 
-          evalJsCode = "window.ui.discardResponse(" & $requestId & ");" 
+          evalJsCode = "window.ui.rejectResponse(" & $requestId & ");" 
         let responseCode = myWebView.eval(evalJsCode)
         discard responseCode
 
@@ -382,16 +384,18 @@ when not defined(just_core):
     when not defined(release):
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
-    if parameter.isEmptyOrWhitespace():
+    if parameter.isEmptyOrWhitespace() and indexHtmlFile.contains("inlined.html"):
+      debug "Starting desktop with data url"
       startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
     else:
+      debug "Starting desktop with file url"
       startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = "nimview",
         width: cint = 640, height: cint = 480, resizable: cint = 1,
-        debug: cint = 0) {.exportc.} = 
-      startDesktop($indexHtmlFile, $title, width, height, resizable, debug)
+        debug: cint = 0) {.exportc: "nimview_$1".} = 
+      startDesktop($indexHtmlFile, $title, width, height, cast[bool](resizable), cast[bool](debug))
 
   proc start*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",
@@ -409,8 +413,8 @@ when not defined(just_core):
 
   proc start*(indexHtmlFile: cstring, port: cint = 8000, 
         bindAddr: cstring = "localhost", title: cstring = "nimview",
-        width: cint = 640, height: cint = 480, resizable: cint = 1) {.exportc.} =
-      start($indexHtmlFile, port, $bindAddr, $title, width, height, resizable)
+        width: cint = 640, height: cint = 480, resizable: cint = 1) {.exportc: "nimview_$1".} =
+      start($indexHtmlFile, port, $bindAddr, $title, width, height, cast[bool](resizable))
 
 when isMainModule:
   proc main() =

@@ -79,9 +79,9 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
 
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
-proc addRequest_argc_argv*(request: cstring, 
+proc addRequest_argc_argv_rstr*(request: cstring, 
       callback: proc(argc: cint, argv: cstringArray): cstring {.cdecl.},
-      freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc.} =
+      freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc: "nimview_$1".} =
     addRequest($request, proc (values: JsonNode): string =
         var params = newSeq[string](values.len + 1)
         params[0] = $values.len
@@ -99,7 +99,7 @@ proc addRequest_argc_argv*(request: cstring,
 
 macro generateCExportsForParams(exportParams: typed): untyped =
   result = newStmtList()
-  let exportC = "{.exportc.}"
+  let exportC = "{.exportc: \"nimview_$1\".}"
   let cdecl = "{.cdecl.}"
   var functionName = "addRequest"
   var functionParams = ""
@@ -110,7 +110,7 @@ macro generateCExportsForParams(exportParams: typed): untyped =
       functionParams &= ","
       callbackParams &= ","
       signature &= ","
-    functionName &= myType.strVal
+    functionName &= "_" & myType.strVal
     functionParams &= fmt"val{i}: {myType.strVal}"
     callbackParams &= fmt"parseAny[{myType.strVal}](values[{i}])"
     signature &= fmt"name({myType.strVal})"
@@ -127,7 +127,7 @@ macro generateCExportsForParams(exportParams: typed): untyped =
   result.add(parseStmt(procString))
   
   procString = &"""
-    proc {functionName}Str(
+    proc {functionName}_rstr(
         request: cstring, 
         callback: proc({functionParams}): cstring {cdecl}, 
         freeFunc: proc(value: pointer) {cdecl} = free_c) {exportC} =
@@ -136,6 +136,7 @@ macro generateCExportsForParams(exportParams: typed): untyped =
             var resultPtr: cstring = ""
             try:
               resultPtr = callback({callbackParams})
+              result = $resultPtr
             finally:
               if (resultPtr != ""):
                 freeFunc(resultPtr)
@@ -147,19 +148,20 @@ macro generateCExportsForParams(exportParams: typed): untyped =
 
 macro generateCExports(exportParams: typed): untyped =
   result = newStmtList()
-  var procString: string
+  var procString: string = "generateCExportsForParams([])"
+  result.add(parseStmt(procString))
   for i in  0 ..< exportParams.len:
+    procString = &"""
+      generateCExportsForParams([{exportParams[i]}])
+      """
+    result.add(parseStmt(procString))
     for j in  0 ..< exportParams.len:
       procString = &"""
         generateCExportsForParams([{exportParams[i]}, {exportParams[j]}])
         """
       result.add(parseStmt(procString))
-    procString = &"""
-      generateCExportsForParams([{exportParams[i]}])
-      """
-  result.add(parseStmt(procString))
 
-generateCExports([clonglong, cstring, cdouble])
+generateCExports([cstring, clonglong, cdouble])
 
 # generateCExportsForParams([cint, cstring, cfloat])
 

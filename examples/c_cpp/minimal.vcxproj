@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\cpp_sample.cpp" />
+    <ClCompile Include="src\cpp_sample.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -115,23 +115,23 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/../../out/tmp_dll</IncludePath>
-    <LibraryPath>$(SolutionDir)/../../out;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)/../../out</OutDir>
+    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/out/tmp_dll</IncludePath>
+    <LibraryPath>$(SolutionDir)/out;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)/out</OutDir>
     <TargetName>cpp_vs_sample</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/../../out/tmp_dll</IncludePath>
-    <LibraryPath>$(SolutionDir)/../../out;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)/../../out</OutDir>
+    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/out/tmp_dll</IncludePath>
+    <LibraryPath>$(SolutionDir)/out;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)/out</OutDir>
     <TargetName>cpp_vs_sample</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebuggableRelease|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/../../out/tmp_dll</IncludePath>
-    <LibraryPath>$(SolutionDir)/../../out;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)/../../out</OutDir>
+    <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/out/tmp_dll</IncludePath>
+    <LibraryPath>$(SolutionDir)/out;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)/out</OutDir>
     <TargetName>cpp_vs_sample</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -196,6 +196,12 @@
       <AdditionalDependencies>libnimview.a;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)_debug.exe</OutputFile>
     </Link>
+    <PreBuildEvent>
+      <Command>nake libs</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>building dll and header files</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -225,6 +231,12 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>nake libs</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>building dll and header files</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebuggableRelease|x64'">
     <ClCompile>
@@ -254,6 +266,12 @@
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
+    <PreBuildEvent>
+      <Command>nake libs</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>building dll and header files</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

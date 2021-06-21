@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vue-cli-service serve",
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build && inliner -m --videos --preserve-comments dist/index.html > dist/nimview.html",
+    "build": "vue-cli-service build && inliner -m --videos --preserve-comments dist/index.html > dist/inlined.html",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {

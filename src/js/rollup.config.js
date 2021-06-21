@@ -32,18 +32,18 @@ const babelCfg = {
   ]
 }
 export default {
-  input: 'nimview.ems.js',
+  input: 'nimview.js',
   output: [{
     sourcemap: true,
     format: 'cjs',
-    name: 'nimview',
+    name: 'nimview_js',
     file: 'nimview.cjs.js',
     exports: 'auto'
   }, {
     sourcemap: true,
     format: 'iife',
-    name: 'nimview',
-    file: 'nimview.js',
+    name: 'nimview_js',
+    file: 'nimview.iife.js',
     exports: 'auto'
   }], 
   plugins: [

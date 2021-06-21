@@ -24,10 +24,10 @@ char* echoAndModify(char* something) {
 int main(int argc, char* argv[]) {
     printf(" starting c code\n");
     NimMain();
-    addRequest("echoAndModify", echoAndModify, free);
+    nimview_addRequest_cstring_rstr("echoAndModify", echoAndModify, free);
 #ifdef _DEBUG
-    startHttpServer("../examples/minimal_ui_sample/index.html", 8000, "localhost");
+    nimview_startHttpServer("../dist/index.html", 8000, "localhost");
 #else
-    startDesktop("../examples/minimal_ui_sample/index.html", "c_sample", 640, 480, 1, 0);
+    nimview_startDesktop("../dist/index.html", "c_sample", 640, 480, 1, 0);
 #endif
 }
