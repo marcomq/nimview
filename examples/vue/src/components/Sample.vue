@@ -1,5 +1,5 @@
 <script>
-import backend from "nimview.cjs"
+import backend from "nimview"
 export default {
   data() {
     return {

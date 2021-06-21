@@ -261,10 +261,11 @@ proc getCurrentAppDir(): string =
       result = os.getCurrentDir()
     else:
       result = os.getAppDir()
-
-proc checkFileExists(filePath: string, message: string) =
-  if not os.fileExists(filePath):
-    raise newException(IOError, message)
+      
+when not defined(release):
+  proc checkFileExists(filePath: string, message: string) =
+    if not os.fileExists(filePath):
+      raise newException(IOError, message)
 
 proc getAbsPath(indexHtmlFile: string): (string, string) =
   let separatorFound = indexHtmlFile.rfind({'#', '?'})
