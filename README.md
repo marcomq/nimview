@@ -9,10 +9,10 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 
 ## Features
 - Compile to single executable binary that includes the UI
-- Platforms: Windows, Linux, MacOS, Android
+- Platforms: Windows, Linux, MacOS, Android, Cloud / Web
 - Desktop and web mode
-- Use any HTML/CSS/JS based UI you want - Svelte, Vue, React etc...
-- Functions added on Backend are immediately available in Javascript Frontend
+- Use any HTML/CSS/JS based UI you want - Svelte, Vue, React, plain JS etc..
+- Functions added on back-end are immediately available in Javascript front-end
 
 ## Table of Contents
 - [About](#about)
@@ -43,16 +43,16 @@ The target of this project was to have a simple, ultra lightweight cross platfor
 
 This project is mostly a wrapper of another great Nim projects: [Webview](https://github.com/oskca/webview) 
 
-While Webview is used to display HTML as a simple desktop window, nim AsyncHttpServer is used as a webserver to serve the HTML to a browser. Nimview is just an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications and web applications. There is also a specific Android project to interact with android applications [here](https://github.com/marcomq/nimview_android).
+While Webview is used to display HTML as a simple desktop window, nim AsyncHttpServer is used as a webserver to serve the HTML to a browser. Nimview is an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications, web and mobile applications. It registers functions in the specific languages and also can mix Nim with any of the supported targets. Currently, the Android project to interact with android applications is [here](https://github.com/marcomq/nimview_android) but it will be move to "examples" soon.
 
 Technically, the UI layer will be completely HTML/CSS/JS based and the back-end should be using either Nim, C/C++ or Python code directly. 
 Nim mostly acts as a "glue" layer as it can create python and C libraries easily. As long as you write Nim code, you might integrate the code in C/C++, Python or even Android. 
 The final result should be a binary executable that runs on Linux, Windows or MacOS Desktop and even [Android](https://github.com/marcomq/nimview_android). IOS wasn't tested yet.
 
-The application later doesn't require a webserver, but it is recommended to use the webserver during development or debug mode - or if there is no desktop environment available.
+The final application later doesn't require a webserver, but it is recommended to use the webserver during development or in debug mode - or for your cloud environment.
 Make sure to use an additional authentication and some security reverse proxy layer when running on cloud for production. 
 
-Node.js is recommended if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
+Node.js is recommended but not required if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
 The HTTP server will run in debug mode by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
 Webview on its own is a mess if you want to debug your Javascript issues. You might use it for production and testing, but you shouldn't focus Javascript UI development on Webview.
 
@@ -60,6 +60,7 @@ This project is not intended to have any kind of forms, inputs or any additional
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
 
 ## Demo binary
+(This will be replaced by a simple todo application soon)
 There is a pre-build demo windows x64 binary available that uses a simple Svelte UI. 
 To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
 one desktop application and one HTTP server application that can be reached at 
@@ -104,13 +105,13 @@ nimview.start()
 ```
 
 Nimview will automatically use "../public/index.html" as as entry page in debug mode
-and "../dist/index.html" in release mode. In release mode, the index.html entry point
-will also be compiled into the release binary. If there are no further dependencies,
-the release binary can just run without further UI files.
+and will try to load "../dist/inlined.html" in release mode. In release mode, the inlined.html entry point
+will be compiled statically into the release binary. If there are no further dependencies,
+the release binary can just run as single executable binary without further UI files.
 Keep in mind that when running in webserver mode, it will expose all files and subfolders that in the same directory as the index.html.
 
 ## Javascript and HTML UI
-Keep in mind that the index.html is "inlined" for release mode and that any "defer" 
+Keep in mind that the inlined.html is completely "inlined" for release mode and that any "defer" 
 keyword is not working for your script tags. So your javascript may be ready before
 the DOM is ready for Jasascript. You may still trigger to load the 
 javascript deferred when using 
