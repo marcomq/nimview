@@ -79,19 +79,23 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
 
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
-proc addRequest_argc_argv_rstr*(request: cstring, 
+proc addRequest_argc_argv_rstr*(crequest: cstring, 
       callback: proc(argc: cint, argv: cstringArray): cstring {.cdecl.},
       freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc: "nimview_$1".} =
-    addRequest($request, proc (values: JsonNode): string =
+    let request = $crequest
+    addRequest(request, proc (values: JsonNode): string =
         var params = newSeq[string](values.len + 1)
-        params[0] = $values.len
+        params[0] = request
         for i in 0 ..< values.len: 
           params[i + 1] = parseAny[string](values[i])
         var cParams = alloccstringArray(params)
         try:
-          let cResult = callback(values.len.cint, cParams)
-          result = $cResult
-          freeFunc(cResult)
+          let resultPtr = callback((values.len + 1).cint, cParams)
+          result = $resultPtr
+          if resultPtr != "":
+            freeFunc(resultPtr)
+        except:
+          echo "Internal error calling '" & request & "'"
         finally:
           deallocCStringArray(cParams)
       ,
@@ -224,6 +228,7 @@ proc getRequests(): string =
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
   reqMapStore.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
+      echo request
       result = callbackFunc[].nimCallback
     except:
       raise newException(ServerException, "Server error calling request '" & 

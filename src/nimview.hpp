@@ -20,9 +20,11 @@ extern "C" {
 #ifdef _MSC_VER 
 #include <variant>
 #endif
-#define addRequest(...) addRequestImpl<__COUNTER__, std::string>(__VA_ARGS__) 
+// #define addRequest(...) addRequestImpl(__VA_ARGS__) 
+// #define addRequest(...) addRequestImpl<__COUNTER__, std::string>(__VA_ARGS__) 
 
-// typedef void (*requestFunction)(const char*);
+typedef std::function<char*(int argc, char** argv)> requestFunction;
+std::map<std::string, requestFunction> requestMap;
 
 template<typename Lambda>
 union FunctionStorage {
@@ -32,7 +34,7 @@ union FunctionStorage {
 };
 
 
-template<unsigned int COUNTER, typename Lambda, typename Result, typename... Args>
+template<const char* PLACEHOLDER, typename Lambda, typename Result, typename... Args>
 auto functionPointerWrapper(Lambda&& callback, Result(*)(Args...)) {
     static FunctionStorage<Lambda> storage;
     using type = decltype(storage.lambdaFunction);
@@ -49,9 +51,9 @@ auto functionPointerWrapper(Lambda&& callback, Result(*)(Args...)) {
     };
 }
 
-template<unsigned int COUNTER, typename Fn = char* (int argc, char** argv), typename Lambda>
+template<const char* PLACEHOLDER, typename Fn = char* (int argc, char** argv), typename Lambda>
 Fn* castToFunction(Lambda&& memberFunction) {
-    return functionPointerWrapper<COUNTER>(std::forward<Lambda>(memberFunction), (Fn*)nullptr);
+    return functionPointerWrapper<PLACEHOLDER>(std::forward<Lambda>(memberFunction), (Fn*)nullptr);
 }
 
 namespace nimview {
@@ -61,7 +63,8 @@ namespace nimview {
             ::NimMain();
             nimInitialized = true;
         }
-    };
+    }
+
     template <typename T>
     T lexicalCast(const char* str) {
         T var;
@@ -70,65 +73,91 @@ namespace nimview {
         iss >> var;
         return var;
     }
-    template<unsigned int COUNTER, typename T1, typename T2, typename T3> 
-    void addRequestImpl(const std::string &request, const std::function<std::string(T1, T2, T3)> &callback) {
-        auto lambda = [&, callback](int argc, char** argv) {
-            if (argc < 3) {
-                throw std::runtime_error("Not enough arguments");
+
+    template <>
+    std::string lexicalCast(const char* str) {
+        return std::string(str);
+    }
+
+    char* findAndCall(int argc, char** argv) {
+        try {
+            if (argc <= 1) {
+                throw std::runtime_error("No function arguments");
             }
-            std::string result = callback(lexicalCast<T1>(argv[1]),lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]));
-            if (result == "") {
+            auto reqIter = requestMap.find(argv[0]);
+            if (reqIter == requestMap.end()) {
+                throw std::runtime_error("Request '" + std::string(argv[0]) + "' not found");
+            }
+            auto foundFunction = reqIter->second;
+            return foundFunction(argc, argv);
+        }
+        catch (std::runtime_error &e) {
+            std::cerr << "error in callback: " + std::string(e.what()) << std::endl;
+            return "";
+        }
+    }
+
+    char* strToNewCharPtr(const std::string &strVal) {
+            if (strVal == "") {
                 return const_cast<char*>(""); // "" will not be freed
             }
             else {
-                char* newChars = static_cast<char*>(calloc(result.length() + 1, 1));
-                result.copy(newChars, result.length());
+                char* newChars = static_cast<char*>(calloc(strVal.length() + 1, 1));
+                strVal.copy(newChars, strVal.length());
                 return newChars;
             }
-        };
-        auto cFunc = castToFunction<COUNTER>(lambda);
-        nimview_addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
     }
-    template<unsigned int COUNTER, typename T1, typename T2 = std::string> 
-    void addRequestImpl(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
-        auto lambda = [&, callback](int argc, char** argv) {
-            if (argc < 2) {
-                throw std::runtime_error("Not enough arguments");
+
+    template<typename T1, typename T2, typename T3, typename T4 = std::string> 
+    void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3, T4)> &callback) {
+        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+            if (argc <= 4) {
+                throw std::runtime_error("Less than 4 arguments");
             }
-            std::string result = callback(lexicalCast<T1>(argv[1]),lexicalCast<T2>(argv[2]));
-            if (result == "") {
-                return const_cast<char*>(""); // "" will not be freed
-            }
-            else {
-                char* newChars = static_cast<char*>(calloc(result.length() + 1, 1));
-                result.copy(newChars, result.length());
-                return newChars;
-            }
+            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]), lexicalCast<T4>(argv[4]));
+            return strToNewCharPtr(result);
         };
-        auto cFunc = castToFunction<COUNTER>(lambda);
-        nimview_addRequest_argc_argv(const_cast<char*>(request.c_str()), cFunc, free);
+        requestMap.insert(std::make_pair(request, lambda));
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
     }
-    template<unsigned int COUNTER, typename T1 = const std::string&> 
-    void addRequestImpl(const std::string &request, const std::function<std::string(T1)> &callback) {
-        auto lambda = [&, callback](int argc, char** argv) {
-            if (argc < 1) {
-                throw std::runtime_error("Not enough arguments");
+    
+    template<typename T1, typename T2, typename T3 = std::string> 
+    void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3)> &callback) {
+        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+            if (argc <= 3) {
+                throw std::runtime_error("Less than 3 arguments");
+            }
+            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]));
+            return strToNewCharPtr(result);
+        };
+        requestMap.insert(std::make_pair(request, lambda));
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+    }
+    
+    template<typename T1, typename T2 = std::string> 
+    void addRequest(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
+        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+            if (argc <= 2) {
+                throw std::runtime_error("Less than 2 arguments");
+            }
+            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]));
+            return strToNewCharPtr(result);
+        };
+        requestMap.insert(std::make_pair(request, lambda));
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+    }
+
+    template<typename T1 = std::string> 
+    void addRequest(const std::string &request, const std::function<std::string(T1)> &callback) {
+        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+            if (argc <= 1) {
+                throw std::runtime_error("Less than 1 argument");
             }
             std::string result = callback(lexicalCast<T1>(argv[1]));
-            if (result == "") {
-                return const_cast<char*>(""); // "" will not be freed
-            }
-            else {
-                char* newChars = static_cast<char*>(calloc(result.length() + 1, 1));
-                result.copy(newChars, result.length());
-                return newChars;
-            }
+            return strToNewCharPtr(result);
         };
-        auto cFunc = castToFunction<COUNTER>(lambda);
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), cFunc, free);
-    }
-    void addRequest2(const std::string &request, const std::function<std::string(const std::string&)> &callback) {
-        addRequestImpl<__COUNTER__, std::string>(request, callback);
+        requestMap.insert(std::make_pair(request, lambda));
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
     }
 
 #ifndef JUST_CORE

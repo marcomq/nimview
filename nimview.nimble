@@ -37,6 +37,15 @@ when defined(nimdistros):
 else:
   echo "no nimdistros"
 
+  
+task docs, "Generate doc":
+  exec "nim doc -o:docs/nimview.html src/nimview.nim"
+  # let cmd = "inliner -n --preserve-comments --iesafe --inlinemin docs/nimview_tmp.html > docs/nimview.html"
+  # if detectOs(Windows):
+  #   exec "cmd /C " & cmd
+  # else:
+  #   exec "bash -c '" & cmd & "'"
+
 task test, "Run tests":
   let baseDir = thisDir()
   cd baseDir / "examples/c_cpp"

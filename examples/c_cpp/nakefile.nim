@@ -50,7 +50,7 @@ proc buildGenericObjects() =
     os.removeDir(buildDir / "tmp_c")
     execNim "c -d:release --noMain:on -d:noMain --noLinking --header: " & headerFilePath & " --nimcache=./" & buildDir & 
       "/tmp_c --app:staticLib --out:"  & buildDir / library & " " & " " & mainApp 
-    os.copyFile(thisDir / "../../src/nimview.hpp", thisDir / buildDir / "tmp_c/nimview.hpp")
+  os.copyFile(thisDir / "../../src/nimview.hpp", thisDir / buildDir / "tmp_c/nimview.hpp")
 
 proc buildCSample() = 
   execCmd "gcc -c -w -o " & buildDir & "/tmp_o/c_sample.o -fmax-errors=3 -DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION -O3 -fno-strict-aliasing -fno-ident " & 
@@ -90,10 +90,13 @@ proc runTests() =
   buildCSample()
   if not defined(macosx):
     buildCppSample()
-
+    
 proc generateDocs() = 
   execNim "doc -o:docs/" & library & ".html " & mainApp
   
+task "docs", "Generate doc":
+  generateDocs()
+
 task "libs", "Build Libs":
   buildGenericObjects()
   buildDll()
@@ -106,8 +109,6 @@ task "cpp", "Build CPP sample":
   buildGenericObjects()
   buildCPPSample()
 
-task "docs", "Generate doc":
-  generateDocs()
 
 task "test", "Run tests":
   runTests()
