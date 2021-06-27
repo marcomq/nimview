@@ -51,7 +51,7 @@ task docs, "Generate doc":
 task demo, "Generate demo files":
   let baseDir = thisDir()
   cd baseDir / "examples/svelte_todo"
-  # execSh "npm run build"
+  execSh "npm run build"
   exec "nim c -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
   exec "nim c -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
 
