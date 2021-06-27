@@ -37,14 +37,23 @@ when defined(nimdistros):
 else:
   echo "no nimdistros"
 
-  
+proc execSh(cmd: string) =
+  if detectOs(Windows):
+    exec "cmd /C " & cmd
+  else:
+    exec "bash -c '" & cmd & "'"
+
 task docs, "Generate doc":
   exec "nim doc -o:docs/nimview.html src/nimview.nim"
   # let cmd = "inliner -n --preserve-comments --iesafe --inlinemin docs/nimview_tmp.html > docs/nimview.html"
-  # if detectOs(Windows):
-  #   exec "cmd /C " & cmd
-  # else:
-  #   exec "bash -c '" & cmd & "'"
+  # execSh cmd
+
+task demo, "Generate demo files":
+  let baseDir = thisDir()
+  cd baseDir / "examples/svelte_todo"
+  # execSh "npm run build"
+  exec "nim c -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
+  exec "nim c -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
 
 task test, "Run tests":
   let baseDir = thisDir()

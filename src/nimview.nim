@@ -58,6 +58,9 @@ const useStaticIndexContent =
     false
 
 proc enableStorage*() {.exportc: "nimview_$1".} =
+  ## Registers "getStoredVal" and "setStoredVal" as requests
+  ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
+  ## Use "backend.getStoredVal(key)" in js to read a stored value
   initStorage()
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
@@ -99,9 +102,13 @@ var useServer* = not compileWithWebview or
 var useGlobalToken* = defined(release)
 
 proc setUseServer*(val: bool) {.exportpy.} =
+  ## If true, use Http Server instead of Webview.
   useServer = val
 
 proc setUseGlobalToken*(val: bool) {.exportpy.} =
+  ## The global token is a weak session-free CSRF check. Still much better than no CSRF protection.
+  ## Per default enabled in release mode.
+  ## If false, deactivate global token in release mode.
   useGlobalToken = val
 
 proc dispatchRequest*(request: string, value: string): string =
@@ -346,7 +353,6 @@ when not defined(just_core):
 
   proc startDesktopWithUrl(url: string, title: string, width: int, height: int, 
       resizable: bool, debug: bool)  =
-    ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
       # var fullScreen = true
       myWebView = webview.newWebView(title, url, width,
@@ -379,6 +385,7 @@ when not defined(just_core):
         title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true,
         debug: bool = defined(release)) {.exportpy.} = 
+    ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
     discard parameter
     updateIndexContent(indexHtmlPath)

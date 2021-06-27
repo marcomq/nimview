@@ -64,17 +64,16 @@ This project is not intended to have any kind of forms, inputs or any additional
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
 
 ## Demo binary
-(This will be replaced by a simple todo application soon)
-There is a pre-build demo windows x64 binary available that uses a simple Svelte UI. 
+There is a pre-build "Todo-list" demo application for windows x64 that uses a simple Svelte UI. 
 To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
-one desktop application and one HTTP server application that can be reached at 
+one desktop application "appTodo" and one HTTP server application "httpTodo" that opens a server on
 http://localhost:8000.
-- [demo.zip](https://github.com/marcomq/nimview/files/6236907/demo.zip)
+- [demo.zip](https://github.com/marcomq/nimview/files/6722218/demo.zip)
 
-sha256sum ce6ecfad7d6f7d2610af89b868a69dae8de11a67bd8871d7d97bab9a08ddae9e
+sha256sum 8a23aa5e8ceba795d56d6cf88c69a17dd821b7e2396d51ba816d8a4162045e9c
 
-If you want to build this demo from source, you need to run `nake demo` on the
-Nimview source folder.
+If you want to build this demo from source, you need to run `nimble demo` on the
+Nimview base folder.
 
 ## Minimal Python example
 The project is available for python via `pip install nimview` and for nim via `nimble install nimview`. 
