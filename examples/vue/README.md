@@ -1,5 +1,5 @@
-## build this using following commands
- npm install
- npm run build
- 
- The output will be written to the "dist" folder
+## Nimview Vue sample application
+
+- npm install
+- npm run build
+- nim c -r --app:gui src/App.nim
