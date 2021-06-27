@@ -78,6 +78,16 @@ namespace nimview {
     std::string lexicalCast(const char* str) {
         return std::string(str);
     }
+    
+    template <>
+    char* lexicalCast(const char* str) {
+        return const_cast<char*>(str);
+    }
+
+    template <>
+    const char* lexicalCast(const char* str) {
+        return str;
+    }
 
     char* findAndCall(int argc, char** argv) {
         try {
@@ -98,63 +108,85 @@ namespace nimview {
     }
 
     char* strToNewCharPtr(const std::string &strVal) {
-            if (strVal == "") {
-                return const_cast<char*>(""); // "" will not be freed
-            }
-            else {
-                char* newChars = static_cast<char*>(calloc(strVal.length() + 1, 1));
-                strVal.copy(newChars, strVal.length());
-                return newChars;
-            }
+        if (strVal == "") {
+            return const_cast<char*>(""); // "" will not be freed
+        }
+        else {
+            char* newChars = static_cast<char*>(calloc(strVal.length() + 1, 1));
+            strVal.copy(newChars, strVal.length());
+            return newChars;
+        }
+    }
+    char* strToNewCharPtr(void) {
+        return const_cast<char*>("");
     }
 
-    template<typename T1, typename T2, typename T3, typename T4 = std::string> 
+    
+    template<size_t pos = 1, typename R, typename T>
+    char* callFunction(R(*callback)(T), char** argv) {
+        return strToNewCharPtr(callback(lexicalCast<T>(argv[1])));
+    }
+
+    template <typename R, typename ... Types> 
+    constexpr size_t getArgumentCount(R(*f)(Types ...)) {
+        return sizeof...(Types);
+    }
+
+    template<typename T1, typename T2, typename T3, typename T4> 
     void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3, T4)> &callback) {
-        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+        requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 4) {
                 throw std::runtime_error("Less than 4 arguments");
             }
-            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]), lexicalCast<T4>(argv[4]));
+            auto result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]), lexicalCast<T4>(argv[4]));
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
         nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
     }
     
-    template<typename T1, typename T2, typename T3 = std::string> 
+    template<typename T1, typename T2, typename T3> 
     void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3)> &callback) {
-        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+        requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 3) {
                 throw std::runtime_error("Less than 3 arguments");
             }
-            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]));
+            auto result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]), lexicalCast<T3>(argv[3]));
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
         nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
     }
     
-    template<typename T1, typename T2 = std::string> 
+    template<typename T1, typename T2> 
     void addRequest(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
-        requestFunction lambda = [&, request, callback](int argc, char** argv) {
+        requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 2) {
                 throw std::runtime_error("Less than 2 arguments");
             }
-            std::string result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]));
+            auto result = callback(lexicalCast<T1>(argv[1]), lexicalCast<T2>(argv[2]));
+            return strToNewCharPtr(result);
+        };
+        requestMap.insert(std::make_pair(request, lambda));
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+    }  
+
+    template<typename T1> 
+    void addRequest(const std::string &request, const std::function<std::string(T1)> &callback) {
+        requestFunction lambda = [&, callback](int argc, char** argv) {
+            if (argc <= 1) {
+                throw std::runtime_error("Less than 1 argument");
+            }
+            auto result = callback(lexicalCast<T1>(argv[1]));
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
         nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
     }
 
-    template<typename T1 = std::string> 
-    void addRequest(const std::string &request, const std::function<std::string(T1)> &callback) {
-        requestFunction lambda = [&, request, callback](int argc, char** argv) {
-            if (argc <= 1) {
-                throw std::runtime_error("Less than 1 argument");
-            }
-            std::string result = callback(lexicalCast<T1>(argv[1]));
-            return strToNewCharPtr(result);
+    void addRequest(const std::string &request, const std::function<std::string(void)> &callback) {
+        requestFunction lambda = [&, callback](int argc, char** argv) {
+            return strToNewCharPtr(callback());
         };
         requestMap.insert(std::make_pair(request, lambda));
         nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
@@ -201,5 +233,12 @@ namespace nimview {
     auto enableStorage = ::nimview_enableStorage;
     auto stopHttpServer = ::nimview_stopHttpServer;
     auto stopDesktop = ::nimview_stopDesktop;
-    
+    auto addRequest_void = ::nimview_addRequest;
+    auto addRequest_rstr = ::nimview_addRequest_rstr;
+    auto addRequest_cstring = ::nimview_addRequest_cstring;
+    auto addRequest_cstring_rstr = ::nimview_addRequest_cstring_rstr;
+    auto addRequest_clonglong = ::nimview_addRequest_clonglong;
+    auto addRequest_clonglong_rstr = ::nimview_addRequest_clonglong_rstr;
+    auto addRequest_cdouble = ::nimview_addRequest_cdouble;
+    auto addRequest_cdouble_rstr = ::nimview_addRequest_cdouble_rstr;    
 }
