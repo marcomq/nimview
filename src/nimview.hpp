@@ -20,44 +20,14 @@ extern "C" {
 #ifdef _MSC_VER 
 #include <variant>
 #endif
-// #define addRequest(...) addRequestImpl(__VA_ARGS__) 
-// #define addRequest(...) addRequestImpl<__COUNTER__, std::string>(__VA_ARGS__) 
 
-typedef std::function<char*(int argc, char** argv)> requestFunction;
-std::map<std::string, requestFunction> requestMap;
-
-template<typename Lambda>
-union FunctionStorage {
-    FunctionStorage() {};
-    std::decay_t<Lambda> lambdaFunction;
-    ~FunctionStorage() {};
-};
-
-
-template<const char* PLACEHOLDER, typename Lambda, typename Result, typename... Args>
-auto functionPointerWrapper(Lambda&& callback, Result(*)(Args...)) {
-    static FunctionStorage<Lambda> storage;
-    using type = decltype(storage.lambdaFunction);
-
-    static bool used = false;
-    if (used) {
-        storage.lambdaFunction.~type(); // overwrite
-    }
-    new (&storage.lambdaFunction) type(std::forward<Lambda>(callback));
-    used = true;
-
-    return [](Args... args)->Result {
-        return Result(storage.lambdaFunction(std::forward<Args>(args)...));
-    };
-}
-
-template<const char* PLACEHOLDER, typename Fn = char* (int argc, char** argv), typename Lambda>
-Fn* castToFunction(Lambda&& memberFunction) {
-    return functionPointerWrapper<PLACEHOLDER>(std::forward<Lambda>(memberFunction), (Fn*)nullptr);
-}
 
 namespace nimview {
+    typedef std::function<char*(int argc, char** argv)> requestFunction;
+    std::map<std::string, requestFunction> requestMap;
+
     thread_local bool nimInitialized = false;
+    
     void nimMain() {
         if (!nimInitialized) {
             ::NimMain();
@@ -117,14 +87,9 @@ namespace nimview {
             return newChars;
         }
     }
+
     char* strToNewCharPtr(void) {
         return const_cast<char*>("");
-    }
-
-    
-    template<size_t pos = 1, typename R, typename T>
-    char* callFunction(R(*callback)(T), char** argv) {
-        return strToNewCharPtr(callback(lexicalCast<T>(argv[1])));
     }
 
     template <typename R, typename ... Types> 
@@ -218,6 +183,8 @@ namespace nimview {
             nimview::startHttpServer(folder, port, bindAddr);
         }
     }
+    auto stopHttpServer = ::nimview_stopHttpServer;
+    auto stopDesktop = ::nimview_stopDesktop;
 #endif
     char* dispatchRequest(char* request, char* value) {
         nimMain();
@@ -231,8 +198,6 @@ namespace nimview {
     auto dispatchCommandLineArg = ::nimview_dispatchCommandLineArg;
     auto readAndParseJsonCmdFile = ::nimview_readAndParseJsonCmdFile;
     auto enableStorage = ::nimview_enableStorage;
-    auto stopHttpServer = ::nimview_stopHttpServer;
-    auto stopDesktop = ::nimview_stopDesktop;
     auto addRequest_void = ::nimview_addRequest;
     auto addRequest_rstr = ::nimview_addRequest_rstr;
     auto addRequest_cstring = ::nimview_addRequest_cstring;
