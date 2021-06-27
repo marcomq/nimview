@@ -241,4 +241,5 @@ namespace nimview {
     auto addRequest_clonglong_rstr = ::nimview_addRequest_clonglong_rstr;
     auto addRequest_cdouble = ::nimview_addRequest_cdouble;
     auto addRequest_cdouble_rstr = ::nimview_addRequest_cdouble_rstr;    
+    auto addRequest_argc_argv_rstr = ::nimview_addRequest_argc_argv_rstr;    
 }
