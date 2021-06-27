@@ -184,7 +184,7 @@ function main() {
   </ul>
   <ul class="simple nested-toc-section">addRequest_argc_argv_rstr
       <li><a class="reference" href="#addRequest_argc_argv_rstr%2Ccstring%2Cproc%28cint%2CcstringArray%29%2Cproc%28pointer%29"
-    title="addRequest_argc_argv_rstr(request: cstring; callback: proc (argc: cint;
+    title="addRequest_argc_argv_rstr(crequest: cstring; callback: proc (argc: cint;
     argv: cstringArray): cstring {.cdecl.};
                           freeFunc: proc (value: pointer) {.cdecl.} = free_c)">addRequest_argc_argv_rstr,<wbr>cstring,<wbr>proc(cint,<wbr>cstringArray),<wbr>proc(pointer)</a></li>
 
@@ -409,10 +409,9 @@ This will register a function &quot;callback&quot; that can run on back-end. &qu
 
 </dd>
 <a id="addRequest_argc_argv_rstr,cstring,proc(cint,cstringArray),proc(pointer)"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest_argc_argv_rstr%2Ccstring%2Cproc%28cint%2CcstringArray%29%2Cproc%28pointer%29"><span class="Identifier">addRequest_argc_argv_rstr</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">argc</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest_argc_argv_rstr%2Ccstring%2Cproc%28cint%2CcstringArray%29%2Cproc%28pointer%29"><span class="Identifier">addRequest_argc_argv_rstr</span></a><span class="Other">(</span><span class="Identifier">crequest</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">argc</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
     <span class="Identifier">argv</span><span class="Other">:</span> <span class="Identifier">cstringArray</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">cdecl</span></span><span class="Other">.}</span></span><span class="Other">;</span> <span class="Identifier">freeFunc</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">cdecl</span></span><span class="Other">.}</span></span> <span class="Other">=</span> <span class="Identifier">free_c</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-                        <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">cdecl</span></span><span class="Other">.}</span></span> <span class="Other">=</span> <span class="Identifier">free_c</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -478,7 +477,7 @@ This will register a function &quot;callback&quot; that can run on back-end. &qu
     <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
-
+Registers &quot;getStoredVal&quot; and &quot;setStoredVal&quot; as requests Use &quot;backend.setStoredVal(key, x)&quot; to store a value persistent in &quot;storage.json&quot; Use &quot;backend.getStoredVal(key)&quot; in js to read a stored value
 
 </dd>
 <a id="addRequest,string,proc(varargs[PPyObject])"></a>
@@ -509,14 +508,14 @@ Will stop to log to &quot;requests.log&quot; (default)
 <dt><pre><span class="Keyword">proc</span> <a href="#setUseServer%2Cbool"><span class="Identifier">setUseServer</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
-
+If true, use Http Server instead of Webview.
 
 </dd>
 <a id="setUseGlobalToken,bool"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#setUseGlobalToken%2Cbool"><span class="Identifier">setUseGlobalToken</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
-
+The global token is a weak session-free CSRF check. Still much better than no CSRF protection. Per default enabled in release mode. If false, deactivate global token in release mode.
 
 </dd>
 <a id="dispatchRequest,string,string"></a>
@@ -647,7 +646,7 @@ Will stop the Desktop app - may trigger application exit.
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
-
+Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
 
 </dd>
 <a id="startDesktop,cstring,cstring,cint,cint,cint,cint"></a>
@@ -699,7 +698,7 @@ Tries to automatically select the Http server in debug mode or when no UI availa
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-06-22 20:37:24 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-06-27 20:46:45 UTC</small>
       </div>
     </div>
   </div>

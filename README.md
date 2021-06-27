@@ -9,11 +9,12 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 
 ## Features
 - Compile to small single executable binary that also includes the UI
+- No network port will be opened by Nimview in Desktop mode
 - Platforms: Windows, Linux, MacOS, Android, Cloud / Web
 - Use Nim, Python, C or C++ for your back-end
 - Use any HTML/CSS/JS based UI you want - Svelte, Vue, React, plain JS etc..
-- Desktop and web mode
-- Simple automated back-end testing
+- Desktop and Web mode
+- Simple automated back-end testing as backend functions just return strings
 - Integrated simple persistent storage
 - Immediately expose back-end functions to front-end with a simple command
 
