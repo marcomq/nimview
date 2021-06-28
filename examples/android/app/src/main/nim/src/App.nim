@@ -2,4 +2,5 @@ import nimview
 
 when isMainModule:
   enableStorage() # adds getStoredVal and setStoredVal
-  nimview.start()
+  when not defined(just_core):
+    nimview.start()

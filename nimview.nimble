@@ -2,7 +2,6 @@ version     = "0.2.0"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
-bin         = @["nimview"]
 srcDir      = "src"
 
 import os, strutils

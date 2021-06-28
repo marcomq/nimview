@@ -3,7 +3,6 @@ author      = "Marco Mengelkoch"
 description = "Nim / C library to run webview with HTML/JS as UI"
 license     = "MIT"
 srcDir      = "src"
-bin         = @["App"]
 
 # Dependencies
 # you may skip jester, nimpy and webview when compiling with nim c -d:just_core

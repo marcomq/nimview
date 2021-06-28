@@ -12,7 +12,7 @@ const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
-  import strutils, uri
+  import uri, strutils
   import nimpy
   from nimpy/py_types import PPyObject
   # import browsers
@@ -21,7 +21,7 @@ when not defined(just_core):
     var myWebView: Webview
 else:
   const compileWithWebview = false
-  var myWebView = nil
+  var myWebView: pointer = nil
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -65,17 +65,18 @@ proc enableStorage*() {.exportc: "nimview_$1".} =
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
 
-proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
-  addRequest(request, proc (values: JsonNode): string =
-      var argSeq = newSeq[PPyObject]()
-      if (values.kind == JArray):
-        newSeq(argSeq, values.len)
-        for i in 0 ..< values.len:
-          argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
-      elif (values.kind != JNull):
-        argSeq.add(parseAny[string](values).toPyObjectArgument())
-      result = callback(argSeq),
-    "[values]")
+when not defined(just_core):
+  proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
+    addRequest(request, proc (values: JsonNode): string =
+        var argSeq = newSeq[PPyObject]()
+        if (values.kind == JArray):
+          newSeq(argSeq, values.len)
+          for i in 0 ..< values.len:
+            argSeq[i] = parseAny[string](values[i]).toPyObjectArgument()
+        elif (values.kind != JNull):
+          argSeq.add(parseAny[string](values).toPyObjectArgument())
+        result = callback(argSeq),
+      "[values]")
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".

@@ -1,5 +1,5 @@
 import nake
-import os, strutils, system
+import os, strutils, system, osproc
 
 const application = "App"
 const uiDir = "src"
@@ -7,6 +7,7 @@ const mainApp = "src" / application & ".nim"
 const libraryFile =  mainApp
 
 
+let thisDir = system.currentSourcePath().parentDir()
 let nimbleDir = parentDir(parentDir(os.findExe("nimble")))
 var nimbaseDir = parentDir(nimbleDir) & "/lib"
 if (not os.fileExists(nimbaseDir & "/nimbase.h")):
@@ -16,7 +17,14 @@ if (not os.fileExists(nimbaseDir & "/nimbase.h")):
 if (not os.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(nimbleDir) & "/.choosenim/toolchains/nim-" & system.NimVersion & "/lib"
 
-# echo "nimbaseDir: " & nimbaseDir
+var nimviewPath = thisDir / "../../../../../../src/"
+try:
+  var nimviewPathTmp = $ osproc.execProcess "nimble path nimview"
+  nimviewPathTmp = nimviewPathTmp.replace("\n", "").replace("\\", "/").replace("//", "/")
+  if (nimviewPathTmp != ""):
+    nimviewPath = nimviewPathTmp
+except:
+  discard
 
 proc execCmd(command: string) = 
   echo "running: " & command
@@ -51,6 +59,7 @@ task "serve", "Serve NPM":
   doAssert 0 == os.execShellCmd("npm run serve --prefix " & uiDir)
 
 task defaultTask, "Compiles to C":
+  os.copyFile(nimbaseDir / "nimbase.h", thisDir / "../cpp" / "nimbase.h")
+  os.copyFile(nimviewPath / "nimview.hpp", thisDir / "../cpp" / "nimview.hpp")
   buildC()
   buildJs()
-  os.copyFile(nimbaseDir / "nimbase.h", system.currentSourcePath().parentDir() / "../cpp" / "nimbase.h")

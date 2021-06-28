@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <string.h>
-#include "custom_nimview.h"
+#include "App.h"
 #include "nimview.hpp"
 
 #define THIS_PROJECT_PREFIX Java_com_nimviewAndroid

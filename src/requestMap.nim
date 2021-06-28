@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import tables, json, os, strformat, macros
+import tables, json, os, strformat, macros, strutils
 import nimview, typetraits
 
 type ReqFunction* = object
