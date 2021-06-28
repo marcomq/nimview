@@ -17,14 +17,12 @@ if (not os.fileExists(nimbaseDir & "/nimbase.h")):
 if (not os.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(nimbleDir) & "/.choosenim/toolchains/nim-" & system.NimVersion & "/lib"
 
-var nimviewPath = thisDir / "../../../../../../src/"
-try:
+var nimviewPath = thisDir.parentDir().parentDir().parentDir().parentDir().parentDir().parentDir() / "src" # only used for nimview.hpp
+if not os.dirExists(nimviewPath):
   var nimviewPathTmp = $ osproc.execProcess "nimble path nimview"
   nimviewPathTmp = nimviewPathTmp.replace("\n", "").replace("\\", "/").replace("//", "/")
   if (nimviewPathTmp != "" and os.dirExists(nimviewPathTmp)):
     nimviewPath = nimviewPathTmp
-except:
-  discard
 
 proc execShCmd(command: string) =
   echo "running: " & command
@@ -35,7 +33,7 @@ proc buildCForArch(cpu, path: string) =
   let headerFile = cppPath /  application & ".h"
   if (headerfile.needsRefresh(mainApp)):
     os.removeDir(cppPath)
-    const stdOptions = "--header:" & application & ".h --app:staticlib -d:just_core -d:noSignalHandler -d:release -d:androidNDK -d:noMain --os:android --threads:on "
+    var stdOptions = "--header:" & application & ".h --app:staticlib -d:just_core -d:noSignalHandler -d:release -d:androidNDK -d:noMain --os:android --threads:on "
     execShCmd(nimexe & " cpp -c " & stdOptions & "--cpu:" & cpu & " --nimcache:" & cppPath & " " & mainApp)
 
 proc buildC() =
@@ -48,13 +46,14 @@ proc buildC() =
 proc buildJs() =
   var src: seq[string] = @[]
   for path in walkDirRec(uiDir):
-    src.add(path)
-  if ((uiDir / "dist/build/bundle.js").needsRefresh(src)):
+    if path.endsWith("js") or path.endsWith("svelte") or path.endsWith("jsx")  or path.endsWith("vue"):
+      src.add(path)
+  if ((thisDir / "dist/inlined.html").needsRefresh(src)):
     execShCmd("npm install")
     execShCmd("npm run build")
     os.removeDir("../assets")
     os.createDir("../assets")
-    os.copyDir(uiDir & "/dist", "../assets") # maybe not required anymore
+    os.copyDir(thisDir & "/dist", "../assets") # maybe not required anymore
 
 task "serve", "Serve NPM":
   doAssert 0 == os.execShellCmd("npm run serve")
@@ -62,5 +61,5 @@ task "serve", "Serve NPM":
 task defaultTask, "Compiles to C":
   os.copyFile(nimbaseDir / "nimbase.h", thisDir / "../cpp" / "nimbase.h")
   os.copyFile(nimviewPath / "nimview.hpp", thisDir / "../cpp" / "nimview.hpp")
-  buildC()
   buildJs()
+  buildC()

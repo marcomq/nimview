@@ -222,7 +222,6 @@ proc getRequests(): string =
     var requestSeq = newJArray()
     for key, value in reqMapStore:
       requestSeq.add(%* [key, value.jsSignature])
-      # result &= "window.backend[\"" & key & "\"] = function(" & value.jsSignature & "){};\n"
     return $requestSeq
 
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =

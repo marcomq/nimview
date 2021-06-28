@@ -47,8 +47,8 @@ const defaultIndex* =
     "../dist/inlined.html"
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
-  if fileExists(getProjectPath() / defaultIndex):
-    staticRead(getProjectPath() / defaultIndex)
+  if fileExists(getProjectPath() & defaultIndex):
+    staticRead(getProjectPath() & defaultIndex)
   else:
     ""
 const useStaticIndexContent =
@@ -114,7 +114,8 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
 
 proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
-  getCallbackFunc(request)(%value) # % converts to json
+  let callbackFunc = getCallbackFunc(request)
+  result = callbackFunc(%value) # % converts to json
 
 proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
   result = $dispatchRequest($request, $value)
@@ -208,7 +209,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
         return
         
   try:
-    var potentialFilename = staticDir /
+    var potentialFilename = staticDir &
         requestPath.replace("../", "").replace("..", "")
     if os.fileExists(potentialFilename):
       debug "Sending " & potentialFilename
@@ -283,7 +284,7 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
     result[0] = indexHtmlFile[0 ..< separatorFound]
     result[1] = indexHtmlFile[separatorFound .. ^1]
   if (not os.isAbsolute(result[0])):
-    result[0] = getCurrentAppDir() / indexHtmlFile
+    result[0] = getCurrentAppDir() & indexHtmlFile
 
 proc updateIndexContent(indexHtmlFile: string) =
   if not useStaticIndexContent:
@@ -292,7 +293,7 @@ proc updateIndexContent(indexHtmlFile: string) =
         (os.getFileSize(indexHtmlFile) != indexContentStatic.len)):
         indexContent = system.readFile(indexHtmlFile)
   if indexContent.isEmptyOrWhitespace:
-    debug "Using default dist/index.html"
+    debug "Using default " & defaultIndex
     indexContent = indexContentStatic
 
 proc startHttpServer*(indexHtmlFile: string = defaultIndex, 
@@ -398,7 +399,7 @@ when not defined(just_core):
       startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
     else:
       debug "Starting desktop with file url"
-      startDesktopWithUrl("file://" / indexHtmlPath & parameter, title, width, height, resizable, debug)
+      startDesktopWithUrl("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug)
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = "nimview",

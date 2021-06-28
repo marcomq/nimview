@@ -21,10 +21,7 @@ private var mAppView: WebView? = null
             val jsonMessage = JSONObject(command)
             // val responseId = jsonMessage.getInt("responseId")
             val request = jsonMessage.getString("request")
-            var value = jsonMessage.getString("value")
-            if (value == "") {
-                value = jsonMessage.getJSONObject("value").toString()
-            }
+            var value = jsonMessage.getString("data")
             var result = this.callNim(request, value)
             // val evalJsCode = "window.ui.applyResponse('" + result.replace("\\", "\\\\").replace("\'", "\\'") + "'," + responseId + ");"
             // this.mAppView?.evaluateJavascript(evalJsCode, null)

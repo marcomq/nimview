@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
         settings.setJavaScriptEnabled(true)
         settings.setDomStorageEnabled(true)
         var nativeCpp = NativeCpp()
-        webView.addJavascriptInterface(nativeCpp, "backend")
+        webView.addJavascriptInterface(nativeCpp, "nimview")
         webView.webChromeClient = object : WebChromeClient() {
             //Other methods for your WebChromeClient here, if needed..
             override fun onJsAlert(
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         nativeCpp.init(webView)
-        webView.loadUrl("file:///android_asset/index.html");
+        webView.loadUrl("file:///android_asset/inlined.html");
 
     }
 
