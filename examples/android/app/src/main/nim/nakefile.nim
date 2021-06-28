@@ -21,7 +21,7 @@ var nimviewPath = thisDir / "../../../../../../src/"
 try:
   var nimviewPathTmp = $ osproc.execProcess "nimble path nimview"
   nimviewPathTmp = nimviewPathTmp.replace("\n", "").replace("\\", "/").replace("//", "/")
-  if (nimviewPathTmp != ""):
+  if (nimviewPathTmp != "" and os.dirExists(nimviewPathTmp)):
     nimviewPath = nimviewPathTmp
 except:
   discard
