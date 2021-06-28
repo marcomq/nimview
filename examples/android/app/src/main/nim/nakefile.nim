@@ -26,7 +26,7 @@ try:
 except:
   discard
 
-proc execCmd(command: string) = 
+proc execShCmd(command: string) =
   echo "running: " & command
   doAssert 0 == os.execShellCmd(command)
 
@@ -36,7 +36,7 @@ proc buildCForArch(cpu, path: string) =
   if (headerfile.needsRefresh(mainApp)):
     os.removeDir(cppPath)
     const stdOptions = "--header:" & application & ".h --app:staticlib -d:just_core -d:noSignalHandler -d:release -d:androidNDK -d:noMain --os:android --threads:on "
-    execCmd(nimexe & " cpp -c " & stdOptions & "--cpu:" & cpu & " --nimcache:" & cppPath & " " & mainApp)
+    execShCmd(nimexe & " cpp -c " & stdOptions & "--cpu:" & cpu & " --nimcache:" & cppPath & " " & mainApp)
 
 proc buildC() =
   ## creates python and C/C++ libraries
@@ -50,13 +50,14 @@ proc buildJs() =
   for path in walkDirRec(uiDir):
     src.add(path)
   if ((uiDir / "dist/build/bundle.js").needsRefresh(src)):
-    execCmd("npm run build --prefix " & uiDir)
+    execShCmd("npm install")
+    execShCmd("npm run build")
     os.removeDir("../assets")
     os.createDir("../assets")
     os.copyDir(uiDir & "/dist", "../assets") # maybe not required anymore
 
 task "serve", "Serve NPM":
-  doAssert 0 == os.execShellCmd("npm run serve --prefix " & uiDir)
+  doAssert 0 == os.execShellCmd("npm run serve")
 
 task defaultTask, "Compiles to C":
   os.copyFile(nimbaseDir / "nimbase.h", thisDir / "../cpp" / "nimbase.h")
