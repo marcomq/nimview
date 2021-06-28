@@ -47,8 +47,8 @@ const defaultIndex* =
     "../dist/inlined.html"
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
-  if fileExists(getProjectPath() & defaultIndex):
-    staticRead(getProjectPath() & defaultIndex)
+  if fileExists(getProjectPath() & "/" & defaultIndex):
+    staticRead(getProjectPath() & "/" & defaultIndex)
   else:
     ""
 const useStaticIndexContent =
@@ -111,14 +111,6 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## Per default enabled in release mode.
   ## If false, deactivate global token in release mode.
   useGlobalToken = val
-
-proc dispatchRequest*(request: string, value: string): string =
-  ## Global string dispatcher that will trigger a previously registered functions
-  let callbackFunc = getCallbackFunc(request)
-  result = callbackFunc(%value) # % converts to json
-
-proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
-  result = $dispatchRequest($request, $value)
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND httpserver
@@ -131,6 +123,15 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
     requestLogger.log(logging.lvlInfo, $jsonMessage)
   let callbackFunc = getCallbackFunc(request)
   result = callbackFunc(jsonMessage["data"])
+
+proc dispatchRequest*(request: string, value: string): string =
+  ## Global string dispatcher that will trigger a previously registered functions
+  ## Used for testing or Android
+  let jsonRequest = parseJson("{\"request\":\"" & request & "\", \"data\": " & value & "}")
+  result = dispatchJsonRequest(jsonRequest);
+
+proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
+  result = $dispatchRequest($request, $value)
 
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect folder dialog" if in webview mode and return the selection.
@@ -284,7 +285,7 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
     result[0] = indexHtmlFile[0 ..< separatorFound]
     result[1] = indexHtmlFile[separatorFound .. ^1]
   if (not os.isAbsolute(result[0])):
-    result[0] = getCurrentAppDir() & indexHtmlFile
+    result[0] = getCurrentAppDir() & "/" & indexHtmlFile
 
 proc updateIndexContent(indexHtmlFile: string) =
   if not useStaticIndexContent:
@@ -306,7 +307,7 @@ proc startHttpServer*(indexHtmlFile: string = defaultIndex,
   discard parameter # needs to be inserted into url manually
   when not defined(release):
     if indexContent.isEmptyOrWhitespace():
-      checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
+      checkFileExists(indexHtmlPath, "Required file index not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
   debug "Starting internal webserver on http://" & bindAddr & ":" & $port
   when not defined(release):
