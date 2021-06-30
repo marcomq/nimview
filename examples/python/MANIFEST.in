@@ -1,1 +1,1 @@
-include nimview.nimble nakefile.nim src/nimview.nim src/backend-helper.js nimview.pyd nimview.so
+include nakefile.nim src/library.nim nimview.pyd nimview.so

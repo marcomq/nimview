@@ -15,7 +15,7 @@ targetDir = "nimview"
 rmtree(targetDir, ignore_errors=True)
 os.makedirs(targetDir, exist_ok=True)
 os.makedirs(targetDir + "/src", exist_ok=True)
-srcFiles = [ "src/nimview.nim", "src/backend-helper.js", "nimview.nimble", "nakefile.nim", "LICENSE", "README.md"]
+srcFiles = [ "src/library.nim", "nakefile.nim", "LICENSE", "README.md"]
 for index, fileName in enumerate(srcFiles):
     fullFileName = os.path.join(this_directory, fileName)
     if os.path.isfile(fullFileName):
@@ -47,7 +47,7 @@ class NimBuild(build_ext):
                 print("copy " + fullFileName + " => " + target)
                 copy(fullFileName, target)
 
-        check_call(['nimble', 'install', '-dy'], cwd=self.build_temp)
+        check_call(['nimble', 'install', 'nimview', '-dy'], cwd=self.build_temp)
         print("=> dependencies installed")
         check_call(['nake', 'pyLib'], cwd=self.build_temp, shell=True)
         print("=> pyLib created")
