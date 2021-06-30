@@ -1,6 +1,6 @@
 {
   "name": "nimview",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "This package is part of marcomq/nimview",
   "main": "nimview.js",
   "scripts": {

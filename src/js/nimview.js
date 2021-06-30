@@ -71,7 +71,7 @@ ui.callRequest = async (request, signature, data) => {
             requestOpts.headers["global-token"] = ui.globalToken
         }
         if (data.length != Math.min(signature.length, signature.split(",").length) && console && console.log) {
-            console.log("Request signature might not fit: '" & request & "' signature: '" & signature & "' data: '" & JSON.stringify(data) & "'") 
+            console.log("Request signature might not fit: '" + request + "' signature: '" + signature + "' data: '" + JSON.stringify(data) & "'") 
         }
         return fetch(host + "/" + url, requestOpts).then((response) => {
             if (response) {

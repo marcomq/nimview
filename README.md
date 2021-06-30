@@ -175,6 +175,11 @@ But if you want to change code easily, the development workflow would be:
 - change your back-end code and re-run `nim c -r -d:debug src/App.nim` or restart the VS Code debugger
 - keep in mind that http://localhost:5000 is only a development url, the Javascript generated for production would be reachable by default at http://localhost:8000
 
+## Components as diagram
+
+![nimview](https://user-images.githubusercontent.com/62469331/124002547-2ca26100-d9d6-11eb-955a-86954a016b69.png)
+
+
 ### Why Nim
 Nim is actually some great "batteries included" helper. It is similar readable as python, has some cool Json / HTTP Server / Webview modules 
 but creates plain C Code that can be compiled by gcc compilers to optimized machine code. 

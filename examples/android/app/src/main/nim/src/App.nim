@@ -1,6 +1,7 @@
-import nimview
+import nimview, os
 
 when isMainModule:
-  enableStorage() # adds getStoredVal and setStoredVal
+  var sdCard = os.getenv("EXTERNAL_STORAGE", "/sdcard")
+  enableStorage(sdCard & "/storage.json") # adds getStoredVal and setStoredVal
   when not defined(just_core):
     nimview.start()

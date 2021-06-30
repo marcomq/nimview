@@ -197,7 +197,9 @@ namespace nimview {
     };
     auto dispatchCommandLineArg = ::nimview_dispatchCommandLineArg;
     auto readAndParseJsonCmdFile = ::nimview_readAndParseJsonCmdFile;
-    auto enableStorage = ::nimview_enableStorage;
+    void enableStorage(const std::string &fileName = "storage.js") {
+        ::nimview_enableStorage(const_cast<char*>(fileName.c_str()));
+    }
     auto addRequest_void = ::nimview_addRequest;
     auto addRequest_rstr = ::nimview_addRequest_rstr;
     auto addRequest_cstring = ::nimview_addRequest_cstring;

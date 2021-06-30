@@ -11,11 +11,14 @@ import tables, locks
 var storageLock: Lock
 initLock storageLock
 var storage {.guard: storageLock.} = Table[string, string]()
+var storageFile: string = "storage.json"
 
-proc initStorage*() =
+proc initStorage*(fileName: string = "") =
   try:
-    if os.fileExists("storage.json"):
-      var storageString = system.readFile("storage.json")
+    if fileName != "":
+      storageFile = fileName
+    if os.fileExists(storageFile):
+      var storageString = system.readFile(storageFile)
       if not storageString.isEmptyOrWhitespace():
         withLock storageLock:
           storage = storageString.parseJson().jsonTo(typeof storage)
@@ -42,6 +45,6 @@ proc setStoredVal*(key, value: string): string =
       {.gcsafe.}:
         storageCopy = deepCopy(storage)
     let jsonOutput: JsonNode = storageCopy.toJson()
-    system.writeFile("storage.json", $jsonOutput)
+    system.writeFile(storageFile, $jsonOutput)
   except:
     echo "error setting storage key '" & key & "': " & getCurrentExceptionMsg()
