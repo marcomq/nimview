@@ -227,7 +227,6 @@ proc getRequests(): string =
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
   reqMapStore.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
-      echo request
       result = callbackFunc[].nimCallback
     except:
       raise newException(ServerException, "Server error calling request '" & 

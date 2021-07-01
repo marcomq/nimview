@@ -118,7 +118,7 @@
     <IncludePath>$(IncludePath);$(ProjectDir);$(SolutionDir)/out/tmp_dll</IncludePath>
     <LibraryPath>$(SolutionDir)/out;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)/out</OutDir>
-    <TargetName>cpp_vs_sample</TargetName>
+    <TargetName>cpp_vs_sample_debug</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -194,7 +194,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libnimview.a;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)_debug.exe</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName).exe</OutputFile>
     </Link>
     <PreBuildEvent>
       <Command>nake libs</Command>
