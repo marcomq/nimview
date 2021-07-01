@@ -1,4 +1,4 @@
-version     = "0.2.1"
+version     = "0.2.2"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
