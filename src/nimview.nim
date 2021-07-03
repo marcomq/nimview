@@ -76,7 +76,7 @@ when not defined(just_core):
         elif (values.kind != JNull):
           argSeq.add(parseAny[string](values).toPyObjectArgument())
         result = callback(argSeq),
-      "[values]")
+      "array")
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".

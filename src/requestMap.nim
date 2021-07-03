@@ -99,7 +99,7 @@ proc addRequest_argc_argv_rstr*(crequest: cstring,
         finally:
           deallocCStringArray(cParams)
       ,
-      "argc,argv")
+      "argc, array")
 
 macro generateCExportsForParams(exportParams: typed): untyped =
   result = newStmtList()
