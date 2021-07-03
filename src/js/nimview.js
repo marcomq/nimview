@@ -12,6 +12,7 @@ if (typeof window.ui !== "object") {
     ui.copyright = "© Copyright 2021, by Marco Mengelkoch"
     ui.resolveStorage = {}
     ui.requestCounter = 0
+    ui.waitCounter = 0
     ui.initStarted = false
     ui.initFinished = false
     ui.initFailed = false
@@ -131,6 +132,17 @@ ui.rejectResponse = (requestId) => {
     }
 }
 ui.initRequests = (async () => {
+    if (ui.waitCounter > 30) {
+        ui.alert("API timeout")
+        return
+    }
+    if (window.location.href.indexOf("file:/") == 0) {
+        if (typeof window.nimview === 'undefined') {
+            window.setTimeout(ui.initRequests, 50)
+            ui.waitCounter += 1
+            return
+        }
+    }
     if (ui.initStarted == false) {
         ui.initStarted = true
         await ui.callRequest("getGlobalToken", "", []).then((resp) => {
