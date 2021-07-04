@@ -68,7 +68,11 @@ namespace nimview {
         return "cstring";
     }
 
-    template <> std::string typeName<__int64>() {
+    template <> std::string typeName<int_least64_t>() {
+        return "int";
+    }   
+
+    template <> std::string typeName<int>() {
         return "int";
     }   
     
