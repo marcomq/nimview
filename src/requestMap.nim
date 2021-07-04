@@ -81,7 +81,8 @@ proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
 proc addRequest_argc_argv_rstr*(crequest: cstring, 
       callback: proc(argc: cint, argv: cstringArray): cstring {.cdecl.},
-      freeFunc: proc(value: pointer) {.cdecl.} = free_c) {.exportc: "nimview_$1".} =
+      freeFunc: proc(value: pointer) {.cdecl.} = free_c,
+      signature: cstring = "argc, array") {.exportc: "nimview_$1".} =
     let request = $crequest
     addRequest(request, proc (values: JsonNode): string =
         var params = newSeq[string](values.len + 1)
@@ -99,7 +100,7 @@ proc addRequest_argc_argv_rstr*(crequest: cstring,
         finally:
           deallocCStringArray(cParams)
       ,
-      "argc, array")
+      $signature)
 
 macro generateCExportsForParams(exportParams: typed): untyped =
   result = newStmtList()

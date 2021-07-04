@@ -8,6 +8,7 @@ let mainApp = srcDir /   "library.nim"
 let srcFiles = [mainApp]
 let buildDir = "out"
 let thisDir = system.currentSourcePath().parentDir() 
+let cDllExtension = when defined(windows): "dll" else: "so"
 
 os.createDir buildDir
 
@@ -38,13 +39,11 @@ if (not os.fileExists(nimbaseDir & "/nimbase.h")):
 if (not os.fileExists(nimbaseDir & "/nimbase.h")):
   nimbaseDir = parentDir(nimbleDir) & "/.choosenim/toolchains/nim-" & system.NimVersion & "/lib"
 var nimviewPath = thisDir / "../../src/" 
-try: 
+if not os.dirExists(nimviewPath):
   var nimviewPathTmp = $ osproc.execProcess "nimble path nimview"
   nimviewPathTmp = nimviewPathTmp.replace("\n", "").replace("\\", "/").replace("//", "/")
   if (nimviewPathTmp != "" and os.dirExists(nimviewPathTmp)):
     nimviewPath = nimviewPathTmp
-except:
-  discard
 
 proc execNim(command: string) = 
   echo "running: nim " & command
@@ -72,7 +71,6 @@ proc buildCppSample() =
 
 proc buildDll() = 
   ## C/C++ libraries
-  let cDllExtension = when defined(windows): "dll" else: "c.so"
   let outputLib = buildDir / library & "." & cDllExtension
   if (thisDir / buildDir / "tmp_dll" / headerFile).needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_dll")
@@ -117,6 +115,8 @@ task "cpp", "Build CPP sample":
   buildGenericObjects()
   buildCPPSample()
 
+task "clean", "clean all files":
+  os.removeDir(buildDir)
 
 task "test", "Run tests":
   runTests()

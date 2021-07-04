@@ -57,13 +57,19 @@ const useStaticIndexContent =
   else:
     false
 
-proc enableStorage*(fileName: cstring = "storage.json") {.exportc: "nimview_$1".} =
+proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Registers "getStoredVal" and "setStoredVal" as requests
   ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
   ## Use "backend.getStoredVal(key)" in js to read a stored value
   initStorage($fileName)
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
+
+proc enableStorage*()  =
+  ## Registers "getStoredVal" and "setStoredVal" as requests
+  ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
+  ## Use "backend.getStoredVal(key)" in js to read a stored value
+  enableStorage("storage.json")
 
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =

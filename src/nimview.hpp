@@ -57,6 +57,27 @@ namespace nimview {
     template <>
     const char* lexicalCast(const char* str) {
         return str;
+    }    
+    
+    template <typename T>
+    std::string typeName() {
+        return "value";
+    }
+
+    template<> std::string typeName<const char*>() {
+        return "cstring";
+    }
+
+    template <> std::string typeName<__int64>() {
+        return "int";
+    }   
+    
+    template <> std::string typeName<std::string>() {
+        return "string";
+    }
+
+    template <> std::string typeName<double>() {
+        return "double";
     }
 
     char* findAndCall(int argc, char** argv) {
@@ -107,7 +128,9 @@ namespace nimview {
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+        std::string signature = typeName<T1>() + ", " + typeName<T2>() + ", " + typeName<T3>() + ", " + typeName<T4>();
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+            findAndCall, free, const_cast<char*>(signature.c_str()));
     }
     
     template<typename T1, typename T2, typename T3> 
@@ -120,7 +143,9 @@ namespace nimview {
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+        std::string signature = typeName<T1>() + ", " + typeName<T2>() + ", " + typeName<T3>();
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+            findAndCall, free, const_cast<char*>(signature.c_str()));
     }
     
     template<typename T1, typename T2> 
@@ -133,7 +158,9 @@ namespace nimview {
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+        std::string signature = typeName<T1>() + ", " + typeName<T2>();
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+            findAndCall, free, const_cast<char*>(signature.c_str()));
     }  
 
     template<typename T1> 
@@ -146,7 +173,9 @@ namespace nimview {
             return strToNewCharPtr(result);
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+        std::string signature = typeName<T1>();
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+            findAndCall, free, const_cast<char*>(signature.c_str()));
     }
 
     void addRequest(const std::string &request, const std::function<std::string(void)> &callback) {
@@ -154,7 +183,7 @@ namespace nimview {
             return strToNewCharPtr(callback());
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free);
+        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free, "void");
     }
 
 #ifndef JUST_CORE
