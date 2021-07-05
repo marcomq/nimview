@@ -13,6 +13,14 @@ on:
     
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp', 'javascript', 'python' ]
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
@@ -32,11 +40,20 @@ jobs:
         run: |
           brew install gcc python && pip install pathlib
       # Runs a set of commands using the runners shell
+          
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: ${{ matrix.language }}
+          
       - name: Test
         run: |
           nim --version
           nimble install -d -y --noSSLCheck --verbose
           nimble test -y
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
           
       - name: Release
         uses: softprops/action-gh-release@v1
