@@ -10,11 +10,11 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_nimviewAndroid_NativeCpp_callNim(
         JNIEnv* env,
         jobject /* this */, jstring request, jstring value) {
-    char* cRequest = const_cast<char*>(env->GetStringUTFChars(request, nullptr));
-    char* cValue = const_cast<char*>(env->GetStringUTFChars(value, nullptr));
+    const char* cRequest = env->GetStringUTFChars(request, nullptr);
+    const char* cValue = env->GetStringUTFChars(value, nullptr);
     std::string result;
     try {
-        result = nimview::dispatchRequest(cRequest, cValue);
+        result = nimview::dispatchRequest(std::string(cRequest), std::string(cValue));
     }
     catch(...) {
         __android_log_write(ANDROID_LOG_ERROR, "Nimview", ("Exception during request " + std::string(cRequest)).c_str());

@@ -48,7 +48,7 @@ proc buildJs() =
   for path in walkDirRec(uiDir):
     if path.endsWith("js") or path.endsWith("svelte") or path.endsWith("jsx")  or path.endsWith("vue"):
       src.add(path)
-  if ((thisDir / "dist/inlined.html").needsRefresh(src)):
+  if ((thisDir / "dist/build/bundle.js").needsRefresh(src)):
     execShCmd("npm install")
     execShCmd("npm run build")
     os.removeDir("../assets")
@@ -57,6 +57,14 @@ proc buildJs() =
 
 task "serve", "Serve NPM":
   doAssert 0 == os.execShellCmd("npm run serve")
+
+task "clean", "cleanup files":
+  os.removeFile(thisDir / "dist/build/bundle.js")
+  os.removeDir("../assets")
+  os.removeDir("../cpp/arm64-v8a")
+  os.removeDir("../cpp/armeabi-v7a")
+  os.removeDir("../cpp/x86")
+  os.removeDir("../cpp/x86_64")
 
 task defaultTask, "Compiles to C":
   os.copyFile(nimbaseDir / "nimbase.h", thisDir / "../cpp" / "nimbase.h")

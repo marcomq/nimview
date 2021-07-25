@@ -8,7 +8,7 @@
     "url": "git+https://github.com/marcomq/nimview.git"
   },
   "scripts": {
-    "build": "rollup -c && inliner -m --videos --preserve-comments dist/index.html > dist/inlined.html",
+    "build": "rollup -c",
     "devbuild": "rollup -c",
     "autobuild": "rollup -c -w",
     "dev": "run-p start:dev autobuild",

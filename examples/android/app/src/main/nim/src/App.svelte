@@ -58,35 +58,35 @@
 					</div>
 				</form>
 				{#if items.length > 0}
-				<ul id="sortable" class="list-unstyled">
-				{#each items as item}
-					<li class="ui-state-default">
-						<label>
-							<input type="checkbox"  id="todo-{item.id}"
-								on:click={() => {
-									item.completed = !item.completed
-									storeAll()
-								}} 
-								checked="{item.completed}" />{item.text}
-						</label>
-						<a href={"#"} on:click|preventDefault={ () => deleteItem(item.id)} title="delete" class="delete float-right">x</a>
-					</li>
-				{/each}
-				</ul>
-				<div class="footer">
-					<div class="float-left">
-						<strong><span class="count-todos">{items.length}</span></strong>
-						{#if items.length == 1}
-						Item
-						{:else}
-						Items
-						{/if}
+					<ul id="sortable" class="list-unstyled">
+					{#each items as item}
+						<li class="ui-state-default">
+							<label>
+								<input type="checkbox"  id="todo-{item.id}"
+									on:click={() => {
+										item.completed = !item.completed
+										storeAll()
+									}} 
+									checked="{item.completed}" />{item.text}
+							</label>
+							<a href={"#"} on:click|preventDefault={ () => deleteItem(item.id)} title="delete" class="delete float-right">x</a>
+						</li>
+					{/each}
+					</ul>
+					<div class="footer">
+						<div class="float-left">
+							<strong><span class="count-todos">{items.length}</span></strong>
+							{#if items.length == 1}
+								Item
+							{:else}
+								Items
+							{/if}
+						</div>
+						<div class="float-right">
+							<button id="uncheckAll" on:click={uncheckAll} class="btn btn-outline-success">Un-check all</button>
+							<button id="checkAll" on:click={checkAll} class="btn btn-outline-success">All done</button>
+						</div>
 					</div>
-					<div class="float-right">
-						<button id="uncheckAll" on:click={uncheckAll} class="btn btn-outline-success">Un-check all</button>
-						<button id="checkAll" on:click={checkAll} class="btn btn-outline-success">All done</button>
-					</div>
-				</div>
 				{/if}
 			</div>
 		</div>

@@ -92,7 +92,7 @@ proc enableRequestLogger*() {.exportpy.} =
     if not os.fileExists("requests.log"):
       var createFile = system.open("requests.log", system.fmWrite)
       createFile.close()
-    var requestLoggerTmp = newFileLogger("requests.log", fmtStr = "")
+    var requestLoggerTmp = newFileLogger("requests.log", fmtStr="",bufSize=0)
 
     requestLogger.swap(requestLoggerTmp)
   requestLogger.levelThreshold = logging.lvlAll

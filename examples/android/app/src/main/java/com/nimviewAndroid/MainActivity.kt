@@ -19,15 +19,6 @@ class MainActivity : AppCompatActivity() {
         this.getSupportActionBar()?.hide()
 
         webView = findViewById(R.id.webview)
-        /* webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                if(Uri.parse(url).getHost().isNullOrEmpty()) {
-                    return false;
-                }
-                view?.loadUrl(url)
-                return true
-            }
-        }*/
         val settings = webView.getSettings()
         settings.setJavaScriptEnabled(true)
         settings.setDomStorageEnabled(true)
@@ -45,7 +36,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         nativeCpp.init(webView)
-        webView.loadUrl("file:///android_asset/inlined.html");
+        webView.loadUrl("file:///android_asset/index.html");
 
     }
 
