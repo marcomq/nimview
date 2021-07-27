@@ -34,7 +34,7 @@ template withStringFailover[T](value: JsonNode, jsonType: JsonNodeKind, body: un
     if value.kind == jsonType:
       body
     elif value.kind == JString:
-      result = fromStr[T](value.getStr())
+      result = fromStr[T](getStr(value))
     else: 
       result = fromStr[T]($value)
 
@@ -212,7 +212,10 @@ proc addRequest*[T1, T2, T3, T4, T5, R](request: string, callback: proc(value1: 
         raise newException(ServerException, "Called request '" & request & "' contains less than 5 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4) & ", " & name(T5))
 
-proc addRequest*(request: string, callback: proc(): string|void) =
+proc addRequest*(request: string, callback: proc(): string) =
+  addRequest(request, proc (values: JsonNode): string = callback(), "")
+  
+proc addRequest*(request: string, callback: proc(): void) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
   
 #proc addRequest*(request: string, callback: proc(value: string): string|void) =

@@ -51,3 +51,5 @@ task test, "Run tests":
   exec  nake & " test"
   cd baseDir / "examples/python"
   exec  nake & " test"
+  cd baseDir
+  exec "testament run tests/requests.nim"
