@@ -26,6 +26,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 - [Javascript and HTML UI](#javascript-and-html-ui)
 - [Exchange data with UI](#exchange-data-with-ui)
 - [Development workflow](#development-workflow)
+- [Inline HTML to single binary](#inline-html-to-single-binary)
 - [Why Nim](#why-nim)
 - [Which JS framework for UI](#which-js-framework-for-ui)
 - [Nimview vs Electron or CEF](#nimview-vs-electron-or-cef)
@@ -174,6 +175,20 @@ But if you want to change code easily, the development workflow would be:
 - change your front-end code, the page will reload automatically
 - change your back-end code and re-run `nim c -r -d:debug src/App.nim` or restart the VS Code debugger
 - keep in mind that http://localhost:5000 is only a development url, the Javascript generated for production would be reachable by default at http://localhost:8000
+
+## Inline HTML to single binary
+Nimview doesn't automatically create a single executable that contains the user interface 
+for all possible scenarios. Nimview currently adds `dist/inlined.html`
+to the binary - and only in release mode. This HTML file shouldn't contain any 
+external dependencies like css, images 
+javascript as these wouldn't be included in the executable binary.
+You can use an inliner to inline your external dependencies. Check the svelte_todo exampple
+for this. There is a "npm build" command in packages.js which calls an inliner to
+scan dist/index.html and write the output to `dist/inlined.html`. For very small projects,
+you may even use an inlined HTML file directly.
+
+Keep in mind that these inlined HTML files might also be hard to debug if they contain
+javascript - so you should still have some way to just open the un-inlined index.html file.
 
 ## Components as diagram
 
