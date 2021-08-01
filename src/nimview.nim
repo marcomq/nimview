@@ -30,10 +30,10 @@ else:
 type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
-import globalToken
-import storage
+import nimview/globalToken
+import nimview/storage
 export storage
-include requestMap
+include nimview/requestMap
 
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
@@ -497,7 +497,7 @@ when isMainModule:
   main()
 
 when defined(nimHasUsed):
-  # 'import debughelper' is so useful for debugging
+  # 'import nimview' is already doing stuff, so
   # that Nim shouldn't produce a warning for that import,
   # even if currently unused:
   {.used.}

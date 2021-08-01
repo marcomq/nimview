@@ -4,7 +4,8 @@
 # git clone https://github.com/marcomq/nimview
 
 import tables, json, os, strformat, strutils
-import nimview, typetraits
+import typetraits
+import ../nimview
 import logging
 import macros except error
 
