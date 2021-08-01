@@ -3,8 +3,10 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import tables, json, os, strformat, macros, strutils
+import tables, json, os, strformat, strutils
 import nimview, typetraits
+import logging
+import macros except error
 
 type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
@@ -75,7 +77,7 @@ proc addRequest*(request: string, callback: proc(values: JsonNode): string, jsSi
   ## Notice for python: There is no check for correct function signature!
   {.gcsafe.}:
     reqMapStore[request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
-    echo "Adding request " & request
+    info "Adding request " & request
 
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
 
@@ -96,7 +98,7 @@ proc addRequest_argc_argv_rstr*(crequest: cstring,
           if resultPtr != "":
             freeFunc(resultPtr)
         except:
-          echo "Internal error calling '" & request & "'"
+          logging.error "Internal error calling '" & request & "'"
         finally:
           deallocCStringArray(cParams)
       ,
@@ -191,7 +193,7 @@ proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: 
 proc addRequest*[T1, T2, T3, R](request: string, callback: proc(value1: T1, value2: T2, value3: T3): R) =
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 2:
-        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]))
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3))
@@ -199,7 +201,7 @@ proc addRequest*[T1, T2, T3, R](request: string, callback: proc(value1: T1, valu
 proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4): R) =
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 3:
-        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]), parseAny[T4](values[4]))
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]), parseAny[T4](values[3]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 4 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4))
@@ -207,7 +209,7 @@ proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, 
 proc addRequest*[T1, T2, T3, T4, T5, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4, value5: T5): R) =
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 4:
-        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[3]), parseAny[T4](values[4]), parseAny[T5](values[5]))
+        callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]), parseAny[T4](values[3]), parseAny[T5](values[4]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 5 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4) & ", " & name(T5))

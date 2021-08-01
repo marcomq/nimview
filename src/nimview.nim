@@ -40,22 +40,53 @@ var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
 var httpServerRunning = true
 
-const defaultIndex* = 
-  when defined(debug):
+type NimviewSettings = object
+  indexHtmlFile: string
+  port: int
+  bindAddr: string
+  title: string
+  width: int
+  height: int
+  resizable: bool
+  debug: bool
+  useStaticIndexContent: bool
+
+const defaultIndex = 
+  when not defined(release):
     "../dist/index.html"
   else:
     "../dist/inlined.html"
+
+proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
+        bindAddr: string = "localhost", title: string = "nimview",
+        width: int = 640, height: int = 480, resizable: bool = true): NimviewSettings =
+  result.indexHtmlFile = indexHtmlFile
+  result.port = port
+  result.bindAddr = bindAddr
+  result.title = title
+  result.width = width
+  result.height = height
+  result.resizable = resizable
+  result.debug = not defined release
+  result.useStaticIndexContent =
+    when declared(doNotLoadIndexContent):
+      true
+    else:
+      false
+
+
+const defaultSettings = initSettings()
+var settings* = defaultSettings.deepCopy()
+
+logging.addHandler(newConsoleLogger())
+
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
-  if fileExists(getProjectPath() & "/" & defaultIndex):
-    staticRead(getProjectPath() & "/" & defaultIndex)
+  if fileExists(getProjectPath() & "/" & defaultSettings.indexHtmlFile):
+    staticRead(getProjectPath() & "/" & defaultSettings.indexHtmlFile)
   else:
     ""
-const useStaticIndexContent =
-  when declared(doNotLoadIndexContent):
-    true
-  else:
-    false
+
 
 proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Registers "getStoredVal" and "setStoredVal" as requests
@@ -96,8 +127,6 @@ proc enableRequestLogger*() {.exportpy.} =
 
     requestLogger.swap(requestLoggerTmp)
   requestLogger.levelThreshold = logging.lvlAll
-
-logging.addHandler(newConsoleLogger())
 
 proc disableRequestLogger*() {.exportpy.} =
   ## Will stop to log to "requests.log" (default)
@@ -162,8 +191,10 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
     warn "Request is unknown in " & escapedArgv
   except ServerException:
      warn "Error calling function, args: " & escapedArgv
+  except JsonParsingError:
+     warn "Error in json parsing, args: " & escapedArgv
   except:
-    warn "Error during specific line arg: " & escapedArgv
+    warn "Error calling line arg: " & escapedArgv & ", " & getCurrentExceptionMsg()
 
 proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc: "nimview_$1".} =
   result = $dispatchCommandLineArg($escapedArgv)
@@ -294,18 +325,18 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
     result[0] = getCurrentAppDir() & "/" & indexHtmlFile
 
 proc updateIndexContent(indexHtmlFile: string) =
-  if not useStaticIndexContent:
+  if not settings.useStaticIndexContent:
     if os.fileExists(indexHtmlFile):
-      if (not indexHtmlFile.contains(defaultIndex.replace("../", "")) or
+      if (not indexHtmlFile.contains(defaultSettings.indexHtmlFile.replace("../", "")) or
         (os.getFileSize(indexHtmlFile) != indexContentStatic.len)):
         indexContent = system.readFile(indexHtmlFile)
   if indexContent.isEmptyOrWhitespace:
-    debug "Using default " & defaultIndex
+    debug "Using default " & defaultSettings.indexHtmlFile
     indexContent = indexContentStatic
 
-proc startHttpServer*(indexHtmlFile: string = defaultIndex, 
-    port: int = 8000,
-    bindAddr: string = "localhost") {.exportpy.} =
+proc startHttpServer*(indexHtmlFile: string = settings.indexHtmlFile, 
+    port: int = settings.port,
+    bindAddr: string = settings.bindAddr) {.exportpy.} =
   ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
   ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
   let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
@@ -337,13 +368,13 @@ proc startHttpServer*(indexHtmlFile: string = defaultIndex,
   # debug "open default browser"
   # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
 
-proc startHttpServer*(indexHtmlFile: cstring, 
-    port: int = 8000,
-    bindAddr: cstring = "localhost") {.exportc: "nimview_$1".} = 
+proc startHttpServer*(indexHtmlFile: cstring = settings.indexHtmlFile, 
+    port: cint = settings.port.cint,
+    bindAddr: cstring = settings.bindAddr) {.exportc: "nimview_$1".} = 
   startHttpServer($indexHtmlFile, port, $bindAddr)
 
 proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
-  ## Will stop the Http server - will not wait for stop
+  ## Will stop the Http server async - will not wait for stop
   httpServerRunning = false
 
 when not defined(just_core):
@@ -359,6 +390,11 @@ when not defined(just_core):
       debug "stopping ..."
       if not myWebView.isNil():
         myWebView.terminate()
+
+  proc stop*() {.exportpy, exportc: "nimview_$1".} =
+    ## Will stop the Http server - will not wait for stop
+    stopHttpServer()
+    stopDesktop()
 
   proc startDesktopWithUrl(url: string, title: string, width: int, height: int, 
       resizable: bool, debug: bool)  =
@@ -390,10 +426,10 @@ when not defined(just_core):
       myWebView.exit()
       dealloc(myWebView)
 
-  proc startDesktop*(indexHtmlFile: string = defaultIndex, 
-        title: string = "nimview",
-        width: int = 640, height: int = 480, resizable: bool = true,
-        debug: bool = defined(release)) {.exportpy.} = 
+  proc startDesktop*(indexHtmlFile: string = settings.indexHtmlFile, 
+        title: string = settings.title,
+        width: int = settings.width, height: int = settings.height, resizable: bool = settings.resizable,
+        debug: bool = settings.debug) {.exportpy.} = 
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
     discard parameter
@@ -408,15 +444,16 @@ when not defined(just_core):
       debug "Starting desktop with file url"
       startDesktopWithUrl("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug)
 
-  proc startDesktop*(indexHtmlFile: cstring, 
-        title: cstring = "nimview",
-        width: cint = 640, height: cint = 480, resizable: cint = 1,
-        debug: cint = 0) {.exportc: "nimview_$1".} = 
+  proc startDesktop*(indexHtmlFile: cstring = settings.indexHtmlFile, 
+        title: cstring = settings.title,
+        width: cint = settings.width.cint, height: cint = settings.height.cint, resizable: cint = settings.resizable.cint,
+        debug: cint = settings.debug.cint) {.exportc: "nimview_$1".} = 
       startDesktop($indexHtmlFile, $title, width, height, cast[bool](resizable), cast[bool](debug))
 
-  proc start*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
-        bindAddr: string = "localhost", title: string = "nimview",
-        width: int = 640, height: int = 480, resizable: bool = true) {.exportpy.} =
+  proc start*(indexHtmlFile: string = settings.indexHtmlFile, port: int = settings.port, 
+        bindAddr: string = settings.bindAddr, title: string = settings.title,
+        width: int = settings.width, height: int = settings.height, 
+        resizable: bool = settings.resizable) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
     ## The debug mode information will not be available for python or dll.
@@ -428,9 +465,10 @@ when not defined(just_core):
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable)
 
-  proc start*(indexHtmlFile: cstring, port: cint = 8000, 
-        bindAddr: cstring = "localhost", title: cstring = "nimview",
-        width: cint = 640, height: cint = 480, resizable: cint = 1) {.exportc: "nimview_$1".} =
+  proc start*(indexHtmlFile: cstring = settings.indexHtmlFile, port: cint = settings.port.cint, 
+        bindAddr: cstring = settings.bindAddr, title: cstring = settings.title,
+        width: cint = settings.width.cint, height: cint = settings.width.cint, 
+        resizable: cint = settings.resizable.cint) {.exportc: "nimview_$1".} =
       start($indexHtmlFile, port, $bindAddr, $title, width, height, cast[bool](resizable))
 
 when isMainModule:

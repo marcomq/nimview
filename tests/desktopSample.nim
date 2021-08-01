@@ -1,8 +1,3 @@
-# Nimview UI Library 
-# Copyright (C) 2020, 2021, by Marco Mengelkoch
-# Licensed under MIT License, see License file for more details
-# git clone https://github.com/marcomq/nimview
-
 discard """
   action: "compile"
 """

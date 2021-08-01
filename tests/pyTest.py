@@ -31,5 +31,5 @@ nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"value\":[],\"re
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"value\":[],\"responseId\":4}") 
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify3\",\"value\":[\"first\",\"second\"],\"responseId\":5}") 
 nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"value\":\"\",\"responseId\":6}")
-print ("all tests passed")
+print ("python test passed")
 # nimview.startDesktop("tests/minimal_ui_sample/index.html")

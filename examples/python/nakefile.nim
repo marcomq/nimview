@@ -46,4 +46,4 @@ task "pyLib", "Build python lib":
 
 task "test", "Run tests":
   runTests()
-  echo "all tests passed"
+  echo "all python tests passed"

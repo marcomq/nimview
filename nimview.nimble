@@ -48,8 +48,9 @@ task test, "Run tests":
   let baseDir = thisDir()
   cd baseDir / "examples/c_cpp"
   let nake = system.findExe("nake")
-  exec  nake & " test"
+  exec nake & " test"
   cd baseDir / "examples/python"
-  exec  nake & " test"
+  exec nake & " test"
   cd baseDir
-  exec "testament run tests/requests.nim"
+  exec "testament pattern tests/*.nim"
+  echo "All tests passed"

@@ -120,4 +120,4 @@ task "clean", "clean all files":
 
 task "test", "Run tests":
   runTests()
-  echo "all tests passed"
+  echo "all C/C++ tests passed"
