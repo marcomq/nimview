@@ -496,3 +496,8 @@ when isMainModule:
         # startHttpServer(indexHtmlFile)
   main()
 
+when defined(nimHasUsed):
+  # 'import debughelper' is so useful for debugging
+  # that Nim shouldn't produce a warning for that import,
+  # even if currently unused:
+  {.used.}

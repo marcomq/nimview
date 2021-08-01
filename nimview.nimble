@@ -52,5 +52,5 @@ task test, "Run tests":
   cd baseDir / "examples/python"
   exec nake & " test"
   cd baseDir
-  exec "testament pattern tests/*.nim"
+  exec "testament pattern \"tests/*.nim\""
   echo "All tests passed"
