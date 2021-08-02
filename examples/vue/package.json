@@ -19,7 +19,7 @@
     "@vue/cli-plugin-babel": "^4.5.12",
     "@vue/cli-plugin-eslint": "^4.5.12",
     "@vue/cli-service": "^4.5.12",
-    "@tauri-apps/tauri-inliner": "^1.14.1",
+    "@tauri-apps/tauri-inliner": "^1.13.2",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.8.0",
     "eslint-plugin-vue": "^6.2.2",

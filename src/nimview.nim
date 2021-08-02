@@ -368,7 +368,7 @@ proc startHttpServer*(indexHtmlFile: string = settings.indexHtmlFile,
   # debug "open default browser"
   # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
 
-proc startHttpServer*(indexHtmlFile: cstring = settings.indexHtmlFile, 
+proc startHttpServer*(indexHtmlFile: cstring, 
     port: cint = settings.port.cint,
     bindAddr: cstring = settings.bindAddr) {.exportc: "nimview_$1".} = 
   startHttpServer($indexHtmlFile, port, $bindAddr)
@@ -444,7 +444,7 @@ when not defined(just_core):
       debug "Starting desktop with file url"
       startDesktopWithUrl("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug)
 
-  proc startDesktop*(indexHtmlFile: cstring = settings.indexHtmlFile, 
+  proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = settings.title,
         width: cint = settings.width.cint, height: cint = settings.height.cint, resizable: cint = settings.resizable.cint,
         debug: cint = settings.debug.cint) {.exportc: "nimview_$1".} = 
@@ -465,11 +465,17 @@ when not defined(just_core):
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable)
 
-  proc start*(indexHtmlFile: cstring = settings.indexHtmlFile, port: cint = settings.port.cint, 
+  proc start*(indexHtmlFile: cstring, port: cint = settings.port.cint, 
         bindAddr: cstring = settings.bindAddr, title: cstring = settings.title,
         width: cint = settings.width.cint, height: cint = settings.width.cint, 
         resizable: cint = settings.resizable.cint) {.exportc: "nimview_$1".} =
       start($indexHtmlFile, port, $bindAddr, $title, width, height, cast[bool](resizable))
+  
+  proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
+    ## Use gtk mode without borders, only works on linux and only in desktop mode
+    when defined(linux): 
+      if not myWebView.isNil():
+        {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
 
 when isMainModule:
   proc main() =
