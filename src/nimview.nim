@@ -18,10 +18,10 @@ when not defined(just_core):
   # import browsers
   when compileWithWebview:
     import webview except debug
-    var myWebView: Webview
+    var myWebView*: Webview
 else:
   const compileWithWebview = false
-  var myWebView: pointer = nil
+  var myWebView*: pointer = nil
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -73,7 +73,6 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
       true
     else:
       false
-
 
 const defaultSettings = initSettings()
 var nimviewSettings* = defaultSettings.deepCopy()
@@ -400,7 +399,8 @@ when not defined(just_core):
       resizable: bool, debug: bool)  =
     when compileWithWebview:
       # var fullScreen = true
-      myWebView = webview.newWebView(title, url, width,
+      if myWebView.isNil:
+        myWebView = webview.newWebView(title, url, width,
            height, resizable = resizable, debug = debug)
       myWebView.bindProc("nimview", "alert", proc (message: string) =
         {.gcsafe.}:
@@ -428,7 +428,8 @@ when not defined(just_core):
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
-        width: int = nimviewSettings.width, height: int = nimviewSettings.height, resizable: bool = nimviewSettings.resizable,
+        width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
+        resizable: bool = nimviewSettings.resizable,
         debug: bool = nimviewSettings.debug) {.exportpy.} = 
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
@@ -446,7 +447,8 @@ when not defined(just_core):
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = nimviewSettings.title,
-        width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.height.cint, resizable: cint = nimviewSettings.resizable.cint,
+        width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.height.cint, 
+        resizable: cint = nimviewSettings.resizable.cint,
         debug: cint = nimviewSettings.debug.cint) {.exportc: "nimview_$1".} = 
       startDesktop($indexHtmlFile, $title, width, height, cast[bool](resizable), cast[bool](debug))
 
