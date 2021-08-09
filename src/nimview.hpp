@@ -191,15 +191,15 @@ namespace nimview {
     }
 
 #ifndef JUST_CORE
-    void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false)  {
+    void startDesktop(const char* folder, const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false, bool run = true)  {
         nimMain();
-        ::nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug);
+        ::nimview_startDesktop(const_cast<char*>(folder), const_cast<char*>(title), width, height, resizable, debug, run);
     };
-    void startHttpServer(const char* folder, int port = 8000, const char* bindAddr = "localhost")  { 
+    void startHttpServer(const char* folder, int port = 8000, const char* bindAddr = "localhost", bool run = true)  { 
         nimMain();
-        ::nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr));
+        ::nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr), run);
     };
-    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true)  {
+    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool run = true)  {
         nimMain();
         #ifdef _WIN32
             bool runWithGui = true;
@@ -210,10 +210,10 @@ namespace nimview {
             runWithGui = false;
         #endif
         if (runWithGui) {
-            nimview::startDesktop(folder, title, width, height, resizable, false);
+            nimview::startDesktop(folder, title, width, height, resizable, false, run);
         }
         else {
-            nimview::startHttpServer(folder, port, bindAddr);
+            nimview::startHttpServer(folder, port, bindAddr, run);
         }
     }
     auto stopHttpServer = ::nimview_stopHttpServer;

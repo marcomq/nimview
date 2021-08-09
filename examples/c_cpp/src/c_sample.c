@@ -26,8 +26,8 @@ int main(int argc, char* argv[]) {
     NimMain();
     nimview_addRequest_cstring_rstr("echoAndModify", echoAndModify, free);
 #ifdef _DEBUG
-    nimview_startHttpServer("../dist/index.html", 8000, "localhost");
+    nimview_startHttpServer("../dist/index.html", 8000, "localhost", 1);
 #else
-    nimview_startDesktop("../dist/index.html", "c_sample", 640, 480, 1, 0);
+    nimview_startDesktop("../dist/index.html", "c_sample", 640, 480, 1, 0, 1);
 #endif
 }

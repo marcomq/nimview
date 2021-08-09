@@ -4,9 +4,10 @@
 # git clone https://github.com/marcomq/nimview
 
 import os, system, tables
-import json, logging, macros
+import json, macros
+import logging as log
 import asynchttpserver, asyncdispatch
-# run "nake release" or "nake debug" to compile
+# run "nimble demo" to to compile and nur demo application
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 
@@ -38,7 +39,6 @@ include nimview/requestMap
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
-var httpServerRunning = true
 
 type NimviewSettings = object
   indexHtmlFile*: string
@@ -50,6 +50,7 @@ type NimviewSettings = object
   resizable*: bool
   debug*: bool
   useStaticIndexContent*: bool
+  run*: bool
 
 const defaultIndex = 
   when not defined(release):
@@ -68,6 +69,7 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
   result.height = height
   result.resizable = resizable
   result.debug = not defined release
+  result.run = true
   result.useStaticIndexContent =
     when declared(doNotLoadIndexContent):
       true
@@ -77,7 +79,7 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
 const defaultSettings = initSettings()
 var nimviewSettings* = defaultSettings.deepCopy()
 
-logging.addHandler(newConsoleLogger())
+log.addHandler(newConsoleLogger())
 
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
@@ -125,15 +127,23 @@ proc enableRequestLogger*() {.exportpy.} =
     var requestLoggerTmp = newFileLogger("requests.log", fmtStr="",bufSize=0)
 
     requestLogger.swap(requestLoggerTmp)
-  requestLogger.levelThreshold = logging.lvlAll
+  requestLogger.levelThreshold = log.lvlAll
 
 proc disableRequestLogger*() {.exportpy.} =
   ## Will stop to log to "requests.log" (default)
   if not requestLogger.isNil:
-    requestLogger.levelThreshold = logging.lvlNone
+    requestLogger.levelThreshold = log.lvlNone
 
-var useServer* = not compileWithWebview or 
-  (defined(useServer) or not defined(release) or (os.fileExists("/.dockerenv")))
+const displayAvailable = 
+  when (system.hostOS == "windows"): 
+    true 
+  else: os.getEnv("DISPLAY") != ""
+var useServer* = 
+  not compileWithWebview or 
+  defined(useServer) or 
+  not defined(release) or 
+  not displayAvailable or 
+  (os.fileExists("/.dockerenv"))
 var useGlobalToken* = defined(release)
 
 proc setUseServer*(val: bool) {.exportpy.} =
@@ -154,7 +164,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   if request == "getGlobalToken":
     return $ %* {"useGlobalToken": useGlobalToken}
   if not requestLogger.isNil:
-    requestLogger.log(logging.lvlInfo, $jsonMessage)
+    requestLogger.log(log.lvlInfo, $jsonMessage)
   let callbackFunc = getCallbackFunc(request)
   result = callbackFunc(jsonMessage["data"])
 
@@ -210,7 +220,7 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
       debug retVal
     close(file)
   else:
-    logging.error "File does not exist: " & filename
+    log.error "File does not exist: " & filename
 
 proc readAndParseJsonCmdFile*(filename: cstring) {.exportc: "nimview_$1".} =
   readAndParseJsonCmdFile($filename)
@@ -332,12 +342,38 @@ proc updateIndexContent(indexHtmlFile: string) =
   if indexContent.isEmptyOrWhitespace:
     debug "Using default " & defaultSettings.indexHtmlFile
     indexContent = indexContentStatic
+    
+proc serve() {.async.} = 
+  var server = newAsyncHttpServer()
+  listen(server, Port(nimviewSettings.port), nimviewSettings.bindAddr)
+  while nimviewSettings.run:
+    if server.shouldAcceptRequest():
+      await server.acceptRequest(handleRequest)
+    else:
+      poll()
+
+proc run*() {.exportpy, exportc: "nimview_$1".} =
+  nimviewSettings.run = true
+  if useServer:
+    waitFor serve()
+  else:
+    when compileWithWebview:
+      if not myWebView.isNil():
+        myWebView.run()
+        myWebView.exit()
+      else:
+        log.error "Webview not initialzied yet. Use 'startWebview' first" 
 
 proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
     port: int = nimviewSettings.port,
-    bindAddr: string = nimviewSettings.bindAddr) {.exportpy.} =
+    bindAddr: string = nimviewSettings.bindAddr,
+    run: bool = nimviewSettings.run) {.exportpy.} =
   ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
   ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
+  nimviewSettings.port = port
+  nimviewSettings.bindAddr = bindAddr
+  nimviewSettings.run = run
+  useServer = true
   let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
   updateIndexContent(indexHtmlPath)
   discard parameter # needs to be inserted into url manually
@@ -353,28 +389,18 @@ proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile,
     origin = "*"
   responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
   staticDir = indexHtmlPath.parentDir()
-  # {.gcsafe.}:
-  #   waitFor server.serve(Port(port), handleRequest, address=bindAddr)
-  proc serve() {.async.} = 
-    var server = newAsyncHttpServer()
-    listen(server, Port(port), bindAddr)
-    while httpServerRunning:
-      if server.shouldAcceptRequest():
-        await server.acceptRequest(handleRequest)
-      else:
-        poll()
-  waitFor serve()
-  # debug "open default browser"
-  # browsers.openDefaultBrowser("http://" & bindAddr & ":" & $port / parameter)
+  if run:
+    nimview.run()
 
 proc startHttpServer*(indexHtmlFile: cstring, 
     port: cint = nimviewSettings.port.cint,
-    bindAddr: cstring = nimviewSettings.bindAddr) {.exportc: "nimview_$1".} = 
-  startHttpServer($indexHtmlFile, port, $bindAddr)
+    bindAddr: cstring = nimviewSettings.bindAddr,
+    run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
+  startHttpServer($indexHtmlFile, port, $bindAddr, run)
 
 proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
   ## Will stop the Http server async - will not wait for stop
-  httpServerRunning = false
+  nimviewSettings.run = false
 
 when not defined(just_core):
   proc toDataUrl(stream: string): string =
@@ -389,6 +415,7 @@ when not defined(just_core):
       debug "stopping ..."
       if not myWebView.isNil():
         myWebView.terminate()
+        dealloc(myWebView)
 
   proc stop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Http server - will not wait for stop
@@ -396,7 +423,7 @@ when not defined(just_core):
     stopDesktop()
 
   proc startDesktopWithUrl(url: string, title: string, width: int, height: int, 
-      resizable: bool, debug: bool)  =
+      resizable: bool, debug: bool, run: bool)  =
     when compileWithWebview:
       # var fullScreen = true
       if myWebView.isNil:
@@ -418,20 +445,20 @@ when not defined(just_core):
           evalJsCode = "window.ui.rejectResponse(" & $requestId & ");" 
         let responseCode = myWebView.eval(evalJsCode)
         discard responseCode
-
       )
 #[    proc changeColor() = myWebView.setColor(210,210,210,100)
       proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
-      myWebView.run()
-      myWebView.exit()
-      dealloc(myWebView)
+      if run:
+        nimview.run()
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
         width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
         resizable: bool = nimviewSettings.resizable,
-        debug: bool = nimviewSettings.debug) {.exportpy.} = 
+        debug: bool = nimviewSettings.debug,
+        run: bool = nimviewSettings.run) {.exportpy.} = 
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
+    useServer = false
     let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
     discard parameter
     updateIndexContent(indexHtmlPath)
@@ -440,52 +467,56 @@ when not defined(just_core):
         "; cannot start UI; the UI folder needs to be relative to the binary")
     if parameter.isEmptyOrWhitespace() and indexHtmlFile.contains("inlined.html"):
       debug "Starting desktop with data url"
-      startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug)
+      startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug, run)
     else:
       debug "Starting desktop with file url"
-      startDesktopWithUrl("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug)
+      startDesktopWithUrl("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug, run)
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = nimviewSettings.title,
         width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.height.cint, 
         resizable: cint = nimviewSettings.resizable.cint,
-        debug: cint = nimviewSettings.debug.cint) {.exportc: "nimview_$1".} = 
-      startDesktop($indexHtmlFile, $title, width, height, cast[bool](resizable), cast[bool](debug))
+        debug: cint = nimviewSettings.debug.cint,
+        run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
+      startDesktop($indexHtmlFile, $title, width, height, 
+        cast[bool](resizable), cast[bool](debug), cast[bool](run))
 
   proc start*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, port: int = nimviewSettings.port, 
         bindAddr: string = nimviewSettings.bindAddr, title: string = nimviewSettings.title,
         width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
-        resizable: bool = nimviewSettings.resizable) {.exportpy.} =
+        resizable: bool = nimviewSettings.resizable,
+        run: bool = nimviewSettings.run) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
     ## The debug mode information will not be available for python or dll.
-    let displayAvailable = 
-      when (system.hostOS == "windows"): true 
-      else: ( os.getEnv("DISPLAY") != "")
-    if useServer or not displayAvailable:
-      startHttpServer(indexHtmlFile, port, bindAddr)
+    if useServer:
+      startHttpServer(indexHtmlFile, port, bindAddr, run=run)
     else:
-      startDesktop(indexHtmlFile, title, width, height, resizable)
+      startDesktop(indexHtmlFile, title, width, height, resizable=resizable, run=run)
 
   proc start*(indexHtmlFile: cstring, port: cint = nimviewSettings.port.cint, 
         bindAddr: cstring = nimviewSettings.bindAddr, title: cstring = nimviewSettings.title,
         width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.width.cint, 
-        resizable: cint = nimviewSettings.resizable.cint) {.exportc: "nimview_$1".} =
-      start($indexHtmlFile, port, $bindAddr, $title, width, height, cast[bool](resizable))
+        resizable: cint = nimviewSettings.resizable.cint,
+        run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} =
+      start($indexHtmlFile, port, $bindAddr, $title, width, height, 
+        resizable=cast[bool](resizable), run=cast[bool](run))
   
   proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
     ## Use gtk mode without borders, only works on linux and only in desktop mode
-    when defined(linux): 
+    when defined(linux) and compileWithWebview: 
       if not myWebView.isNil():
         {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
 
   proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
-    if not myWebView.isNil():
-      discard myWebView.setFullscreen(fullScreen)
+    when compileWithWebview:
+      if not myWebView.isNil():
+        discard myWebView.setFullscreen(fullScreen)
 
   proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
-    if not myWebView.isNil():
-      myWebView.setColor(r, g, b, alpha)
+    when compileWithWebview:
+      if not myWebView.isNil():
+        myWebView.setColor(r, g, b, alpha)
 
 when isMainModule:
   proc main() =

@@ -41,6 +41,9 @@ proc runTests() =
 proc generateDocs() = 
   execNim "doc -d:useStdLib -o:docs/" & library & ".html " & mainApp
 
+task "clean", "clean all files":
+  os.removeDir(buildDir)
+
 task "pyLib", "Build python lib":
   buildPyLib()
 
