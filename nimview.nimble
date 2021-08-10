@@ -32,19 +32,31 @@ proc execSh(cmd: string) =
   else:
     exec "bash -c '" & cmd & "'"
 
+proc builDemoBinaries() = 
+  let baseDir = thisDir()
+  cd baseDir / "examples/svelte_todo"
+  exec "nim c -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
+  exec "nim c -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
+  cd baseDir
+
+proc builDemoJs() = 
+  let baseDir = thisDir()
+  cd baseDir / "examples/svelte_todo"
+  execSh "npm install"
+  execSh "npm run build"
+  cd baseDir
+
 task docs, "Generate doc":
   exec "nim doc -o:docs/nimview.html src/nimview.nim"
   # let cmd = "inliner -n --preserve-comments --iesafe --inlinemin docs/nimview_tmp.html > docs/nimview.html"
   # execSh cmd
 
 task demo, "Generate demo files":
-  let baseDir = thisDir()
-  cd baseDir / "examples/svelte_todo"
-  execSh "npm run build"
-  exec "nim c -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
-  exec "nim c -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
+  builDemoJs()
+  builDemoBinaries()
 
 task test, "Run tests":
+  builDemoBinaries()
   let baseDir = thisDir()
   cd baseDir / "examples/c_cpp"
   let nake = system.findExe("nake")
