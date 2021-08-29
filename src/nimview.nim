@@ -18,7 +18,10 @@ when not defined(just_core):
   from nimpy/py_types import PPyObject
   # import browsers
   when compileWithWebview:
-    import webview except debug
+    when defined webview2:
+      import nimview/webview2/webview except debug
+    else:
+      import nimview/webview/webview except debug
     var myWebView*: Webview
 else:
   const compileWithWebview = false
