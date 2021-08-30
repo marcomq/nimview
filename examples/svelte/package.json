@@ -16,30 +16,30 @@
     "start:dev": "sirv public --dev"
   },
   "devDependencies": {
-    "@babel/core": "^7.14.6",
+    "@babel/core": "^7.15.0",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.14.5",
-    "@babel/preset-env": "^7.14.7",
-    "@babel/runtime": "^7.14.6",
+    "@babel/plugin-transform-runtime": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "@babel/runtime": "^7.15.3",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-commonjs": "^17.0.0",
-    "@rollup/plugin-node-resolve": "^13.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.4",
     "@tauri-apps/tauri-inliner": "^1.13.2",
     "css-what": "^5.0.1",
     "npm-run-all": "^4.1.5",
-    "rollup": "^2.52.7",
+    "rollup": "^2.56.3",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-dev": "^1.1.3",
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-svelte": "^7.1.0",
     "rollup-plugin-terser": "^7.0.2",
-    "sirv-cli": "^1.0.12",
-    "svelte": "^3.38.3"
+    "sirv-cli": "^1.0.14",
+    "svelte": "^3.42.4"
   },
   "dependencies": {
     "bootstrap": "^4.6.0",
-    "core-js": "^3.15.2",
+    "core-js": "^3.16.4",
     "jquery": "^3.6.0",
     "nimview": "^1.0.0"
   }

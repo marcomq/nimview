@@ -524,6 +524,27 @@ when not defined(just_core):
       if not myWebView.isNil():
         myWebView.setColor(r, g, b, alpha)
 
+  proc setMaxSize*(width, height: int) {.exportpy.} =
+    when compileWithWebview:
+      if not myWebView.isNil():
+        myWebView.setMaxSize(width.cint, height.cint)
+        
+  proc setMaxSize*(width, height: cint) {.exportc.} =
+    setMaxSize(width, height)
+
+  proc setMinSize*(width, height: int) {.exportpy.} =
+    when compileWithWebview:
+      if not myWebView.isNil():
+        myWebView.setMinSize(width.cint, height.cint)
+        
+  proc setMinSize*(width, height: cint) {.exportc.} =
+    setMinSize(width, height)
+
+  proc focus*(width, height: int) {.exportpy, exportc.} =
+    when compileWithWebview:
+      if not myWebView.isNil():
+        myWebView.focus()
+
 when isMainModule:
   proc main() =
     when not defined(noMain):
