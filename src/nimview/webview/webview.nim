@@ -56,8 +56,11 @@ proc injectCss*(w: Webview; css: cstring): cint {.importc: "webview_inject_css",
 proc setTitle*(w: Webview; title: cstring) {.importc: "webview_set_title", header: "webview.h".}
 proc setColor*(w: Webview; r,g,b,a: uint8) {.importc: "webview_set_color", header: "webview.h".}
 proc setFullscreen*(w: Webview; fullscreen: cint) {.importc: "webview_set_fullscreen", header: "webview.h".}
-proc dialog*(w: Webview; dlgtype: DialogType; flags: cint; title: cstring; arg: cstring; result: cstring; resultsz: csize_t; filter: cstring) {.
-    importc: "webview_dialog", header: "webview.h".}
+proc setMinSize*(w: Webview; width, height: cint) {.importc: "webview_minsize", header: "webview.h".}
+proc setMaxSize*(w: Webview; width, height: cint) {.importc: "webview_maxsize", header: "webview.h".}
+proc focus*(w: Webview) {.importc: "webview_focus", header: "webview.h".}
+proc dialog*(w: Webview; dlgtype: DialogType; flags: cint; title: cstring; arg: cstring; 
+  result: cstring; resultsz: csize_t; filter: cstring) {.importc: "webview_dialog", header: "webview.h".}
 proc dispatch(w: Webview; fn: pointer; arg: pointer) {.importc: "webview_dispatch", header: "webview.h".}
 proc terminate*(w: Webview) {.importc: "webview_terminate", header: "webview.h".}
 proc exit*(w: Webview) {.importc: "webview_exit", header: "webview.h".}
