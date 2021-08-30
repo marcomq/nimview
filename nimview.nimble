@@ -1,4 +1,4 @@
-version     = "0.2.2"
+version     = "0.2.3"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
@@ -9,7 +9,7 @@ import os, strutils
 # you may skip nimpy and webview when compiling with nim c -d:just_core
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
-requires "nim >= 1.2.10", "nimpy >= 0.1.1", "webview == 0.1.0", "nake >= 1.9.0"
+requires "nim >= 1.2.10", "nimpy >= 0.1.1", "nake >= 1.9.0"
 
 when defined(nimdistros):
   import distros

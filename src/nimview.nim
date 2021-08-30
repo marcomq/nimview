@@ -4,7 +4,7 @@
 # git clone https://github.com/marcomq/nimview
 
 import os, system, tables
-import json, macros
+import json, macros, base64
 import logging as log
 import asynchttpserver, asyncdispatch
 # run "nimble demo" to to compile and nur demo application
@@ -408,9 +408,12 @@ proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
 when not defined(just_core):
   proc toDataUrl(stream: string): string =
     ## creates a dada url and escapes %
-    ## encoding all would be correct, but IE is super slow when doing so
-    # result = "data:text/html, " & stream.encodeUrl() 
-    result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+    ## encoding all or using base64 would be correct, but IE is super slow when doing so
+    if (system.hostOS == "windows"): 
+      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+    else:
+      result = "data:text/html, " & base64.encode(stream)
+    
 
   proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
