@@ -4,7 +4,7 @@
 # git clone https://github.com/marcomq/nimview
 
 import os, system, tables
-import json, macros
+import json, macros, base64
 import logging as log
 import asynchttpserver, asyncdispatch
 # run "nimble demo" to to compile and nur demo application
@@ -18,7 +18,12 @@ when not defined(just_core):
   from nimpy/py_types import PPyObject
   # import browsers
   when compileWithWebview:
-    import webview except debug
+    when defined webview2:    
+      static: 
+        echo "Warning: Webview 2 is not stable yet!"
+      import nimview/webview2/src/webview except debug
+    else:
+      import nimview/webview/webview except debug
     var myWebView*: Webview
 else:
   const compileWithWebview = false
@@ -180,14 +185,14 @@ proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect folder dialog" if in webview mode and return the selection.
   ## Will return emptys string in webserver mode
-  when compileWithWebview:
+  when compileWithWebview and not defined webview2:
     if not myWebView.isNil():
       result = myWebView.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
 
 proc selectFileDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect file dialog" if in webview mode and return the selection.
   ## Will return emptys string in webserver mode
-  when compileWithWebview:
+  when compileWithWebview and not defined webview2:
     if not myWebView.isNil():
       result = myWebView.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
@@ -405,9 +410,12 @@ proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
 when not defined(just_core):
   proc toDataUrl(stream: string): string =
     ## creates a dada url and escapes %
-    ## encoding all would be correct, but IE is super slow when doing so
-    # result = "data:text/html, " & stream.encodeUrl() 
-    result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+    ## encoding all or using base64 would be correct, but IE is super slow when doing so
+    if (system.hostOS == "windows"): 
+      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+    else:
+      result = "data:text/html, " & base64.encode(stream)
+    
 
   proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
@@ -429,25 +437,35 @@ when not defined(just_core):
       if myWebView.isNil:
         myWebView = webview.newWebView(title, url, width,
            height, resizable = resizable, debug = debug)
-      myWebView.bindProc("nimview", "alert", proc (message: string) =
-        {.gcsafe.}:
-          myWebView.info("alert", message))
-      myWebView.bindProc("nimview", "call", proc (message: string) =
-        info message
-        let jsonMessage = json.parseJson(message)
-        let requestId = jsonMessage["requestId"].getInt()
-        var evalJsCode: string 
-        try:
-          let response = dispatchJsonRequest(jsonMessage)
-          evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
-              response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
-        except: 
-          evalJsCode = "window.ui.rejectResponse(" & $requestId & ");" 
-        let responseCode = myWebView.eval(evalJsCode)
-        discard responseCode
-      )
-#[    proc changeColor() = myWebView.setColor(210,210,210,100)
-      proc toggleFullScreen() = fullScreen = not myWebView.setFullscreen(fullScreen) ]#
+      when not defined webview2:
+        myWebView.bindProc("nimview", "alert", proc (message: string) =
+          {.gcsafe.}:
+              myWebView.info("alert", message))
+        myWebView.bindProc("nimview", "call", proc (message: string) =
+          info message
+          let jsonMessage = json.parseJson(message)
+          let requestId = jsonMessage["requestId"].getInt()
+          var evalJsCode: string 
+          try:
+            let response = dispatchJsonRequest(jsonMessage)
+            evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
+                response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
+          except: 
+            evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+          discard myWebView.eval(evalJsCode)
+        )
+      else: # webview2
+        myWebView.bindProc("nimview.call", proc (jsonMessage: JsonNode) =
+          let requestId = jsonMessage["requestId"].getInt()
+          var evalJsCode: string 
+          try:
+            let response = dispatchJsonRequest(jsonMessage)
+            evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
+                response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
+          except: 
+            evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+          myWebView.eval(evalJsCode)
+        )
       if run:
         nimview.run()
 
@@ -509,14 +527,35 @@ when not defined(just_core):
         {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
 
   proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
-    when compileWithWebview:
+    when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
         discard myWebView.setFullscreen(fullScreen)
 
   proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
-    when compileWithWebview:
+    when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
         myWebView.setColor(r, g, b, alpha)
+
+  proc setMaxSize*(width, height: int) {.exportpy.} =
+    when compileWithWebview and not defined webview2:
+      if not myWebView.isNil():
+        myWebView.setMaxSize(width.cint, height.cint)
+        
+  proc setMaxSize*(width, height: cint) {.exportc.} =
+    setMaxSize(width, height)
+
+  proc setMinSize*(width, height: int) {.exportpy.} =
+    when compileWithWebview and not defined webview2:
+      if not myWebView.isNil():
+        myWebView.setMinSize(width.cint, height.cint)
+        
+  proc setMinSize*(width, height: cint) {.exportc.} =
+    setMinSize(width, height)
+
+  proc focus*(width, height: int) {.exportpy, exportc.} =
+    when compileWithWebview and not defined webview2:
+      if not myWebView.isNil():
+        myWebView.focus()
 
 when isMainModule:
   proc main() =

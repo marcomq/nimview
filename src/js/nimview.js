@@ -139,7 +139,8 @@ ui.initRequests = (async () => {
         ui.alert("API timeout")
         return
     }
-    if (window.location.href.indexOf("file:/") == 0) {
+    if ((window.location.href.indexOf("file:") == 0) || 
+        (window.location.href.indexOf("data:") == 0)) {
         if (typeof window.nimview === 'undefined') {
             window.setTimeout(ui.initRequests, 50)
             ui.waitCounter += 1
