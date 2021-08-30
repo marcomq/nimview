@@ -70,9 +70,8 @@ There is a pre-build "Todo-list" demo application for windows x64 that uses a si
 To make it work, you need to unzip everything before running the binaries. The zip contains two .exe files, 
 one desktop application "appTodo" and one HTTP server application "httpTodo" that opens a server on
 http://localhost:8000.
-- [demo.zip](https://github.com/marcomq/nimview/files/6960425/demo.zip)
-
-sha256sum 1f13f0dbe9833da9f014f98c57f485bc217d8da3a976ae206a20a77584f949bb
+- [demo.zip](https://github.com/marcomq/nimview/files/7077224/demo.zip)
+sha256sum df3d2595b9755b27b7034ce4970f44d3bca72544ce8915739062b4ba1d977158
 
 If you want to build this demo from source, you need to run `nimble demo` on the
 Nimview base folder.
