@@ -6,7 +6,10 @@ proc appendSomething(value: string): string {.noSideEffect.} =
 proc main() =
   addRequest("appendSomething", appendSomething)
   start()
-  # startHttpServer()
+  ## alternative fullscreen mode:
+  # start(run=false)
+  # setFullscreen(true)
+  # run()
   
 when isMainModule:
   main()
