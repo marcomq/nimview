@@ -27,7 +27,9 @@ nimview.addRequest("echoAndModify3", echoAndModify3)
 nimview.addRequest("stopNimview", stopNimview)
 
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"data\":[\"this is a test\"],\"responseId\":0}")
+print ("[start] Expecting an error")
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"data\":[],\"responseId\":3}") # will cause an error
+print ("[end] Not expecting an error anymore in python test")
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"data\":[],\"responseId\":4}") 
 nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify3\",\"data\":[\"first\",\"second\"],\"responseId\":5}") 
 nimview.dispatchCommandLineArg("{\"request\":\"stopNimview\",\"data\":\"\",\"responseId\":6}")
