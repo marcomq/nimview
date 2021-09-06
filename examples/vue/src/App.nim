@@ -3,7 +3,7 @@ import os
 import nimview
 
 proc appendSomething(value: string): string {.noSideEffect.} =
-  result = "'" & value & "' modified by svelte sample"
+  result = "'" & value & "' modified by Vue sample"
 
 proc main() =
   addRequest("appendSomething", appendSomething)

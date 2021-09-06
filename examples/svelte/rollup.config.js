@@ -45,10 +45,10 @@ export default {
     !production && dev({
       dirs: ['dist'],
       port: 5000, 
-      proxy: { 
-        '*': 'localhost:8000',
-        '/*': 'localhost:8000/',
-      }
+      proxy: [
+        { from: '*', to: 'http://localhost:8000' },
+        { from: '/*', to: 'http://localhost:8000/' }
+      ]
     }),
     // added by angelo
     // compile to good old IE11 compatible ES5

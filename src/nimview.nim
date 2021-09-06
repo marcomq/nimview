@@ -383,7 +383,7 @@ proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile,
         "; cannot start UI; the UI folder needs to be relative to the binary")
   debug "Starting internal webserver on http://" & bindAddr & ":" & $port
   when not defined(release):
-    echo "To develop javascript, run 'npm run serve' and open a browser on http://localhost:5000"
+    echo "To develop javascript, run 'npm run dev' and open a browser on http://localhost:5000"
   var origin = "http://" & bindAddr
   if (bindAddr == "0.0.0.0"):
     origin = "*"
