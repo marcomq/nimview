@@ -177,13 +177,13 @@ But if you want to change code easily, the development workflow would be:
 
 ## Inline HTML to single binary
 Nimview doesn't automatically create a single executable that contains the user interface 
-for all possible scenarios. Nimview currently adds `dist/inlined.html`
+for all possible scenarios. Nimview currently adds `../dist/inlined.html`
 to the binary - and only in release mode. This HTML file shouldn't contain any 
 external dependencies like css, images 
 javascript as these wouldn't be included in the executable binary.
 You can use an inliner to inline your external dependencies. Check the svelte_todo exampple
 for this. There is a "npm build" command in packages.js which calls an inliner to
-scan dist/index.html and write the output to `dist/inlined.html`. For very small projects,
+scan dist/index.html and write the output to `../dist/inlined.html`. For very small projects,
 you may even use an inlined HTML file directly.
 
 Keep in mind that these inlined HTML files might also be hard to debug if they contain
@@ -221,13 +221,11 @@ You might write the same Code and the same UI for your Cloud application as for 
 ### Nimview vs Eel or Neel
 There are another 2 cool similar frameworks: The very popular framework [eel](https://github.com/ChrisKnott/Eel) for python 
 and its cousin [neel](https://github.com/Niminem/Neel) for nim. 
-While the use case seems to be similar, there are two major differences: 
+While the use case seems to be similar, there are some major differences: 
 - Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. 
-The later one will not be possible with Nimview.
-  Nimview will just make it easy to trigger back-end routes from Javascript but will not expose Javascript functions to the back-end side. 
-  If you want to do so, you need to parse the back-end’s response and call the function with this data. 
-  This makes it easy to switch to multiple HTML / JS user interfaces for the same back-end code without worrying about javascript callback functions. Also - this makes writing of automated back-end tests much
-  easier.
+The later one is currently not possible with Nimview.
+  Nimview will just make it easy to trigger back-end routes from Javascript but wil currentlyl not expose Javascript functions to the back-end side. 
+  Calling javascript from server side usually makes application flow more difficult, but an event system is planned for a future release to send information easier to the client, while the server callback is still running.
 - With Nimview, you also don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
 This improves security as you don't need to worry about open ports or other attack vectors that need to be considered when running a webserver application. It also makes it easy to run multiple applications without having port conflicts.
 - Nimview also includes a simple global token check in release mode that may be able to prevent most
@@ -274,6 +272,8 @@ or in case that there is already a session-based CSRF mitigation used by middlew
 
 ### Multithreading
 Nimview is build to run single-threaded. You may still run functions that create multiple threads or access a thread-pool. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
+
+You may also use threads in python or c++. On windows, it seems that the threads are not active if there is no active server callback running. You might add a small "sleep" in a server callback that checks the thread, just to make sure that the thread is getting enough priority to switch the context. 
 
 ### IE 11 or - "Why is my page blank?"
 Nimview uses IE 11 on Windows. Unfortunately, IE 11 doesn't understand modern Javascript

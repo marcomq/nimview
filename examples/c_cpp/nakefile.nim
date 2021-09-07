@@ -5,7 +5,7 @@ let library = "nimview"
 let headerFile = library & ".h"
 let srcDir = "src"
 let mainApp = srcDir /   "library.nim"
-let srcFiles = [mainApp]
+var srcFiles = @[mainApp]
 let buildDir = "out"
 let thisDir = system.currentSourcePath().parentDir() 
 let cDllExtension = when defined(windows): "dll" else: "so"
@@ -44,6 +44,9 @@ if not os.dirExists(nimviewPath):
   nimviewPathTmp = nimviewPathTmp.replace("\n", "").replace("\\", "/").replace("//", "/")
   if (nimviewPathTmp != "" and os.dirExists(nimviewPathTmp)):
     nimviewPath = nimviewPathTmp
+
+if os.fileExists("dist/inlined.html"):
+  srcFiles.add("dist/inlined.html")
 
 proc execNim(command: string) = 
   echo "running: nim " & command
