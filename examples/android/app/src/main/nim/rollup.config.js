@@ -46,8 +46,8 @@ export default {
       dirs: ['dist'],
       port: 5000, 
       proxy: { 
-        '*': 'localhost:8000',
-        '/*': 'localhost:8000/',
+        '*': 'http://localhost:8000',
+        '/*': 'http://localhost:8000/',
       }
     }),
     // added by angelo
