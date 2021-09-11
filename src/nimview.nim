@@ -14,7 +14,7 @@ const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
   import uri, strutils
-  import nimpy
+  import nimpy, ws
   from nimpy/py_types import PPyObject
   # import browsers
   when compileWithWebview:
@@ -25,9 +25,11 @@ when not defined(just_core):
     else:
       import nimview/webview/webview except debug
     var myWebView*: Webview
+  var myWs*{.threadVar.}: WebSocket
 else:
   const compileWithWebview = false
   var myWebView*: pointer = nil
+  var myWs*: pointer = nil
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -93,7 +95,6 @@ const indexContentStatic =
   else:
     ""
 
-
 proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Registers "getStoredVal" and "setStoredVal" as requests
   ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
@@ -107,6 +108,17 @@ proc enableStorage*()  =
   ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
   ## Use "backend.getStoredVal(key)" in js to read a stored value
   enableStorage("storage.json")
+
+macro callFrontendJs*(functionName: string, params: varargs[untyped]) =
+    quote do:
+        if not myWs.isNil:
+          try:
+            echo "sending"
+            asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
+          except WebSocketProtocolMismatchError:
+            echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+          except CatchableError:
+            echo "Call frontend error: ", getCurrentExceptionMsg()
 
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
@@ -277,10 +289,21 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       header = @[("Content-Type", contentType)]
       header.add(responseHttpHeader)
       await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
-    else:
-      if (request.body == ""):
+    elif requestPath == "/ws":
+      try:
+        var ws = await newWebSocket(request)
+        myWs = ws
+        while ws.readyState == ReadyState.Open:
+          let packet = await ws.receiveStrPacket()
+          echo "Received packet: " & packet
+        callFrontendJs("alert", "helloWorld")
+      except WebSocketProtocolMismatchError:
+        echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+      except WebSocketError:
+        echo "Socket error: ", getCurrentExceptionMsg()
+    elif (request.body == ""):
         raise newException(ReqUnknownException, "404 - File not found")
-
+    else:
       # if not a file, assume this is a json request
       var jsonMessage: JsonNode
       debug request.body
@@ -388,7 +411,8 @@ proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile,
         "; cannot start UI; the UI folder needs to be relative to the binary")
   debug "Starting internal webserver on http://" & bindAddr & ":" & $port
   when not defined(release):
-    echo "To develop javascript, run 'npm run dev' and open a browser on http://localhost:5000"
+    echo "To develop javascript, run 'npm run dev' or 'npm run dev-ie'"
+    echo "Some frontend dev environments are prefer a proxy"
   var origin = "http://" & bindAddr
   if (bindAddr == "0.0.0.0"):
     origin = "*"

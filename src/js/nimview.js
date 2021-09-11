@@ -31,6 +31,7 @@ else {
 }
 const defaultPostTarget = ""
 const host = "" // might cause "cors" errors if defined
+const wsHost = window.location.host
 
 ui.createRequestId = () => {
     if (ui.requestCounter >= Number.MAX_SAFE_INTEGER-1) {
@@ -38,9 +39,8 @@ ui.createRequestId = () => {
     }
     return ui.requestCounter++
 }
-
 ui.alert = (str) => {
-    if (typeof window.nimview === 'undefined') {
+    if (ui.usingBrowser()) {
       alert(str)
     }
     else if (typeof window.nimview.alert === 'function') {
@@ -54,7 +54,7 @@ ui.callRequest = async (request, signature, data) => {
     if (typeof data === "undefined") {
         data = []
     }
-    if (typeof window.nimview === 'undefined') {
+    if (ui.usingBrowser()) {
         // http-server
         const postData = JSON.stringify({request: request, data: data})
         const requestOpts = { 
@@ -104,9 +104,11 @@ ui.callRequest = async (request, signature, data) => {
             })
             return promise
         }
+        else {
+            throw "window.nimview.call is not a function"
+        }
     }
 }
-
 ui.addRequest = (requestOrArray) => {  
     /*register global backend functions*/
     if (typeof requestOrArray === "string") {
@@ -118,7 +120,6 @@ ui.addRequest = (requestOrArray) => {
         return ui.callRequest(request, signature, data)
     }
 }
-
 ui.applyResponse = (requestId, data) => {
     if (typeof ui.resolveStorage[requestId] !== "undefined") {
         ui.resolveStorage[requestId][0](data)
@@ -134,7 +135,13 @@ ui.rejectResponse = (requestId) => {
         delete ui.resolveStorage[requestId]
     }
 }
-ui.initRequests = (async () => {
+ui.callFunction = (functionName, ...args) => {
+    window[functionName](args)
+}
+ui.usingBrowser = () => {
+    return (typeof window.nimview === 'undefined')
+}
+ui.init = (async () => {
     if (ui.waitCounter > 30) {
         ui.alert("API timeout")
         return
@@ -142,13 +149,32 @@ ui.initRequests = (async () => {
     if ((window.location.href.indexOf("file:") == 0) || 
         (window.location.href.indexOf("data:") == 0)) {
         if (typeof window.nimview === 'undefined') {
-            window.setTimeout(ui.initRequests, 50)
+            // retry later when using webview and not initialized yet
+            window.setTimeout(ui.init, 50) 
             ui.waitCounter += 1
             return
         }
     }
     if (ui.initStarted == false) {
         ui.initStarted = true
+        if (ui.usingBrowser()) {
+            // using websocket to listen for commands
+            let ws = "ws"
+            if (window.location.href.indexOf("https:") == 0 ||
+                host.indexOf("https:") == 0) {
+                ws = "wss"
+            }
+            ui.ws = new WebSocket(ws + "://" + wsHost + "/ws")
+            ui.ws.onmessage = (data) => {
+                let resp
+                try {
+                    resp = JSON.parse(data.data)
+                } catch (err) {
+                    resp = JSON.parse(data)
+                }
+                ui.callFunction(resp.function, resp.args)
+              }
+        }
         await ui.callRequest("getGlobalToken", "", []).then((resp) => {
             let jsResp = JSON.parse(resp)
             if (jsResp.useGlobalToken) {
@@ -197,5 +223,5 @@ backend.waitInit = () => {
         setTimeout(waitLoop, 1)
     })
 }
-window.setTimeout(ui.initRequests, 1) // may need to be increased on webview error
+window.setTimeout(ui.init, 1) // may need to be increased on webview error
 export default backend
