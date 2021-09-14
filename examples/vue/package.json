@@ -1,9 +1,10 @@
 {
   "name": "nimview-bootstrapvue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
-    "dev": "vue-cli-service serve",
+    "dev": "vue-cli-service serve --host localhost",
+    "dev-ie": "vue-cli-service serve",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build && inliner -m --videos --preserve-comments dist/index.html > dist/inlined.html",
     "lint": "vue-cli-service lint"

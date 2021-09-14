@@ -10,7 +10,14 @@ export default {
   methods: {
     runSearch() {
       this.elements.push({val: this.search})
-      backend.appendSomething(this.search).then((resp) => {this.search = resp}) // calling the backend
+      backend.appendSomething(this.search).then((resp) => {
+        this.search = resp
+      }) // calling the backend
+    },
+    countDown() {
+      backend.countDown().then(() => {
+        alert(0)
+      })
     }
   }
 };
@@ -22,6 +29,7 @@ export default {
     <form class="form-inline">
       <input class="form-control mr-sm-2" type="search" placeholder="Search for ..." aria-label="search"  v-model="search">
       <button type="button" v-on:click="runSearch" class="btn btn-success my-2 my-sm-0">Search</button>
+      <button type="button" v-on:click="countDown" class="btn btn-success my-2 my-sm-0">Count down</button>
     </form>
   </li>
   <div v-if="elements.length">
@@ -38,5 +46,8 @@ export default {
 <style scoped>
 .sample {
   margin-top: 5px;
+}
+button.btn {
+  margin-right: 10px;
 }
 </style>
