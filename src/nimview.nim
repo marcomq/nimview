@@ -24,12 +24,14 @@ when not defined(just_core):
       import nimview/webview2/src/webview except debug
     else:
       import nimview/webview/webview except debug
-    var myWebView*: Webview
-  var myWs*{.threadVar.}: WebSocket
+    var myWebView* {.threadVar.}: Webview
+  else:
+    const myWebView*: pointer = nil
+  var myWs* {.threadVar.}: WebSocket
 else:
   const compileWithWebview = false
-  var myWebView*: pointer = nil
-  var myWs*: pointer = nil
+  const myWebView*: pointer = nil
+  const myWs*: pointer = nil
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -47,7 +49,7 @@ include nimview/requestMap
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
-var customJsEval*: CstringFunc
+var customJsEval* {.threadVar.}: CstringFunc
 
 type NimviewSettings = object
   indexHtmlFile*: string
@@ -117,7 +119,7 @@ macro callFrontendJsMacro(functionName: string, params: varargs[untyped]) =
       {.gcsafe.}:
         customJsEval(`functionName` & "(" & $(%*`params`) & ");")
     elif not myWebView.isNil:
-      {.gcsafe.}:
+      when defined compileWithWebview:
         discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
     elif not myWs.isNil:
       try:
