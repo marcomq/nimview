@@ -49,18 +49,18 @@ The target of this project was to have a simple, ultra lightweight cross platfor
 This project uses [Webview](https://github.com/oskca/webview) to render Desktop 
 applications and an integrated HttpServer for Development and Cloud.
 
-Nimview is an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications, web and mobile applications. It registers functions in the specific languages and also can mix Nim with any of the supported targets. Currently, the Android project to interact with android applications is [here](https://github.com/marcomq/nimview_android) but it will be move to "examples" soon.
+Nimview is an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications, web and mobile applications. It registers functions in the specific languages and also can mix Nim with any of the supported targets. 
 
 Technically, the UI layer will be completely HTML/CSS/JS based and the back-end should be using either Nim, C/C++ or Python code directly. 
 Nim mostly acts as a "glue" layer as it can create python and C libraries easily. As long as you write Nim code, you might integrate the code in C/C++, Python or even Android. 
-The final result should be a binary executable that runs on Linux, Windows or MacOS Desktop and even [Android](https://github.com/marcomq/nimview_android). IOS wasn't tested yet.
+The final result should be a binary executable that runs on Linux, Windows or MacOS Desktop and even [Android](https://github.com/marcomq/examples/android). IOS wasn't tested yet.
 
-The final application later doesn't require a webserver, but it is recommended to use the webserver during development or in debug mode - or for your cloud environment.
-Make sure to use an additional authentication and some security reverse proxy layer when running on cloud for production. 
+The final application later doesn't require a webserver, but it is recommended to use the webserver during development or in debug mode.
+You may also use the webserver for your cloud environemnt, but make sure to use additional authentication and a security reverse proxy when running on cloud.
 
 Node.js is recommended but not required if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
 The HTTP server will run when compiling the application as "debug" by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
-Webview on its own is a mess if you want to debug your Javascript issues. You might use it for production and testing, but you shouldn't focus Javascript UI development on Webview.
+Webview makes it hard to debug Javascript - especially on Windows. You might use webview for production and testing, but you shouldn't focus Javascript UI development on Webview.
 
 This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
@@ -109,7 +109,8 @@ nimview.start()
 ```
 
 Nimview will automatically use "../public/index.html" as as entry page in debug mode
-and will try to load "../dist/inlined.html" in release mode. In release mode, the inlined.html entry point
+and will try to load "../dist/inlined.html" in release mode. In release mode, the 
+inlined.html entry point
 will be compiled statically into the release binary. If there are no further dependencies,
 the release binary can just run as single executable binary without further UI files.
 Keep in mind that when running in webserver mode, it will expose all files and subfolders that in the same directory as the index.html.
@@ -149,6 +150,17 @@ This is easy when using python or Nim as back-end. This may also simplify automa
 and only check specific Json values. Notice, that all registered functions return only strings, so the server will also just return a string value. 
 If you need Json, you need to parse this value in javascript manually, for example with JSON.parse().
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
+
+It is also possible to call front-end functions directly from back-end by using
+`callFrontendJs`. You may trigger an `alert("Hello World!")` on the frontend by 
+using 
+```
+  nimview.callFrontendJs("alert", "Hello World!")
+```
+in your back-end code. You may use as many parameters as you want.
+Keep in mind to only use this to send visible information to the UI and not rely
+your application workflow on this function. Otherwise, your application might 
+become hard to test.
 
 ## Development workflow
 You need to compile the back-end and usually the front-end too, when using vue or svelte. While this seems unnecessary complicated in the beginning, 
@@ -222,29 +234,26 @@ You might write the same Code and the same UI for your Cloud application as for 
 There are another 2 cool similar frameworks: The very popular framework [eel](https://github.com/ChrisKnott/Eel) for python 
 and its cousin [neel](https://github.com/Niminem/Neel) for nim. 
 While the use case seems to be similar, there are some major differences: 
-- Both eel and neel make it easy to call back-end side functions from Javascript and also call exposed Javascript from back-end. 
-The later one is currently not possible with Nimview.
-  Nimview will just make it easy to trigger back-end routes from Javascript but wil currentlyl not expose Javascript functions to the back-end side. 
-  Calling javascript from server side usually makes application flow more difficult, but an event system is planned for a future release to send information easier to the client, while the server callback is still running.
-- With Nimview, you also don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
+- With Nimview, you don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
 This improves security as you don't need to worry about open ports or other attack vectors that need to be considered when running a webserver application. It also makes it easy to run multiple applications without having port conflicts.
 - Nimview also includes a simple global token check in release mode that may be able to prevent most
-  CSRF attacks when the server is running on localhost. 
-- Nimview can compile to a single executable binary which makes deployemnt and distribution 
-very easy.
+  CSRF attacks when the server is running on localhost.
  
 ### Difference to Flask
 [Flask](https://github.com/pallets/flask) is probably the most popular python framework to create micro services and Nimview/AsyncHttpServer probably cannot compete with the easiness or with the amount of available plugins of Flask for simple python cloud applications. 
-But the use-case is different. While flask was desinged to serve HTML and have easy routes for "get" and "post", Nimview was just designed to trigger user events from ajax using "post". Nimview will not support server side template engines as flask does. The front-end code needs to care of routes and rendering.
+But the use-case is different. While flask was desinged to serve HTML and have easy RESTful routes for "get" and "post", Nimview was just designed to trigger user events from ajax using "post". Nimview will not support server side template engines as flask does. The front-end code needs to care of routes and rendering.
 
 Nimview can also create static binaries that can run in a minimal tiny Docker container that doesn't even need an installed python environment, as long as no python code is used. So you might create containers for your application that have just a few MB. Those deploy and startup much faster than Flask applications. Make sure to avoid building with Webview when creating binaries for Docker by compiling with `-d:useServer`, or you need to include GTK libraries in your container.
 
 ### Wails
 After releasing the first 0.1.0 version of Nimview, I found out about [Wails](https://github.com/wailsapp/wails). And I found out that I nearly created a Wails clone. Just - Wails had some nice additional features 
-that Nimview didn't had. So - Wails became a big inspiration for Nimview 0.2.0: 
+that Nimview didn't had. So - Wails became a big inspiration for Nimview 
+Version 0.2.0: 
 - Compilation to a single static binary was added,
 - Multiple arguments for server functions were added and
 - Server functions are automatically exposed to the client when registered on server
+Version 0.3.0: 
+- Calling JS functions directly from back-end
 
 Nimview still has a smaller code base and creates even smaller binaries. You also have classical languages 
 for your back-end as C, C++ or Python code - and you can mix those with Nim.
@@ -285,6 +294,9 @@ is depending on external Nim libraries that offer a wrapper for Webview. It wasn
 but it may be possible to use GTK on Windows in case you really need to avoid IE 11.
 At the time of writing, there is no simple and stable library supporting Webview 2 for Nim, 
 and GTK on Windows was much more complicated as just using the IE 11 engine.
+The examples mostly use `npm run dev` for daily development. These do not
+compile for IE 11. If you use IE11, you need to run `npm run dev-ie`. This is not
+the default, as the build takes much longer when using babel.
 
 ### Using UI from existing web-applications
 For Desktop applications, it is required to use relative file paths in all your HTML. The paths must point to a directory relative of the binary to the given index html file.

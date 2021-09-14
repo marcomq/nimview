@@ -38,6 +38,7 @@ else:
 type ReqDeniedException* = object of CatchableError
 type ServerException* = object of CatchableError
 type ReqUnknownException* = object of CatchableError
+type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
 import nimview/globalToken
 import nimview/storage
 export storage
@@ -46,6 +47,7 @@ include nimview/requestMap
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
+var customJsEval*: CstringFunc
 
 type NimviewSettings = object
   indexHtmlFile*: string
@@ -109,16 +111,31 @@ proc enableStorage*()  =
   ## Use "backend.getStoredVal(key)" in js to read a stored value
   enableStorage("storage.json")
 
+macro callFrontendJsMacro(functionName: string, params: varargs[untyped]) =
+  quote do:
+    if not customJsEval.isNil:
+      {.gcsafe.}:
+        customJsEval(`functionName` & "(" & $(%*`params`) & ");")
+    elif not myWebView.isNil:
+      {.gcsafe.}:
+        discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
+    elif not myWs.isNil:
+      try:
+        asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
+      except WebSocketProtocolMismatchError:
+        echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+      except CatchableError:
+        echo "Call frontend error: ", getCurrentExceptionMsg()
+
+proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
+  callFrontendJsMacro(functionName, argsString)
+
+proc callFrontendJs*(functionName: cstring, argsString: cstring) {.exportc: "nimview_$1".} =
+  callFrontendJsMacro($functionName, $argsString)
+
 macro callFrontendJs*(functionName: string, params: varargs[untyped]) =
-    quote do:
-        if not myWs.isNil:
-          try:
-            echo "sending"
-            asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
-          except WebSocketProtocolMismatchError:
-            echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-          except CatchableError:
-            echo "Call frontend error: ", getCurrentExceptionMsg()
+  quote do:
+    callFrontendJsMacro(`functionName`, `params`)
 
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
@@ -166,6 +183,9 @@ var useGlobalToken* = defined(release)
 proc setUseServer*(val: bool) {.exportpy.} =
   ## If true, use Http Server instead of Webview.
   useServer = val
+
+proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".}=
+  customJsEval = evalFunc
 
 proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## The global token is a weak session-free CSRF check. Still much better than no CSRF protection.
@@ -412,7 +432,7 @@ proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile,
   debug "Starting internal webserver on http://" & bindAddr & ":" & $port
   when not defined(release):
     echo "To develop javascript, run 'npm run dev' or 'npm run dev-ie'"
-    echo "Some frontend dev environments are prefer a proxy"
+    echo "Check the output, as some frontend dev environments prefer a proxy"
   var origin = "http://" & bindAddr
   if (bindAddr == "0.0.0.0"):
     origin = "*"

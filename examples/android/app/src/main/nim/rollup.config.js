@@ -4,12 +4,11 @@ import commonjs from '@rollup/plugin-commonjs'
 import { babel } from '@rollup/plugin-babel'
 import livereload from 'rollup-plugin-livereload'
 import { terser } from 'rollup-plugin-terser'
-import dev from 'rollup-plugin-dev'
-import json from 'rollup-plugin-json'
 import css from 'rollup-plugin-css-only'
 
 
 const production = !process.env.ROLLUP_WATCH
+const useBabel = production || process.env.USE_BABEL
 
 export default {
   input: 'src/main.js',
@@ -37,22 +36,13 @@ export default {
 			dedupe: ['svelte']
 		}),
     commonjs(),
-    json(), 
 
     // Watch the `dist` directory and refresh the
     // browser on changes when not in production
     !production && livereload('dist'),
-    !production && dev({
-      dirs: ['dist'],
-      port: 5000, 
-      proxy: { 
-        '*': 'http://localhost:8000',
-        '/*': 'http://localhost:8000/',
-      }
-    }),
     // added by angelo
     // compile to good old IE11 compatible ES5
-    babel({
+    useBabel && babel({
       extensions: [ '.js', '.mjs', '.html', '.svelte' ],
       babelHelpers: 'runtime',
       exclude: [ 'node_modules/@babel/**', 'node_modules/core-js/**' ],

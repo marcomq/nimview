@@ -1,0 +1,8 @@
+docs/** linguist-documentation
+src/js/*map linguist-generated
+src/js/*.cjs.js linguist-generated
+src/js/*.iife.js linguist-generated
+src/js/*.esm.js linguist-generated
+src/nimview/std/** linguist-vendored
+src/nimview/webview/** linguist-vendored
+src/nimview/webview2/** linguist-vendored

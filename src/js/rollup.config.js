@@ -41,6 +41,12 @@ export default {
     exports: 'auto'
   }, {
     sourcemap: true,
+    format: 'esm',
+    name: 'nimview_js',
+    file: 'nimview.esm.js',
+    exports: 'auto'
+  }, {
+    sourcemap: true,
     format: 'iife',
     name: 'nimview_js',
     file: 'nimview.iife.js',

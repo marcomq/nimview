@@ -1,6 +1,6 @@
 {
   "name": "svelte-todo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sample application for Nimview",
   "license": "MIT",
   "repository": {
@@ -10,10 +10,9 @@
   "scripts": {
     "build": "rollup -c",
     "devbuild": "rollup -c",
-    "autobuild": "rollup -c -w",
-    "dev": "run-p start:dev autobuild",
-    "start": "sirv public",
-    "start:dev": "sirv public --dev"
+    "dev": "rollup -c -w",
+    "dev-ie": "(set USE_BABEL=1 || export USE_BABEL=1) && rollup -c -w",
+    "start": "sirv public --no-clear"
   },
   "devDependencies": {
     "@babel/core": "^7.15.5",
@@ -25,11 +24,8 @@
     "@rollup/plugin-commonjs": "^20.0.0",
     "@rollup/plugin-node-resolve": "^13.0.4",
     "@tauri-apps/tauri-inliner": "^1.13.2",
-    "npm-run-all": "^4.1.5",
     "rollup": "^2.56.3",
     "rollup-plugin-css-only": "^3.1.0",
-    "rollup-plugin-dev": "^1.1.3",
-    "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-livereload": "^2.0.5",
     "rollup-plugin-svelte": "^7.1.0",
     "rollup-plugin-terser": "^7.0.2",
@@ -40,6 +36,6 @@
     "bootstrap": "^4.6.0",
     "core-js": "^3.17.2",
     "jquery": "^3.6.0",
-    "nimview": "^1.0.1"
+    "nimview": "^1.1.0"
   }
 }

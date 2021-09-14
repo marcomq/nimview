@@ -11,6 +11,7 @@ if (typeof window.ui !== "object") {
     ui = {}
     ui.copyright = "© Copyright 2021, by Marco Mengelkoch"
     ui.resolveStorage = {}
+    ui.callbackMapping = {}
     ui.requestCounter = 0
     ui.waitCounter = 0
     ui.initStarted = false
@@ -136,7 +137,12 @@ ui.rejectResponse = (requestId) => {
     }
 }
 ui.callFunction = (functionName, ...args) => {
-    window[functionName](args)
+    if (ui.callbackMapping[functionName] !== "undefined") {
+        window[ui.callbackMapping[functionName]](args)
+    }
+    else {
+        window[functionName](args)
+    }
 }
 ui.usingBrowser = () => {
     return (typeof window.nimview === 'undefined')
@@ -168,9 +174,9 @@ ui.init = (async () => {
             ui.ws.onmessage = (data) => {
                 let resp
                 try {
-                    resp = JSON.parse(data.data)
-                } catch (err) {
                     resp = JSON.parse(data)
+                } catch (err) {
+                    resp = JSON.parse(data.data)
                 }
                 ui.callFunction(resp.function, resp.args)
               }
@@ -222,6 +228,15 @@ backend.waitInit = () => {
         }
         setTimeout(waitLoop, 1)
     })
+}
+/**
+ * This function is used to change the mapping of a frontend function,
+ * so it wouldn't be necessary to alter the backend, if a frontend function name
+ * changes. You may not need it.
+ * Use this if you need to run the same backend with multiple frontends.
+ */
+backend.mapFrontendFunction = (backendName, frontendName) => {
+    ui.callbackMapping[backendName] = frontendName
 }
 window.setTimeout(ui.init, 1) // may need to be increased on webview error
 export default backend
