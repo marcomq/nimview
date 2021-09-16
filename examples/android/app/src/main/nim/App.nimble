@@ -10,5 +10,5 @@ srcDir      = "src"
 
 # Currently, Webview requires gcc and doesn't work with vcc or clang
 
-requires "nimview >= 0.2.0", "nake >= 1.9.0"
+requires "nimview >= 0.3.0", "nake >= 1.9.0"
 

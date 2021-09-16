@@ -122,12 +122,13 @@ macro callFrontendJsMacro(functionName: string, params: varargs[untyped]) =
       when defined compileWithWebview:
         discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
     elif not myWs.isNil:
-      try:
-        asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
-      except WebSocketProtocolMismatchError:
-        echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-      except CatchableError:
-        echo "Call frontend error: ", getCurrentExceptionMsg()
+      when not defined(just_core):
+        try:
+          asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
+        except WebSocketProtocolMismatchError:
+          echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+        except CatchableError:
+          echo "Call frontend error: ", getCurrentExceptionMsg()
 
 proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
   callFrontendJsMacro(functionName, argsString)
@@ -312,17 +313,18 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       header.add(responseHttpHeader)
       await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
     elif requestPath == "/ws":
-      try:
-        var ws = await newWebSocket(request)
-        myWs = ws
-        while ws.readyState == ReadyState.Open:
-          let packet = await ws.receiveStrPacket()
-          echo "Received packet: " & packet
-        callFrontendJs("alert", "helloWorld")
-      except WebSocketProtocolMismatchError:
-        echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-      except WebSocketError:
-        echo "Socket error: ", getCurrentExceptionMsg()
+      when not defined(just_core):
+        try:
+          var ws = await newWebSocket(request)
+          myWs = ws
+          while ws.readyState == ReadyState.Open:
+            let packet = await ws.receiveStrPacket()
+            echo "Received packet: " & packet
+          callFrontendJs("alert", "helloWorld")
+        except WebSocketProtocolMismatchError:
+          echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+        except WebSocketError:
+          echo "Socket error: ", getCurrentExceptionMsg()
     elif (request.body == ""):
         raise newException(ReqUnknownException, "404 - File not found")
     else:
