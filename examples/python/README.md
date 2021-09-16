@@ -7,7 +7,7 @@ The pyTest.py doesn't trigger start yet - so it doesn't opens a GUI yet.
 Currently only used for testing
 
 building
-nake
+nake pyLib
 python bdist_wheel.py bdist_wheel
-python setup.py 
-python -m twine upload --repository pypi .\dist\nimview-0.2.3.*
+python setup.py sdist
+python -m twine upload --repository pypi .\dist\nimview-0.3.3.*

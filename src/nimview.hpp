@@ -233,6 +233,10 @@ namespace nimview {
     void enableStorage(const std::string &fileName = "storage.js") {
         ::nimview_enableStorage(const_cast<char*>(fileName.c_str()));
     }
+    void callFrontendJs(const std::string &functionName, const std::string &args) {
+        ::nimview_callFrontendJs(const_cast<char*>(functionName.c_str()), const_cast<char*>(args.c_str())); 
+    }
+    auto setCustomJsEval = ::nimview_setCustomJsEval;
     auto addRequest_void = ::nimview_addRequest;
     auto addRequest_rstr = ::nimview_addRequest_rstr;
     auto addRequest_cstring = ::nimview_addRequest_cstring;
