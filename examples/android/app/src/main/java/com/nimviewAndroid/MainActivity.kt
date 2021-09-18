@@ -5,7 +5,6 @@ import android.view.Window
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
 
 
@@ -22,7 +21,8 @@ class MainActivity : AppCompatActivity() {
         val settings = webView.getSettings()
         settings.setJavaScriptEnabled(true)
         settings.setDomStorageEnabled(true)
-        var nativeCpp = NativeCpp()
+        settings.setAppCacheEnabled(true)
+        var nativeCpp = CppWrapper()
         webView.addJavascriptInterface(nativeCpp, "nimview")
         webView.webChromeClient = object : WebChromeClient() {
             //Other methods for your WebChromeClient here, if needed..

@@ -13,7 +13,7 @@ add_custom_target (nimToCAndJs ALL
 
 add_definitions(-DNIMVIEW_CUSTOM_LIB -DJUST_CORE -funsigned-char)
 
-AUX_SOURCE_DIRECTORY(${ANDROID_ABI}  ALL_NIM_C_FILES)
+aux_source_directory(${ANDROID_ABI}  ALL_NIM_C_FILES)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.

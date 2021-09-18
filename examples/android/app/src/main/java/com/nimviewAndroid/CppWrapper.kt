@@ -2,10 +2,11 @@ package com.nimviewAndroid
 import android.webkit.WebView
 import org.json.JSONObject
 
-public class NativeCpp {
+public class CppWrapper {
 private var mAppView: WebView? = null
     fun init(appView: WebView?) {
         this.mAppView = appView
+        this.initCallFrontentJs()
     }
     /**
      * A native method that is implemented by the 'native-lib' native library,
@@ -13,6 +14,8 @@ private var mAppView: WebView? = null
      */
     @SuppressWarnings("unused")
     external fun callNim(request: String, value: String): String
+
+    external fun initCallFrontentJs()
 
     @SuppressWarnings("unused")
     @android.webkit.JavascriptInterface
@@ -28,6 +31,11 @@ private var mAppView: WebView? = null
             // do nothing
         }
         return ""
+    }
+
+    fun evaluateJavascript(command: String) {
+        this.mAppView?.evaluateJavascript(command, null)
+        // this.mAppView?.loadUrl("javascript:" + command)
     }
 
 }

@@ -33,7 +33,7 @@ proc buildCForArch(cpu, path: string) =
   let headerFile = cppPath /  application & ".h"
   if (headerfile.needsRefresh(mainApp)):
     os.removeDir(cppPath)
-    var stdOptions = "--header:" & application & ".h --app:staticlib -d:just_core -d:noSignalHandler -d:release -d:androidNDK -d:noMain --os:android --threads:on "
+    var stdOptions = "--header:" & application & ".h --app:staticlib -d:just_core -d:noSignalHandler -d:release -d:androidNDK -d:noMain --os:android --threads:on --debuginfo:on " # TODO: turn off debug infos
     execShCmd(nimexe & " cpp -c " & stdOptions & "--cpu:" & cpu & " --nimcache:" & cppPath & " " & mainApp)
 
 proc buildC() =

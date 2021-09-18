@@ -174,9 +174,9 @@ ui.init = (async () => {
             ui.ws.onmessage = (data) => {
                 let resp
                 try {
-                    resp = JSON.parse(data)
-                } catch (err) {
                     resp = JSON.parse(data.data)
+                } catch (err) {
+                    resp = JSON.parse(data)
                 }
                 ui.callFunction(resp.function, resp.args)
               }

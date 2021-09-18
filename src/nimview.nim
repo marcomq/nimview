@@ -49,7 +49,7 @@ include nimview/requestMap
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
-var customJsEval* {.threadVar.}: CstringFunc
+var customJsEval*: pointer 
 
 type NimviewSettings = object
   indexHtmlFile*: string
@@ -115,20 +115,20 @@ proc enableStorage*()  =
 
 macro callFrontendJsMacro(functionName: string, params: varargs[untyped]) =
   quote do:
-    if not customJsEval.isNil:
-      {.gcsafe.}:
-        customJsEval(`functionName` & "(" & $(%*`params`) & ");")
-    elif not myWebView.isNil:
-      when defined compileWithWebview:
-        discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
-    elif not myWs.isNil:
-      when not defined(just_core):
-        try:
-          asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
-        except WebSocketProtocolMismatchError:
-          echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-        except CatchableError:
-          echo "Call frontend error: ", getCurrentExceptionMsg()
+    {.gcsafe.}:
+      if not customJsEval.isNil:
+        cast[CstringFunc](customJsEval)(`functionName` & "(" & $(%*`params`) & ");")
+      elif not myWebView.isNil:
+        when defined compileWithWebview:
+          discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
+      elif not myWs.isNil:
+        when not defined(just_core):
+          try:
+            asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
+          except WebSocketProtocolMismatchError:
+            echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+          except CatchableError:
+            echo "Call frontend error: ", getCurrentExceptionMsg()
 
 proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
   callFrontendJsMacro(functionName, argsString)
@@ -187,8 +187,9 @@ proc setUseServer*(val: bool) {.exportpy.} =
   ## If true, use Http Server instead of Webview.
   useServer = val
 
-proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".}=
-  customJsEval = evalFunc
+proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".} =
+  {.gcsafe.}:
+    customJsEval = evalFunc
 
 proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## The global token is a weak session-free CSRF check. Still much better than no CSRF protection.

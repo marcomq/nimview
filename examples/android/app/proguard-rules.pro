@@ -17,7 +17,7 @@
    *;
 }
 
--keepclassmembers class com.nimviewAndroid.NativeCpp {
+-keepclassmembers class com.nimviewAndroid.CppWrapper {
    public *;
 }
 

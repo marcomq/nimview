@@ -38,6 +38,11 @@
 		}
 		mainInput.focus()
 	}
+	let countDown = () => {
+        backend.countDown().then(response => {
+            alert(0)
+        })
+    }
 	$: backend.waitInit().then(() => {getAll()})
 </script>
 <main>
@@ -57,6 +62,7 @@
 						</div>
 					</div>
 				</form>
+                <button type="button" on:click={countDown} class="btn btn-success my-2 my-sm-0">Countdown</button>
 				{#if items.length > 0}
 					<ul id="sortable" class="list-unstyled">
 					{#each items as item}
