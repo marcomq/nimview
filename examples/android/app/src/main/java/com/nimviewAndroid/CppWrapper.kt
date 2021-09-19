@@ -3,9 +3,9 @@ import android.webkit.WebView
 import org.json.JSONObject
 
 public class CppWrapper {
-private var mAppView: WebView? = null
+private var myWebview: WebView? = null
     fun init(appView: WebView?) {
-        this.mAppView = appView
+        this.myWebview = appView
         this.initCallFrontentJs()
     }
     /**
@@ -34,8 +34,9 @@ private var mAppView: WebView? = null
     }
 
     fun evaluateJavascript(command: String) {
-        this.mAppView?.evaluateJavascript(command, null)
-        // this.mAppView?.loadUrl("javascript:" + command)
+        this.myWebview?.evaluateJavascript(command, null)
+        // this.myWebview?.loadUrl("javascript:" + command)
+        // this.myWebview?.evaluateJavascript("alert(9)", null)
     }
 
 }
