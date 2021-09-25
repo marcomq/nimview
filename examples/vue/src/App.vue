@@ -1,7 +1,6 @@
 //App.vue
 <template>
   <div id="app">
-    Hello world
     <Navbar />
     <Sample/>
   </div>
