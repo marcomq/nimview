@@ -36,6 +36,6 @@
     "bootstrap": "^4.6.0",
     "core-js": "^3.17.2",
     "jquery": "^3.6.0",
-    "nimview": "^1.1.0"
+    "nimview": "^1.1.1"
   }
 }
