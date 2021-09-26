@@ -38,12 +38,13 @@ private
             val request = jsonMessage.getString("request")
             var data = jsonMessage.getString("data")
             var requestId = jsonMessage.getInt("requestId")
-            myWebview?.post(Runnable {
+            val thread = Thread {
                 var result = this.callNim(request, data)
                 evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
                  + result.replace("\\", "\\\\").replace("\'", "\\'")
                  + "');")
-            })
+            }
+            thread.start()
 
             // var result = this.callNim(request, data)
             // evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
