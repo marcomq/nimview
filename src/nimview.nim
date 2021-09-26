@@ -497,7 +497,7 @@ when not defined(just_core):
           try:
             let response = dispatchJsonRequest(jsonMessage)
             evalJsCode = "window.ui.applyResponse(" & $requestId & 
-				"," & response.escape("'","'") & ");"
+                "," & response.escape("'","'") & ");"
           except: 
             evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
           discard myWebView.eval(evalJsCode)
@@ -509,7 +509,7 @@ when not defined(just_core):
           try:
             let response = dispatchJsonRequest(jsonMessage)
             evalJsCode = "window.ui.applyResponse(" & $requestId & 
-				"," & response.escape("'","'") & ");"
+                "," & response.escape("'","'") & ");"
           except: 
             evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
           myWebView.eval(evalJsCode)

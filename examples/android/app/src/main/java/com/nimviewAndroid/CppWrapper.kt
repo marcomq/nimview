@@ -1,11 +1,15 @@
 package com.nimviewAndroid
 import android.webkit.WebView
+import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONObject
 
 public class CppWrapper {
-private var myWebview: WebView? = null
-    fun init(appView: WebView?) {
+private
+    var myWebview: WebView? = null
+    var myMainActivity: AppCompatActivity? = null
+    fun init(appView: WebView?, mainActivity: AppCompatActivity?) {
         this.myWebview = appView
+        this.myMainActivity = mainActivity
         this.initCallFrontentJs()
     }
     /**
@@ -19,8 +23,8 @@ private var myWebview: WebView? = null
 
     @SuppressWarnings("unused")
     fun evaluateJavascript(command: String) {
-        this.myWebview?.post(Runnable {
-            this.myWebview?.evaluateJavascript(command, null)
+        myMainActivity?.runOnUiThread(Runnable {
+            myWebview?.evaluateJavascript(command, null)
         })
         // System.out.println("javscript done..");
         // this.myWebview?.loadUrl("javascript:" + command)
@@ -28,22 +32,28 @@ private var myWebview: WebView? = null
 
     @SuppressWarnings("unused")
     @android.webkit.JavascriptInterface
-    fun call(command: String): String {
+    fun call(command: String) {
         try {
             val jsonMessage = JSONObject(command)
             val request = jsonMessage.getString("request")
             var data = jsonMessage.getString("data")
             var requestId = jsonMessage.getInt("requestId")
-            var result = this.callNim(request, data)
+            myWebview?.post(Runnable {
+                var result = this.callNim(request, data)
+                evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
+                 + result.replace("\\", "\\\\").replace("\'", "\\'")
+                 + "');")
+            })
+
+            // var result = this.callNim(request, data)
             // evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
             //        + result.replace("\\", "\\\\").replace("\'", "\\'")
             //        + "');")
-            return result
+
         }
         catch (e: Exception) {
-            return e.toString();
+            println(e.toString())
         }
-        return ""
     }
 
 }

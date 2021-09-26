@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
         settings.setDomStorageEnabled(true)
         settings.setAppCacheEnabled(true)
         var cppWrapper = CppWrapper()
+        cppWrapper.init(webView, this)
         webView.addJavascriptInterface(cppWrapper, "nimview")
         webView.webChromeClient = object : WebChromeClient() {
             //Other methods for your WebChromeClient here, if needed..
@@ -35,7 +36,6 @@ class MainActivity : AppCompatActivity() {
                 return super.onJsAlert(view, url, message, result)
             }
         }
-        cppWrapper.init(webView)
         webView.loadUrl("file:///android_asset/index.html");
 
     }

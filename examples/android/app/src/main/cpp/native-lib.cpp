@@ -10,6 +10,16 @@ JavaVM* myJvm = NULL;
 jobject* myCppWrapper = NULL;
 jmethodID myEvaljsFunc;
 
+void webviewEvalJs(char* js) {
+    // this doesn't seem to call javascript for some reason and crashes on 2nd call
+    JNIEnv* env = NULL;
+    jint rs = myJvm->GetEnv((void **)&env, myJniVersion);
+    assert (rs == JNI_OK);
+    jstring jstr = env->NewStringUTF(js);
+    env->CallVoidMethod(*myCppWrapper, myEvaljsFunc, jstr);
+    env->DeleteLocalRef(jstr);
+};
+
 #define THIS_PROJECT_PREFIX Java_com_nimviewAndroid
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_nimviewAndroid_CppWrapper_callNim(
@@ -30,17 +40,6 @@ Java_com_nimviewAndroid_CppWrapper_callNim(
     env->ReleaseStringUTFChars(value, cValue);
     return env->NewStringUTF(result.c_str());
 }
-
-void webviewEvalJs(char* js) {
-    // this doesn't seem to call javascript for some reason and crashes on 2nd call
-    return;
-    JNIEnv* env = NULL;
-    jint rs = myJvm->GetEnv((void **)&env, myJniVersion);
-    assert (rs == JNI_OK);
-    jstring jstr = env->NewStringUTF(js);
-    env->CallVoidMethod(*myCppWrapper, myEvaljsFunc, jstr);
-    env->DeleteLocalRef(jstr);
-};
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_nimviewAndroid_CppWrapper_initCallFrontentJs(JNIEnv* env, jobject self) {
