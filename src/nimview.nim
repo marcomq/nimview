@@ -321,7 +321,6 @@ proc handleRequest(request: Request): Future[void] {.async.} =
           while ws.readyState == ReadyState.Open:
             let packet = await ws.receiveStrPacket()
             echo "Received packet: " & packet
-          callFrontendJs("alert", "helloWorld")
         except WebSocketProtocolMismatchError:
           echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
         except WebSocketError:
@@ -497,8 +496,8 @@ when not defined(just_core):
           var evalJsCode: string 
           try:
             let response = dispatchJsonRequest(jsonMessage)
-            evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
-                response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
+            evalJsCode = "window.ui.applyResponse(" & $requestId & 
+				"," & response.escape("'","'") & ");"
           except: 
             evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
           discard myWebView.eval(evalJsCode)
@@ -509,8 +508,8 @@ when not defined(just_core):
           var evalJsCode: string 
           try:
             let response = dispatchJsonRequest(jsonMessage)
-            evalJsCode = "window.ui.applyResponse(" & $requestId & ",'" & 
-                response.replace("\\", "\\\\").replace("\'", "\\'") & "');"
+            evalJsCode = "window.ui.applyResponse(" & $requestId & 
+				"," & response.escape("'","'") & ");"
           except: 
             evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
           myWebView.eval(evalJsCode)

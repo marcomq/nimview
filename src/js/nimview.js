@@ -72,11 +72,12 @@ ui.callRequest = async (request, signature, data) => {
         if (ui.globalToken && (ui.globalToken.length > 0)) {
             requestOpts.headers["global-token"] = ui.globalToken
         }
-        if (data.length != Math.min(signature.length, signature.split(",").length) && 
-                (signature.indexOf("array") == -1) && (signature.indexOf("vector") == -1) &&
-                (signature.indexOf("list") == -1) && (signature.indexOf("map") == -1) &&
-                console && console.log) {
-            console.log("Request signature might not fit: '" + request + "' signature: '" + signature + "' data: '" + JSON.stringify(data) + "'") 
+        if (data.length != Math.min(signature.length, signature.split(",").length)  
+            && (signature.indexOf("array") == -1) && (signature.indexOf("vector") == -1) 
+            &&      (signature.indexOf("list") == -1) && (signature.indexOf("map") == -1) 
+            &&      console && console.log) {
+            console.log("Request signature might not fit: '" + request + "' signature: '" 
+                + signature + "' data: '" + JSON.stringify(data) + "'") 
         }
         return fetch(host + "/" + url, requestOpts).then((response) => {
             if (response) {
@@ -93,7 +94,8 @@ ui.callRequest = async (request, signature, data) => {
         // webview
         if (typeof window.nimview.call === "function") {
             const requestId = ui.createRequestId()
-            const postData = JSON.stringify({request: request, data: data, requestId: requestId})
+            const postData = JSON.stringify({request: request, data: data, 
+                requestId: requestId})
             let promise = new Promise((resolve, reject) => {
                 ui.resolveStorage[requestId] = [resolve, reject]
                 let response = window.nimview.call(postData)
@@ -152,8 +154,8 @@ ui.init = (async () => {
         ui.alert("API timeout")
         return
     }
-    if ((window.location.href.indexOf("file:") == 0) || 
-        (window.location.href.indexOf("data:") == 0)) {
+    if ((window.location.href.indexOf("file:") == 0) 
+        || (window.location.href.indexOf("data:") == 0)) {
         if (typeof window.nimview === 'undefined') {
             // retry later when using webview and not initialized yet
             window.setTimeout(ui.init, 50) 
@@ -166,8 +168,8 @@ ui.init = (async () => {
         if (ui.usingBrowser()) {
             // using websocket to listen for commands
             let ws = "ws"
-            if (window.location.href.indexOf("https:") == 0 ||
-                host.indexOf("https:") == 0) {
+            if (window.location.href.indexOf("https:") == 0
+                || host.indexOf("https:") == 0) {
                 ws = "wss"
             }
             ui.ws = new WebSocket(ws + "://" + wsHost + "/ws")

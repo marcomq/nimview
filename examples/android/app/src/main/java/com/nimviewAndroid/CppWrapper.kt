@@ -18,25 +18,32 @@ private var myWebview: WebView? = null
     external fun initCallFrontentJs()
 
     @SuppressWarnings("unused")
+    fun evaluateJavascript(command: String) {
+        this.myWebview?.post(Runnable {
+            this.myWebview?.evaluateJavascript(command, null)
+        })
+        // System.out.println("javscript done..");
+        // this.myWebview?.loadUrl("javascript:" + command)
+    }
+
+    @SuppressWarnings("unused")
     @android.webkit.JavascriptInterface
     fun call(command: String): String {
         try {
             val jsonMessage = JSONObject(command)
             val request = jsonMessage.getString("request")
             var data = jsonMessage.getString("data")
+            var requestId = jsonMessage.getInt("requestId")
             var result = this.callNim(request, data)
-            return result // .replace("\\", "\\\\").replace("\'", "\\'")
+            // evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
+            //        + result.replace("\\", "\\\\").replace("\'", "\\'")
+            //        + "');")
+            return result
         }
         catch (e: Exception) {
-            // do nothing
+            return e.toString();
         }
         return ""
-    }
-
-    fun evaluateJavascript(command: String) {
-        this.myWebview?.evaluateJavascript(command, null)
-        // this.myWebview?.loadUrl("javascript:" + command)
-        // this.myWebview?.evaluateJavascript("alert(9)", null)
     }
 
 }
