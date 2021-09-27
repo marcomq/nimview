@@ -51,9 +51,6 @@ proc buildJs() =
   if ((thisDir / "dist/build/bundle.js").needsRefresh(src)):
     execShCmd("npm install")
     execShCmd("npm run build")
-    os.removeDir("../assets")
-    os.createDir("../assets")
-    os.copyDir(thisDir & "/dist", "../assets") # maybe not required anymore
 
 task "serve", "Serve NPM":
   doAssert 0 == os.execShellCmd("npm run serve")

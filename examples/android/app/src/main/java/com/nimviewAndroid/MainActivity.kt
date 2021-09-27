@@ -22,11 +22,10 @@ class MainActivity : AppCompatActivity() {
         settings.setJavaScriptEnabled(true)
         settings.setDomStorageEnabled(true)
         settings.setAppCacheEnabled(true)
-        var cppWrapper = CppWrapper()
-        cppWrapper.init(webView, this)
+        var cppWrapper = CppWrapper(webView, this)
         webView.addJavascriptInterface(cppWrapper, "nimview")
         webView.webChromeClient = object : WebChromeClient() {
-            //Other methods for your WebChromeClient here, if needed..
+            // WebChromeClient needs workaround for "alert"
             override fun onJsAlert(
                 view: WebView,
                 url: String,

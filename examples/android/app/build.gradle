@@ -38,6 +38,12 @@ android {
         }
     }
     ndkVersion '21.0.6113669'
+
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/nim/dist']
+        }
+    }
 }
 
 dependencies {
@@ -49,5 +55,4 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-
 }

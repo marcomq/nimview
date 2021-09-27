@@ -1,16 +1,20 @@
 package com.nimviewAndroid
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatActivity
+import java.util.concurrent.Executors
 import org.json.JSONObject
 
 public class CppWrapper {
 private
-    var myWebview: WebView? = null
-    var myMainActivity: AppCompatActivity? = null
-    fun init(appView: WebView?, mainActivity: AppCompatActivity?) {
+    var myWebview: WebView
+    var myMainActivity: AppCompatActivity
+    val myNimThread = Executors.newFixedThreadPool(1) // always use the same thread for nim
+    constructor(appView: WebView, mainActivity: AppCompatActivity) {
         this.myWebview = appView
         this.myMainActivity = mainActivity
-        this.initCallFrontentJs()
+        this.myNimThread.execute({
+            this.initCallFrontentJs()
+        })
     }
     /**
      * A native method that is implemented by the 'native-lib' native library,
@@ -23,11 +27,9 @@ private
 
     @SuppressWarnings("unused")
     fun evaluateJavascript(command: String) {
-        myMainActivity?.runOnUiThread(Runnable {
-            myWebview?.evaluateJavascript(command, null)
+        this.myMainActivity.runOnUiThread(Runnable {
+            this.myWebview.evaluateJavascript(command, null)
         })
-        // System.out.println("javscript done..");
-        // this.myWebview?.loadUrl("javascript:" + command)
     }
 
     @SuppressWarnings("unused")
@@ -38,19 +40,12 @@ private
             val request = jsonMessage.getString("request")
             var data = jsonMessage.getString("data")
             var requestId = jsonMessage.getInt("requestId")
-            val thread = Thread {
+            this.myNimThread.execute({
                 var result = this.callNim(request, data)
-                evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
+                this.evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
                  + result.replace("\\", "\\\\").replace("\'", "\\'")
                  + "');")
-            }
-            thread.start()
-
-            // var result = this.callNim(request, data)
-            // evaluateJavascript("window.ui.applyResponse(" + requestId.toString() + ",'"
-            //        + result.replace("\\", "\\\\").replace("\'", "\\'")
-            //        + "');")
-
+            })
         }
         catch (e: Exception) {
             println(e.toString())
