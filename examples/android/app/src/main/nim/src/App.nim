@@ -1,7 +1,9 @@
 import nimview, os
 
 var storageFile = "storage.json"
-enableStorage(storageFile) # adds getStoredVal and setStoredVal
+var sdCard = os.getenv("EXTERNAL_STORAGE", "/sdcard")
+
+enableStorage(sdCard / storageFile) # adds getStoredVal and setStoredVal
 
 proc countDown() =
   callFrontendJs("alert", "waiting 6 seconds")
