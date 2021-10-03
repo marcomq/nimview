@@ -161,7 +161,6 @@ in your back-end code. You may use as many parameters as you want.
 Keep in mind to only use this to send visible information to the UI and not rely
 your application workflow on this function. Otherwise, your application might 
 become hard to test.
-This function `callFrontendJs` doesn't work on Android yet.
 
 ## Development workflow
 You need to compile the back-end and usually the front-end too, when using vue or svelte. While this seems unnecessary complicated in the beginning, 
