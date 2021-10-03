@@ -17,6 +17,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 - Simple automated back-end testing as backend functions just return strings
 - Integrated simple persistent storage
 - Immediately expose back-end functions to front-end with a simple command
+- Trigger front-end functions from backend 
 
 ## Table of Contents
 - [About](#about)
@@ -60,7 +61,7 @@ You may also use the webserver for your cloud environemnt, but make sure to use 
 
 Node.js is recommended but not required if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
 The HTTP server will run when compiling the application as "debug" by default, so you can use all your usual debugging and development tools in Chrome or Firefox. 
-Webview makes it hard to debug Javascript - especially on Windows. You might use webview for production and testing, but you shouldn't focus Javascript UI development on Webview.
+Webview makes it hard to debug Javascript - especially on Windows. You might use webview for production and testing, but you shouldn't focus Javascript UI development on Webview on windows.
 
 This project is not intended to have any kind of forms, inputs or any additional helpers to create the UI. 
 If you need HTML generators or helpers, there are widely used open source frameworks available, for example Vue-Bootstrap (https://bootstrap-vue.org/).
@@ -146,8 +147,9 @@ Nimview register functions to take up to 4 arguments. If you need more or if you
 more complex data, it is recommended to use Json to encode your values on the client. 
 Use a parser on the back-end to read all values and send Json back to the client. By this, you have an unlimited amount of input and output
 parameter values.
-This is easy when using python or Nim as back-end. This may also simplify automated testing, as you can store the specific strings as Json 
-and only check specific Json values. Notice, that all registered functions return only strings, so the server will also just return a string value. 
+This is easy when using python or Nim as back-end. This may also simplify automated unit testing, as you can store the specific strings as Json 
+and only check specific Json values.
+Notice, that all registered functions return only strings, so the server will also just return a string value.
 If you need Json, you need to parse this value in javascript manually, for example with JSON.parse().
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
 
@@ -187,6 +189,12 @@ But if you want to change code easily, the development workflow would be:
 - change your back-end code and re-run `nim c -r -d:debug src/App.nim` or restart the VS Code debugger
 - keep in mind that http://localhost:5000 is only a development url, the Javascript generated for production would be reachable by default at http://localhost:8000
 
+You can also write simple integration tests with cypress using the debug (Webserver) mode.
+This makes automated tests nearly as simple as for Electron.
+Unfortunately, Cypress doesn't support IE11 and Nimview doesn't support Edge/Chromium on Windows yet.
+But thx to babel, there aren't many JS incompatibilities. 
+An Edge version of Nimview is already planned.
+
 ## Inline HTML to single binary
 Nimview doesn't automatically create a single executable that contains the user interface 
 for all possible scenarios. Nimview currently adds `../dist/inlined.html`
@@ -221,21 +229,24 @@ For the Windows target, you need to choose a IE 11 compatible CSS library. Boots
 for example isn't compatible with IE 11 anymore.
 
 ### Nimview vs Electron or CEF
-Electron and CEF are great frameworks and both were an inspiration to this helper here. 
+Electron and CEF are great frameworks with a lot of useful utilities and both were an inspiration to this helper here. 
 However, the output binary of electron or CEF is usually more than 100 MB and getting started with a new project without previous knowledge of Electron / CEF can also take some time. 
 Both CEF and Electron might be great for large Desktop projects that don't need to care about RAM + Disk or that require some additional custom window color,
-task symbols or other features. But setting up Electron / CEF applications and deploying them takes a lot of time, which you can safe by using this helper here.
+task symbols or other features. 
+But setting up Electron / CEF applications and deploying them takes a lot of knowledge and time, which you can safe by using this helper here.
 The binary output of Nimview is usually less than 2 MB. If you zip the binary, you even have less than 1 MB for a desktop application with UI. It also might just run in the Cloud as there is an included webserver 
 You might easily run the app in Docker. Getting started might just take some minutes and it will consume less RAM, 
 less system resources and will start-up much quicker than an Electron or CEF App.
 You might write the same Code and the same UI for your Cloud application as for your Desktop App.
+Cypress integration tests might still work as Nimview has a webserver mode that can be used for testing. 
 
 ### Nimview vs Eel or Neel
 There are another 2 cool similar frameworks: The very popular framework [eel](https://github.com/ChrisKnott/Eel) for python 
 and its cousin [neel](https://github.com/Niminem/Neel) for nim. 
 While the use case seems to be similar, there are some major differences: 
 - With Nimview, you don't need a webserver running that might take requests from any other user on localhost as you use Webview in release mode. 
-This improves security as you don't need to worry about open ports or other attack vectors that need to be considered when running a webserver application. It also makes it easy to run multiple applications without having port conflicts.
+This improves security as you don't need to worry about open ports or other attack vectors that need to be considered when running a webserver application. It also makes it easy to run multiple applications without having port conflicts. For some security scenarios, using a webserver - even on localhost - might be not an option at all. 
+You can use Nimview in suche a case, as you get a similar development experience but with less security concerns.
 - Nimview also includes a simple global token check in release mode that may be able to prevent most
   CSRF attacks when the server is running on localhost.
  
@@ -254,6 +265,9 @@ Version 0.2.0:
 - Server functions are automatically exposed to the client when registered on server
 Version 0.3.0: 
 - Calling JS functions directly from back-end
+
+Nimview currently "borrows" its current Webview code from Wails, as the wails community still performs fixes
+on the old C header-only version of Webview.
 
 Nimview still has a smaller code base and creates even smaller binaries. You also have classical languages 
 for your back-end as C, C++ or Python code - and you can mix those with Nim.
