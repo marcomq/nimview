@@ -459,10 +459,12 @@ when not defined(just_core):
   proc toDataUrl(stream: string): string =
     ## creates a dada url and escapes %
     ## encoding all or using base64 would be correct, but IE is super slow when doing so
+    if stream.startsWith("data:"):
+      return stream
     if (system.hostOS == "windows"): 
       result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
     else:
-      result = "data:text/html, " & base64.encode(stream)
+      result = "data:text/html;base64, " & base64.encode(stream)
     
 
   proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
@@ -531,7 +533,8 @@ when not defined(just_core):
     when not defined(release):
       checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
         "; cannot start UI; the UI folder needs to be relative to the binary")
-    if parameter.isEmptyOrWhitespace() and indexHtmlFile.contains("inlined.html"):
+    if parameter.isEmptyOrWhitespace() and 
+      (indexHtmlFile.contains("inlined.html") or indexHtmlPath.startsWith("data:")):
       debug "Starting desktop with data url"
       startDesktopWithUrl(toDataUrl(indexContent), title, width, height, resizable, debug, run)
     else:
