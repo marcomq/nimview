@@ -21,4 +21,24 @@ addRequest("appendSomething4", proc (value: string, number: int): string =
     result = "'" & value & $number & "' modified by Web Backend"
 )
 
+addRequest("appendSomething5", proc (value: string, number: int, number2: int): string =
+    echo value & $number
+    result = "'" & value & $number & $number2 & "' modified by Web Backend"
+)
+
+addRequest("appendSomething6", proc (value: string, number: int, number2: int) =
+    echo value & $number & $number2
+)
+
+addRequest("appendSomething7", proc (number: int, number2: int): int =
+    echo $number & $number2
+    result = number + number2
+)
+
+addRequest("appendSomething8", proc (value: string, value2: string, number: int, number2: int): int =
+    echo value & $number & $number2 & value2
+    result = number + number2
+)
+
+
 startHttpServer("../examples/minimal/dist/index.html")
