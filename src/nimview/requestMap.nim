@@ -183,6 +183,9 @@ proc addRequest*[T1, R](request: string, callback: proc(value1: T1): R) =
         raise newException(ServerException, "Called request '" & request & "' needs to contain at least 1 argument"),
       name(T1))
 
+proc addRequest*[T1](request: string, callback: proc(value1: T1): void) =
+  addRequest[T1, string](request, proc(val1: T1): string = callback(val1))
+
 proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: T2): R) =
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 1:
@@ -190,6 +193,9 @@ proc addRequest*[T1, T2, R](request: string, callback: proc(value1: T1, value2: 
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 2 arguments"),
       name(T1) & ", " & name(T2))
+
+proc addRequest*[T1, T2](request: string, callback: proc(value1: T1, value2: T2): void) =
+  addRequest[T1, T2, string](request, proc(val1: T1, val2: T2): string = callback(val1, val2))
 
 proc addRequest*[T1, T2, T3, R](request: string, callback: proc(value1: T1, value2: T2, value3: T3): R) =
     addRequest(request, proc (values: JsonNode): string = 
@@ -199,6 +205,9 @@ proc addRequest*[T1, T2, T3, R](request: string, callback: proc(value1: T1, valu
         raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3))
 
+proc addRequest*[T1, T2, T3](request: string, callback: proc(value1: T1, value2: T2, value3: T3): void) =
+  addRequest[T1, T2, T3, string](request, proc(val1: T1, val2: T2, val3: T3): string = callback(val1, val2, val3))
+
 proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4): R) =
     addRequest(request, proc (values: JsonNode): string = 
       if values.len > 3:
@@ -206,6 +215,9 @@ proc addRequest*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, 
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 4 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4))
+
+proc addRequest*[T1, T2, T3, T4](request: string, callback: proc(value1: T1, value2: T2, value3: T3, value4: T4): void) =
+  addRequest[T1, T2, T3, T4, string](request, proc(val1: T1, val2: T2, val3: T3, val4: T4): string = callback(val1, val2, val3, val4))
 
 proc addRequest*[T1, T2, T3, T4, T5, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4, value5: T5): R) =
     addRequest(request, proc (values: JsonNode): string = 
@@ -215,14 +227,14 @@ proc addRequest*[T1, T2, T3, T4, T5, R](request: string, callback: proc(value1: 
         raise newException(ServerException, "Called request '" & request & "' contains less than 5 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4) & ", " & name(T5))
 
+proc addRequest*[T1, T2, T3, T4, T5](request: string, callback: proc(value1: T1, value2: T2, value3: T3, value4: T4, value5: T5): void) =
+  addRequest[T1, T2, T3, T4, T5, string](request, proc(val1: T1, val2: T2, val3: T3, val4: T4, val5: T5): string = callback(val1, val2, val3, val4, val5))
+
 proc addRequest*(request: string, callback: proc(): string) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
   
 proc addRequest*(request: string, callback: proc(): void) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
-  
-#proc addRequest*(request: string, callback: proc(value: string): string|void) =
-#  addRequest(request, proc (values: JsonNode): string = callback(parseAny[string](values[0])), "")
 
 proc getRequests(): string =
   {.gcsafe.}:

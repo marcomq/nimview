@@ -139,8 +139,8 @@ ui.rejectResponse = (requestId) => {
     }
 }
 ui.callFunction = (functionName, ...args) => {
-    if (typeof ui.callbackMapping[functionName] !== "undefined") {
-        window[ui.callbackMapping[functionName]](args)
+    if (typeof ui.callbackMapping[functionName] === "function") {
+        ui.callbackMapping[functionName](args)
     }
     else {
         window[functionName](args)

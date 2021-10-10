@@ -113,32 +113,36 @@ proc enableStorage*()  =
   ## Use "backend.getStoredVal(key)" in js to read a stored value
   enableStorage("storage.json")
 
-macro callFrontendJsMacro(functionName: string, params: varargs[untyped]) =
-  quote do:
-    {.gcsafe.}:
-      if not customJsEval.isNil:
-        cast[CstringFunc](customJsEval)(`functionName` & "(" & $(%*`params`) & ");")
-      elif not myWebView.isNil:
-        when defined compileWithWebview:
-          discard myWebView.eval(`functionName` & "(" & $(%*`params`) & ");")
-      elif not myWs.isNil:
-        when not defined(just_core):
-          try:
-            asynccheck myWs.send($(%*{"function":`functionName`,"args":[`params`]}))
-          except WebSocketProtocolMismatchError:
-            echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-          except CatchableError:
-            echo "Call frontend error: ", getCurrentExceptionMsg()
+proc callFrontendJsEscaped(functionName: string, params: string) =
+  ## "params" should be JS escaped values, separated by commas with surrounding strings
+  {.gcsafe.}:
+    if not customJsEval.isNil:
+      cast[CstringFunc](customJsEval)(functionName & "(" & params & ");")
+    elif not myWebView.isNil:
+      when defined compileWithWebview:
+        discard myWebView.eval(functionName & "(" & params & ");")
+    elif not myWs.isNil:
+      when not defined(just_core):
+        try:
+          asynccheck myWs.send("{\"function\":\"" & functionName & "\",\"args\":[" & params & "]}")
+        except WebSocketProtocolMismatchError:
+          echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
+        except CatchableError:
+          echo "Call frontend error: ", getCurrentExceptionMsg()
 
 proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
-  callFrontendJsMacro(functionName, argsString)
+  callFrontendJsEscaped(functionName, "\"" & argsString & "\"")
 
 proc callFrontendJs*(functionName: cstring, argsString: cstring) {.exportc: "nimview_$1".} =
-  callFrontendJsMacro($functionName, $argsString)
+  callFrontendJsEscaped($functionName, "\"" & $argsString & "\"")
 
 macro callFrontendJs*(functionName: string, params: varargs[untyped]) =
+  ## Call a function on the JS frontend immediately.
+  ## Avoid calling this function from another thread as there might be issues with
+  ## the Nim garbage collector.
+  ## "params" should be a JS compatible value
   quote do:
-    callFrontendJsMacro(`functionName`, `params`)
+    callFrontendJsEscaped(`functionName`, $(%*`params`))
 
 when not defined(just_core):
   proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
