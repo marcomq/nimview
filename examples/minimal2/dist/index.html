@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Minimal Example</title>
+    <script src="nimview.iife.js"></script> <!-- This is required - otherwise, window.ui.backend will not be available -->
+  </head>
+  <body>
+    <input id="sampleInput" type="text" value="Hello World" />
+    <button onclick="
+      window.backend.callJsProgress();
+      window.backend.echoAndModify(document.getElementById('sampleInput').value)
+            .then(function(response) { 
+              alert(response);
+            })
+    ">click</button>
+    <div id="feedback"></div>
+    <script>window.backend.mapFrontendFunction("applyProgress", function(text) {
+      document.getElementById('feedback').innerText = text
+    })</script>
+  </body>
+</html>

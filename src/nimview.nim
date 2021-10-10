@@ -114,13 +114,15 @@ proc enableStorage*()  =
   enableStorage("storage.json")
 
 proc callFrontendJsEscaped(functionName: string, params: string) =
-  ## "params" should be JS escaped values, separated by commas with surrounding strings
+  ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
   {.gcsafe.}:
     if not customJsEval.isNil:
-      cast[CstringFunc](customJsEval)(functionName & "(" & params & ");")
+      let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
+      cast[CstringFunc](customJsEval)(jsExec) 
     elif not myWebView.isNil:
-      when defined compileWithWebview:
-        discard myWebView.eval(functionName & "(" & params & ");")
+      when compileWithWebview:
+        let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
+        discard myWebView.eval(jsExec) 
     elif not myWs.isNil:
       when not defined(just_core):
         try:

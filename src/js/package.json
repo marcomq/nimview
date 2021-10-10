@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rollup -c",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "copyToSamples": "copyfiles *.iife.* ../../examples/minimal/dist && copyfiles *.iife.* ../../examples/c_cpp/dist"
+    "copyToSamples": "copyfiles *.iife.* ../../examples/minimal/dist && copyfiles *.iife.* ../../examples/minimal2/dist && copyfiles *.iife.* ../../examples/c_cpp/dist"
   },
   "repository": {
     "type": "git",
