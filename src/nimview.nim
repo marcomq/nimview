@@ -7,9 +7,13 @@ import os, system, tables
 import json, macros, base64
 import logging as log
 import asynchttpserver, asyncdispatch
+import threadpool
 # run "nimble demo" to to compile and nur demo application
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
+
+when not compileOption("threads"):
+    {.error: "Nimview requires --threads:on compiler option".}
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
@@ -24,7 +28,7 @@ when not defined(just_core):
       import nimview/webview2/src/webview except debug
     else:
       import nimview/webview/webview except debug
-    var myWebView* {.threadVar.}: Webview
+    var myWebView*: Webview
   else:
     const myWebView*: pointer = nil
   var myWs* {.threadVar.}: WebSocket
@@ -122,7 +126,9 @@ proc callFrontendJsEscaped(functionName: string, params: string) =
     elif not myWebView.isNil:
       when compileWithWebview:
         let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-        discard myWebView.eval(jsExec) 
+        myWebView.dispatch(proc() =
+          echo jsExec
+          discard myWebView.eval(jsExec))
     elif not myWs.isNil:
       when not defined(just_core):
         try:
@@ -496,32 +502,43 @@ when not defined(just_core):
       when not defined webview2:
         myWebView.bindProc("nimview", "alert", proc (message: string) =
           {.gcsafe.}:
-              myWebView.info("alert", message))
-        myWebView.bindProc("nimview", "call", proc (message: string) =
-          info message
-          let jsonMessage = json.parseJson(message)
-          let requestId = jsonMessage["requestId"].getInt()
-          var evalJsCode: string 
-          try:
-            let response = dispatchJsonRequest(jsonMessage)
-            evalJsCode = "window.ui.applyResponse(" & $requestId & 
-                "," & response.escape("'","'") & ");"
-          except: 
-            evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-          discard myWebView.eval(evalJsCode)
-        )
+            myWebView.info("alert", message))
+        let dispatchCall = proc (message: string) =
+          {.gcsafe.}:
+            info message
+            let jsonMessage = json.parseJson(message)
+            let requestId = jsonMessage["requestId"].getInt()
+            try:
+              let response = dispatchJsonRequest(jsonMessage)
+              let evalJsCode = "window.ui.applyResponse(" & $requestId & 
+                  "," & response.escape("'","'") & ");" 
+              myWebView.dispatch(proc() =
+                echo evalJsCode
+                discard myWebView.eval(evalJsCode))
+            except: 
+              let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+              myWebView.dispatch(proc() =
+                discard myWebView.eval(evalJsCode))
+        
+        let dispatchCallThreaded = proc (message: string)  =
+          spawn dispatchCall(message)
+        myWebView.bindProc("nimview", "call", dispatchCallThreaded)
       else: # webview2
-        myWebView.bindProc("nimview.call", proc (jsonMessage: JsonNode) =
-          let requestId = jsonMessage["requestId"].getInt()
-          var evalJsCode: string 
-          try:
-            let response = dispatchJsonRequest(jsonMessage)
-            evalJsCode = "window.ui.applyResponse(" & $requestId & 
-                "," & response.escape("'","'") & ");"
-          except: 
-            evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-          myWebView.eval(evalJsCode)
-        )
+        let dispatchCall = proc (jsonMessage: JsonNode) =
+          {.gcsafe.}:
+            let requestId = jsonMessage["requestId"].getInt()
+            var evalJsCode: string 
+            try:
+              let response = dispatchJsonRequest(jsonMessage)
+              evalJsCode = "window.ui.applyResponse(" & $requestId & 
+                  "," & response.escape("'","'") & ");"
+            except: 
+              evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+          myWebView[].dispatch(proc() =
+            myWebView[].eval(evalJsCode))
+        let dispatchCallThreaded = proc (jsonMessage: JsonNode) =
+          spawn dispatchCall(jsonMessage)
+        myWebView.bindProc("nimview.call", dispatchCallThreaded)
       if run:
         nimview.run()
 

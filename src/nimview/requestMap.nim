@@ -13,7 +13,7 @@ type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
   jsSignature: string
 
-var reqMapStore = Table[string, ReqFunction]()
+var reqMapStore : Table[string, ReqFunction]
 
 proc fromStr[T](value: string): T =
   when T is string:
@@ -236,8 +236,12 @@ proc addRequest*(request: string, callback: proc(): string) =
 proc addRequest*(request: string, callback: proc(): void) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
 
+proc init*()
+proc getRequests(): string
+
 proc getRequests(): string =
   {.gcsafe.}:
+    init()
     var requestSeq = newJArray()
     for key, value in reqMapStore:
       requestSeq.add(%* [key, value.jsSignature])
@@ -253,4 +257,9 @@ proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
   do:
     raise newException(ReqUnknownException, "404 - Request unknown")
 
-addRequest("getRequests", getRequests)
+proc init*() =
+  if reqMapStore.len == 0:
+    reqMapStore = Table[string, ReqFunction]()
+    addRequest("getRequests", getRequests)
+
+init()
