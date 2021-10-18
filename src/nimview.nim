@@ -27,7 +27,11 @@ when not defined(just_core):
       import nimview/webview/webview except debug
     var myWebView*: Webview
     var webviewQueue: Channel[string]
+    var runBarrier: Channel[bool]
+    var initBarrier: Channel[bool]
     webviewQueue.open()
+    runBarrier.open()
+    initBarrier.open()
   else:
     const myWebView*: pointer = nil
   var myWs* {.threadVar.}: WebSocket
@@ -418,12 +422,32 @@ proc serve() {.async.} =
       poll()
 
 proc run*() {.exportpy, exportc: "nimview_$1".} =
+  ## You need to use this function if you started nimview with start(run=false)
   nimviewSettings.run = true
   if useServer:
     waitFor serve()
   else:
     when compileWithWebview:
-      webviewQueue.send("")
+      nimviewSettings.run = true
+      runBarrier.send(true)
+      while nimviewSettings.run:
+        var message = webviewQueue.recv()
+        info message
+        if message.len > 0:
+          let jsonMessage = json.parseJson(message)
+          let requestId = jsonMessage["requestId"].getInt()
+          try:
+            let response = dispatchJsonRequest(jsonMessage)
+            let evalJsCode = "window.ui.applyResponse(" & $requestId & 
+                "," & response.escape("'","'") & ");" 
+            myWebView.dispatch(proc() =
+              discard myWebView.eval(evalJsCode))
+          except: 
+            log.error getCurrentExceptionMsg()
+            let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+            myWebView.dispatch(proc() =
+              echo evalJsCode
+              discard myWebView.eval(evalJsCode))
 
 proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
     port: int = nimviewSettings.port,
@@ -492,7 +516,7 @@ when not defined(just_core):
     stopDesktop()
 
   when compileWithWebview:
-    proc startDesktopThread(url: string, title: string, width: int, height: int, 
+    proc desktopThread(url: string, title: string, width: int, height: int, 
       resizable: bool, debug: bool, run: bool)  =
       {.gcsafe.}:
         # var fullScreen = true
@@ -509,10 +533,13 @@ when not defined(just_core):
           let dispatchCall = proc (jsonMessage: JsonNode) =
             webviewQueue.send($jsonMessage)
           myWebView.bindProc("nimview.call", dispatchCall)
+        initBarrier.send(true)
         if not run:
-          discard webviewQueue.recv()
+          discard runBarrier.recv()
         myWebView.run()
         myWebView.exit()
+        nimviewSettings.run = false
+        webviewQueue.send("")
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
@@ -532,28 +559,13 @@ when not defined(just_core):
       if parameter.isEmptyOrWhitespace() and 
         (indexHtmlFile.contains("inlined.html") or indexHtmlPath.startsWith("data:")):
         debug "Starting desktop with data url"
-        spawn startDesktopThread(toDataUrl(indexContent), title, width, height, resizable, debug, run)
+        spawn desktopThread(toDataUrl(indexContent), title, width, height, resizable, debug, run)
       else:
         debug "Starting desktop with file url"
-        spawn startDesktopThread("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug, run)
-      nimviewSettings.run = true
-      while nimviewSettings.run:
-        var message = webviewQueue.recv()
-        info message
-        let jsonMessage = json.parseJson(message)
-        let requestId = jsonMessage["requestId"].getInt()
-        try:
-          let response = dispatchJsonRequest(jsonMessage)
-          let evalJsCode = "window.ui.applyResponse(" & $requestId & 
-              "," & response.escape("'","'") & ");" 
-          myWebView.dispatch(proc() =
-            discard myWebView.eval(evalJsCode))
-        except: 
-          log.error getCurrentExceptionMsg()
-          let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-          myWebView.dispatch(proc() =
-            echo evalJsCode
-            discard myWebView.eval(evalJsCode))
+        spawn desktopThread("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug, run)
+      discard initBarrier.recv()
+      if run:
+        nimview.run()
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = nimviewSettings.title,
@@ -594,17 +606,21 @@ when not defined(just_core):
   proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
     when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
-        discard myWebView.setFullscreen(fullScreen)
+        myWebView.dispatch(proc() = 
+          discard myWebView.setFullscreen(fullScreen))
+
 
   proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
     when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
-        myWebView.setColor(r, g, b, alpha)
+        myWebView.dispatch(proc() = 
+          myWebView.setColor(r, g, b, alpha))
 
   proc setMaxSize*(width, height: int) {.exportpy.} =
     when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
-        myWebView.setMaxSize(width.cint, height.cint)
+        myWebView.dispatch(proc() = 
+          myWebView.setMaxSize(width.cint, height.cint))
         
   proc setMaxSize*(width, height: cint) {.exportc.} =
     setMaxSize(width, height)
@@ -612,7 +628,8 @@ when not defined(just_core):
   proc setMinSize*(width, height: int) {.exportpy.} =
     when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
-        myWebView.setMinSize(width.cint, height.cint)
+        myWebView.dispatch(proc() = 
+          myWebView.setMinSize(width.cint, height.cint))
         
   proc setMinSize*(width, height: cint) {.exportc.} =
     setMinSize(width, height)
@@ -620,7 +637,8 @@ when not defined(just_core):
   proc focus*(width, height: int) {.exportpy, exportc.} =
     when compileWithWebview and not defined webview2:
       if not myWebView.isNil():
-        myWebView.focus()
+        myWebView.dispatch(proc() = 
+          myWebView.focus())
 
 when isMainModule:
   proc main() =
