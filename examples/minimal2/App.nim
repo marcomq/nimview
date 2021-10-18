@@ -5,7 +5,7 @@ proc callJsProgress() =
   ## just simulating progress
   for i in 0..100: 
     callFrontendJs("applyProgress", $(i) & "%")
-    os.sleep(25)
+    os.sleep(20)
 
 proc echoAndModify(value: string): string =
   result = "'" & value & "' modified by minimal"
@@ -13,4 +13,4 @@ proc echoAndModify(value: string): string =
 when isMainModule:
   addRequest("callJsProgress", callJsProgress)
   addRequest("echoAndModify", echoAndModify)
-  start("dist/index.html")
+  startDesktop("dist/index.html", debug=true)

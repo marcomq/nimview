@@ -7,7 +7,7 @@
   <body>
     <input id="sampleInput" type="text" value="Hello World" />
     <button onclick="
-      window.backend.callJsProgress();
+      window.backend.callJsProgress()
       window.backend.echoAndModify(document.getElementById('sampleInput').value)
             .then(function(response) { 
               alert(response);

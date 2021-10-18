@@ -99,11 +99,6 @@ ui.callRequest = async (request, signature, data) => {
             let promise = new Promise((resolve, reject) => {
                 ui.resolveStorage[requestId] = [resolve, reject]
                 let response = window.nimview.call(postData)
-                if (typeof response !== "undefined") {
-                    // android webview
-                    resolve(response)
-                    delete ui.resolveStorage[requestId]
-                }
             })
             return promise
         }

@@ -24,7 +24,7 @@ const webviewlLibs = when defined(windows):
 elif defined(macosx):
   "-framework Cocoa -framework WebKit"
 else:
-  system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl"
+  system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl -pthread"
 
 proc execShCmd(command: string) = 
   echo "running: " & command
