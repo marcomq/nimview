@@ -98,7 +98,7 @@ ui.callRequest = async (request, signature, data) => {
                 requestId: requestId})
             let promise = new Promise((resolve, reject) => {
                 ui.resolveStorage[requestId] = [resolve, reject]
-                let response = window.nimview.call(postData)
+                window.nimview.call(postData)
             })
             return promise
         }
@@ -122,9 +122,6 @@ ui.applyResponse = (requestId, data) => {
     if (typeof ui.resolveStorage[requestId] !== "undefined") {
         ui.resolveStorage[requestId][0](data)
         delete ui.resolveStorage[requestId]
-    }
-    else {
-        ui.alert("request id '" + requestId + "' not found")
     }
 }
 ui.rejectResponse = (requestId) => {

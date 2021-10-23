@@ -1,5 +1,6 @@
 discard """
   action: "run"
+  cmd: "nim $target --hints:on -d:testing $file"
   output: ""
 """
 

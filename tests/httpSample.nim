@@ -1,5 +1,6 @@
 discard """
   action: "compile"
+  cmd: "nim $target --hints:on -d:testing $file"
 """
 import ../src/nimview
 
@@ -40,5 +41,8 @@ addRequest("appendSomething8", proc (value: string, value2: string, number: int,
     result = number + number2
 )
 
+proc main() =
+    startHttpServer("../examples/minimal/dist/index.html")
 
-startHttpServer("../examples/minimal/dist/index.html")
+when isMainModule:
+  main()

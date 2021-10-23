@@ -3,11 +3,8 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import tables, json, os, strformat, strutils
-import typetraits
-import ../nimview
+import strformat, typetraits
 import logging
-import macros except error
 
 type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
@@ -53,11 +50,16 @@ proc parseAny*[T](value: JsonNode): T =
   elif T is bool:
     withStringFailover[T](value, JBool):
       result = value.getBool()
-  elif T is (string or cstring):
+  elif T is (string):
     if value.kind == JString:
       result = value.getStr()
     else: 
       result = $value
+  elif T is (cstring):
+    if value.kind == JString:
+      result = value.getstr().cstring
+    else: 
+      result = ($value).cstring
   elif T is varargs[string]:
     if (value.kind == JArray):
       newSeq(result, value.len)
@@ -106,6 +108,7 @@ proc addRequest_argc_argv_rstr*(crequest: cstring,
       $signature)
 
 macro generateCExportsForParams(exportParams: typed): untyped =
+  ## Will create C functions addRequest... for given type
   result = newStmtList()
   let exportC = "{.exportc: \"nimview_$1\".}"
   let cdecl = "{.cdecl.}"
@@ -155,6 +158,7 @@ macro generateCExportsForParams(exportParams: typed): untyped =
   result.add(parseStmt(procString))
 
 macro generateCExports(exportParams: typed): untyped =
+  ## factory to create C functions addRequest... for specific types
   result = newStmtList()
   var procString: string = "generateCExportsForParams([])"
   result.add(parseStmt(procString))

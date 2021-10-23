@@ -155,11 +155,15 @@ In case you want to use C++ - don't write your own C++ Json parser. Feel free to
 
 It is also possible to call front-end functions directly from back-end by using
 `callFrontendJs`. You may trigger an `alert("Hello World!")` on the frontend by 
-using 
+using following Nim code:
 ```
   nimview.callFrontendJs("alert", "Hello World!")
 ```
 in your back-end code. You may use as many parameters as you want.
+This works directy for functions in the global js "window" namespace. If you need 
+to call a local function, you need to register it first in javascript with 
+`window.backend.mapFrontendFunction(<functionName>, function(parameter) {...})`.
+You can then call it from back-end. 
 Keep in mind to only use this to send visible information to the UI and not rely
 your application workflow on this function. Otherwise, your application might 
 become hard to test.
@@ -294,9 +298,13 @@ The token check can also be disabled with `setUseGlobalToken(false)` for debuggi
 or in case that there is already a session-based CSRF mitigation used by middleware. 
 
 ### Multithreading
-Nimview is build to run single-threaded. You may still run functions that create multiple threads or access a thread-pool. Check the Nim manual on how to deal with multithreading and sharing data, for example with Channels.
+Nimview was initially planned to run single-threaded. But calling back-end functions stopped Webview from updating the DOM.
+Therefore, an additional Webview thread was added that sends information back to the main thread with Nim Channels.
+So all registered functions will be executed on the main thread, but you still need to compile Nim with `--threads:on` / `--pthread`.
+You may still spawn new threads and call `callFrontendJs` to send information back to the UI. 
+Check the Nim manual on how to deal with multithreading and sharing data as multithreading is still complicate in Nim.
 
-You may also use threads in python or c++. On windows, it seems that the threads are not active if there is no active server callback running. You might add a small "sleep" in a server callback that checks the thread, just to make sure that the thread is getting enough priority to switch the context. 
+You may also use threads in Python or C++.
 
 ### IE 11 or - "Why is my page blank?"
 Nimview uses IE 11 on Windows. Unfortunately, IE 11 doesn't understand modern Javascript

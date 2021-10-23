@@ -17,7 +17,7 @@
 <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,500,600' rel='stylesheet' type='text/css'/>
 
 <!-- CSS -->
-<title>nimview</title>
+<title>src/nimview</title>
 <link rel="stylesheet" type="text/css" href="nimdoc.out.css">
 
 <script type="text/javascript" src="dochack.js"></script>
@@ -34,7 +34,6 @@ function main() {
     }
   }
 
-  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
   function switchTheme(e) {
       if (e.target.checked) {
           document.documentElement.setAttribute('data-theme', 'dark');
@@ -45,24 +44,32 @@ function main() {
       }
   }
 
-  toggleSwitch.addEventListener('change', switchTheme, false);
+  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+  if (toggleSwitch !== null) {
+    toggleSwitch.addEventListener('change', switchTheme, false);
+  }
 
-  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  var currentTheme = localStorage.getItem('theme');
+  if (!currentTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    currentTheme = 'dark';
+  }
   if (currentTheme) {
     document.documentElement.setAttribute('data-theme', currentTheme);
 
-    if (currentTheme === 'dark') {
+    if (currentTheme === 'dark' && toggleSwitch !== null) {
       toggleSwitch.checked = true;
     }
   }
 }
+
+window.addEventListener('DOMContentLoaded', main);
 </script>
 
 </head>
-<body onload="main()">
+<body>
 <div class="document" id="documentId">
   <div class="container">
-    <h1 class="title">nimview</h1>
+    <h1 class="title">src/nimview</h1>
     <div class="row">
   <div class="three columns">
   <div class="theme-switch-wrapper">
@@ -100,13 +107,7 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#7" id="57">Types</a>
   <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#ReqDeniedException"
-    title="ReqDeniedException = object of CatchableError">ReqDeniedException</a></li>
-  <li><a class="reference" href="#ServerException"
-    title="ServerException = object of CatchableError">ServerException</a></li>
-  <li><a class="reference" href="#ReqUnknownException"
-    title="ReqUnknownException = object of CatchableError">ReqUnknownException</a></li>
-  <li><a class="reference" href="#CstringFunc"
+      <li><a class="reference" href="#CstringFunc"
     title="CstringFunc = proc (jsArg: cstring) {.cdecl.}">CstringFunc</a></li>
   <li><a class="reference" href="#ReqFunction"
     title="ReqFunction = object
@@ -118,20 +119,20 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#8" id="58">Vars</a>
   <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#myWebView"
+      <li><a class="reference" href="#customJsEval"
+    title="customJsEval: pointer">customJsEval</a></li>
+  <li><a class="reference" href="#myWebView"
     title="myWebView: Webview">myWebView</a></li>
   <li><a class="reference" href="#myWs"
     title="myWs: WebSocket">myWs</a></li>
-  <li><a class="reference" href="#requestLogger"
-    title="requestLogger: FileLogger">requestLogger</a></li>
-  <li><a class="reference" href="#customJsEval"
-    title="customJsEval: CstringFunc">customJsEval</a></li>
   <li><a class="reference" href="#nimviewSettings"
     title="nimviewSettings = deepCopy(defaultSettings)">nimviewSettings</a></li>
-  <li><a class="reference" href="#useServer"
-    title="useServer = true or fileExists(&quot;/.dockerenv&quot;)">useServer</a></li>
+  <li><a class="reference" href="#requestLogger"
+    title="requestLogger: FileLogger">requestLogger</a></li>
   <li><a class="reference" href="#useGlobalToken"
     title="useGlobalToken = false">useGlobalToken</a></li>
+  <li><a class="reference" href="#useServer"
+    title="useServer = true or fileExists(&quot;/.dockerenv&quot;)">useServer</a></li>
 
   </ul>
 </li>
@@ -146,65 +147,55 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">getCallbackFunc
-      <li><a class="reference" href="#getCallbackFunc%2Cstring"
-    title="getCallbackFunc(request: string): proc (values: JsonNode): string">getCallbackFunc,<wbr>string</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">startHttpServer
-      <li><a class="reference" href="#startHttpServer%2Cstring%2Cint%2Cstring%2Cbool"
-    title="startHttpServer(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
-                port: int = nimviewSettings.port;
-                bindAddr: string = nimviewSettings.bindAddr;
-                run: bool = nimviewSettings.run)">startHttpServer,<wbr>string,<wbr>int,<wbr>string,<wbr>bool</a></li>
-  <li><a class="reference" href="#startHttpServer%2Ccstring%2Ccint%2Ccstring%2Ccint"
-    title="startHttpServer(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
-                bindAddr: cstring = nimviewSettings.bindAddr;
-                run: cint = nimviewSettings.run.cint)">startHttpServer,<wbr>cstring,<wbr>cint,<wbr>cstring,<wbr>cint</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">run
-      <li><a class="reference" href="#run"
-    title="run()">run</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">callFrontendJs
-      <li><a class="reference" href="#callFrontendJs%2Cstring%2Cstring"
-    title="callFrontendJs(functionName: string; argsString: string)">callFrontendJs,<wbr>string,<wbr>string</a></li>
-  <li><a class="reference" href="#callFrontendJs%2Ccstring%2Ccstring"
-    title="callFrontendJs(functionName: cstring; argsString: cstring)">callFrontendJs,<wbr>cstring,<wbr>cstring</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">disableRequestLogger
-      <li><a class="reference" href="#disableRequestLogger"
-    title="disableRequestLogger()">disableRequestLogger</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">addRequest
-      <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28JsonNode%29%2Cstring"
+      <ul class="simple nested-toc-section">addRequest
+      <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28varargs%5BPPyObject%5D%29"
+    title="addRequest(request: string;
+           callback: proc (valuesdef: varargs[PPyObject]): string)">addRequest(request: string;
+           callback: proc (valuesdef: varargs[PPyObject]): string)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%29"
+    title="addRequest(request: string; callback: proc (): string)">addRequest(request: string; callback: proc (): string)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%29_2"
+    title="addRequest(request: string; callback: proc (): void)">addRequest(request: string; callback: proc (): void)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28JsonNode%29%2Cstring"
     title="addRequest(request: string; callback: proc (values: JsonNode): string;
-           jsSignature = &quot;value&quot;)">addRequest,<wbr>string,<wbr>proc(JsonNode),<wbr>string</a></li>
+           jsSignature = &quot;value&quot;)">addRequest(request: string; callback: proc (values: JsonNode): string;
+           jsSignature = &quot;value&quot;)</a></li>
   <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%29"
-    title="addRequest[T1, R](request: string; callback: proc (value1: T1): R)">addRequest,<wbr>string,<wbr>proc(T1)</a></li>
+    title="addRequest[T1, R](request: string; callback: proc (value1: T1): R)">addRequest[T1, R](request: string; callback: proc (value1: T1): R)</a></li>
   <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%29"
     title="addRequest[T1, T2, R](request: string;
-                      callback: proc (value1: T1; value2: T2): R)">addRequest,<wbr>string,<wbr>proc(T1,<wbr>T2)</a></li>
+                      callback: proc (value1: T1; value2: T2): R)">addRequest[T1, T2, R](request: string;
+                      callback: proc (value1: T1; value2: T2): R)</a></li>
   <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%29"
     title="addRequest[T1, T2, T3, R](request: string; callback: proc (value1: T1;
-    value2: T2; value3: T3): R)">addRequest,<wbr>string,<wbr>proc(T1,<wbr>T2,<wbr>T3)</a></li>
-  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT4%2CT4%29"
+    value2: T2; value3: T3): R)">addRequest[T1, T2, T3, R](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3): R)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%29"
     title="addRequest[T1, T2, T3, T4, R](request: string; callback: proc (value1: T1;
-    value2: T2; value3: T4; value4: T4): R)">addRequest,<wbr>string,<wbr>proc(T1,<wbr>T2,<wbr>T4,<wbr>T4)</a></li>
+    value2: T2; value3: T3; value4: T4): R)">addRequest[T1, T2, T3, T4, R](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3; value4: T4): R)</a></li>
   <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT4%2CT4%2CT5%29"
     title="addRequest[T1, T2, T3, T4, T5, R](request: string; callback: proc (value1: T1;
-    value2: T2; value3: T4; value4: T4; value5: T5): R)">addRequest,<wbr>string,<wbr>proc(T1,<wbr>T2,<wbr>T4,<wbr>T4,<wbr>T5)</a></li>
-  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%29"
-    title="addRequest(request: string; callback: proc (): string)">addRequest,<wbr>string,<wbr>proc)</a></li>
-  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%29_2"
-    title="addRequest(request: string; callback: proc (): void)">addRequest,<wbr>string,<wbr>proc)_2</a></li>
-  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28varargs%5BPPyObject%5D%29"
-    title="addRequest(request: string;
-           callback: proc (valuesdef: varargs[PPyObject]): string)">addRequest,<wbr>string,<wbr>proc(varargs[PPyObject])</a></li>
+    value2: T2; value3: T4; value4: T4; value5: T5): R)">addRequest[T1, T2, T3, T4, T5, R](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T4; value4: T4; value5: T5): R)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%2CT5%29"
+    title="addRequest[T1, T2, T3, T4, T5](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3; value4: T4; value5: T5): void)">addRequest[T1, T2, T3, T4, T5](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3; value4: T4; value5: T5): void)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%29_2"
+    title="addRequest[T1, T2, T3, T4](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3; value4: T4): void)">addRequest[T1, T2, T3, T4](request: string; callback: proc (value1: T1;
+    value2: T2; value3: T3; value4: T4): void)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%29_2"
+    title="addRequest[T1, T2, T3](request: string; callback: proc (value1: T1; value2: T2;
+    value3: T3): void)">addRequest[T1, T2, T3](request: string; callback: proc (value1: T1; value2: T2;
+    value3: T3): void)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%2CT2%29_2"
+    title="addRequest[T1, T2](request: string;
+                   callback: proc (value1: T1; value2: T2): void)">addRequest[T1, T2](request: string;
+                   callback: proc (value1: T1; value2: T2): void)</a></li>
+  <li><a class="reference" href="#addRequest%2Cstring%2Cproc%28T1%29_2"
+    title="addRequest[T1](request: string; callback: proc (value1: T1): void)">addRequest[T1](request: string; callback: proc (value1: T1): void)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">addRequest_argc_argv_rstr
@@ -212,173 +203,247 @@ function main() {
     title="addRequest_argc_argv_rstr(crequest: cstring; callback: proc (argc: cint;
     argv: cstringArray): cstring {.cdecl.};
                           freeFunc: proc (value: pointer) {.cdecl.} = free_c;
-                          signature: cstring = &quot;argc, array&quot;)">addRequest_argc_argv_rstr,<wbr>cstring,<wbr>proc(cint,<wbr>cstringArray),<wbr>proc(pointer),<wbr>cstring</a></li>
+                          signature: cstring = &quot;argc, array&quot;)">addRequest_argc_argv_rstr(crequest: cstring; callback: proc (argc: cint;
+    argv: cstringArray): cstring {.cdecl.};
+                          freeFunc: proc (value: pointer) {.cdecl.} = free_c;
+                          signature: cstring = &quot;argc, array&quot;)</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">setCustomJsEval
-      <li><a class="reference" href="#setCustomJsEval%2CCstringFunc"
-    title="setCustomJsEval(evalFunc: CstringFunc)">setCustomJsEval,<wbr>CstringFunc</a></li>
+  <ul class="simple nested-toc-section">callFrontendJs
+      <li><a class="reference" href="#callFrontendJs%2Ccstring%2Ccstring"
+    title="callFrontendJs(functionName: cstring; argsString: cstring)">callFrontendJs(functionName: cstring; argsString: cstring)</a></li>
+  <li><a class="reference" href="#callFrontendJs%2Cstring%2Cstring"
+    title="callFrontendJs(functionName: string; argsString: string)">callFrontendJs(functionName: string; argsString: string)</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">selectFileDialog
-      <li><a class="reference" href="#selectFileDialog%2Cstring"
-    title="selectFileDialog(title: string): string">selectFileDialog,<wbr>string</a></li>
+  <ul class="simple nested-toc-section">disableRequestLogger
+      <li><a class="reference" href="#disableRequestLogger"
+    title="disableRequestLogger()">disableRequestLogger()</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">setBorderless
-      <li><a class="reference" href="#setBorderless%2Cbool"
-    title="setBorderless(decorated: bool = false)">setBorderless,<wbr>bool</a></li>
+  <ul class="simple nested-toc-section">dispatchCommandLineArg
+      <li><a class="reference" href="#dispatchCommandLineArg%2Ccstring"
+    title="dispatchCommandLineArg(escapedArgv: cstring): cstring">dispatchCommandLineArg(escapedArgv: cstring): cstring</a></li>
+  <li><a class="reference" href="#dispatchCommandLineArg%2Cstring"
+    title="dispatchCommandLineArg(escapedArgv: string): string">dispatchCommandLineArg(escapedArgv: string): string</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">start
-      <li><a class="reference" href="#start%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool"
-    title="start(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
-      port: int = nimviewSettings.port;
-      bindAddr: string = nimviewSettings.bindAddr;
-      title: string = nimviewSettings.title; width: int = nimviewSettings.width;
-      height: int = nimviewSettings.height;
-      resizable: bool = nimviewSettings.resizable;
-      run: bool = nimviewSettings.run)">start,<wbr>string,<wbr>int,<wbr>string,<wbr>string,<wbr>int,<wbr>int,<wbr>bool,<wbr>bool</a></li>
-  <li><a class="reference" href="#start%2Ccstring%2Ccint%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint"
-    title="start(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
-      bindAddr: cstring = nimviewSettings.bindAddr;
-      title: cstring = nimviewSettings.title;
-      width: cint = nimviewSettings.width.cint;
-      height: cint = nimviewSettings.width.cint;
-      resizable: cint = nimviewSettings.resizable.cint;
-      run: cint = nimviewSettings.run.cint)">start,<wbr>cstring,<wbr>cint,<wbr>cstring,<wbr>cstring,<wbr>cint,<wbr>cint,<wbr>cint,<wbr>cint</a></li>
+  <ul class="simple nested-toc-section">dispatchHttpRequest
+      <li><a class="reference" href="#dispatchHttpRequest%2CJsonNode%2CHttpHeaders"
+    title="dispatchHttpRequest(jsonMessage: JsonNode; headers: HttpHeaders): string">dispatchHttpRequest(jsonMessage: JsonNode; headers: HttpHeaders): string</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">setMinSize
-      <li><a class="reference" href="#setMinSize%2Cint%2Cint"
-    title="setMinSize(width, height: int)">setMinSize,<wbr>int,<wbr>int</a></li>
-  <li><a class="reference" href="#setMinSize%2Ccint%2Ccint"
-    title="setMinSize(width, height: cint)">setMinSize,<wbr>cint,<wbr>cint</a></li>
+  <ul class="simple nested-toc-section">dispatchJsonRequest
+      <li><a class="reference" href="#dispatchJsonRequest%2CJsonNode"
+    title="dispatchJsonRequest(jsonMessage: JsonNode): string">dispatchJsonRequest(jsonMessage: JsonNode): string</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">dispatchRequest
+      <li><a class="reference" href="#dispatchRequest%2Ccstring%2Ccstring"
+    title="dispatchRequest(request, value: cstring): cstring">dispatchRequest(request, value: cstring): cstring</a></li>
+  <li><a class="reference" href="#dispatchRequest%2Cstring%2Cstring"
+    title="dispatchRequest(request: string; value: string): string">dispatchRequest(request: string; value: string): string</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">enableRequestLogger
+      <li><a class="reference" href="#enableRequestLogger"
+    title="enableRequestLogger()">enableRequestLogger()</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">enableStorage
+      <li><a class="reference" href="#enableStorage"
+    title="enableStorage()">enableStorage()</a></li>
+  <li><a class="reference" href="#enableStorage%2Ccstring"
+    title="enableStorage(fileName: cstring)">enableStorage(fileName: cstring)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">focus
       <li><a class="reference" href="#focus%2Cint%2Cint"
-    title="focus(width, height: int)">focus,<wbr>int,<wbr>int</a></li>
+    title="focus(width, height: int)">focus(width, height: int)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">getCallbackFunc
+      <li><a class="reference" href="#getCallbackFunc%2Cstring"
+    title="getCallbackFunc(request: string): proc (values: JsonNode): string">getCallbackFunc(request: string): proc (values: JsonNode): string</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">init
+      <li><a class="reference" href="#init"
+    title="init()">init()</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">initSettings
       <li><a class="reference" href="#initSettings%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool"
     title="initSettings(indexHtmlFile: string = defaultIndex; port: int = 8000;
              bindAddr: string = &quot;localhost&quot;; title: string = &quot;nimview&quot;;
-             width: int = 640; height: int = 480; resizable: bool = true): NimviewSettings">initSettings,<wbr>string,<wbr>int,<wbr>string,<wbr>string,<wbr>int,<wbr>int,<wbr>bool</a></li>
+             width: int = 640; height: int = 480; resizable: bool = true): NimviewSettings">initSettings(indexHtmlFile: string = defaultIndex; port: int = 8000;
+             bindAddr: string = &quot;localhost&quot;; title: string = &quot;nimview&quot;;
+             width: int = 640; height: int = 480; resizable: bool = true): NimviewSettings</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">parseAny
+      <li><a class="reference" href="#parseAny%2CJsonNode"
+    title="parseAny[T](value: JsonNode): T">parseAny[T](value: JsonNode): T</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">readAndParseJsonCmdFile
+      <li><a class="reference" href="#readAndParseJsonCmdFile%2Ccstring"
+    title="readAndParseJsonCmdFile(filename: cstring)">readAndParseJsonCmdFile(filename: cstring)</a></li>
+  <li><a class="reference" href="#readAndParseJsonCmdFile%2Cstring"
+    title="readAndParseJsonCmdFile(filename: string)">readAndParseJsonCmdFile(filename: string)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">run
+      <li><a class="reference" href="#run"
+    title="run()">run()</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">selectFileDialog
+      <li><a class="reference" href="#selectFileDialog%2Cstring"
+    title="selectFileDialog(title: string): string">selectFileDialog(title: string): string</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">selectFolderDialog
+      <li><a class="reference" href="#selectFolderDialog%2Cstring"
+    title="selectFolderDialog(title: string): string">selectFolderDialog(title: string): string</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setBorderless
+      <li><a class="reference" href="#setBorderless%2Cbool"
+    title="setBorderless(decorated: bool = false)">setBorderless(decorated: bool = false)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setColor
+      <li><a class="reference" href="#setColor%2Cuint8%2Cuint8%2Cuint8%2Cuint8"
+    title="setColor(r, g, b, alpha: uint8)">setColor(r, g, b, alpha: uint8)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setCustomJsEval
+      <li><a class="reference" href="#setCustomJsEval%2CCstringFunc"
+    title="setCustomJsEval(evalFunc: CstringFunc)">setCustomJsEval(evalFunc: CstringFunc)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setFullscreen
+      <li><a class="reference" href="#setFullscreen%2Cbool"
+    title="setFullscreen(fullScreen: bool = true)">setFullscreen(fullScreen: bool = true)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setMaxSize
+      <li><a class="reference" href="#setMaxSize%2Ccint%2Ccint"
+    title="setMaxSize(width, height: cint)">setMaxSize(width, height: cint)</a></li>
+  <li><a class="reference" href="#setMaxSize%2Cint%2Cint"
+    title="setMaxSize(width, height: int)">setMaxSize(width, height: int)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setMinSize
+      <li><a class="reference" href="#setMinSize%2Ccint%2Ccint"
+    title="setMinSize(width, height: cint)">setMinSize(width, height: cint)</a></li>
+  <li><a class="reference" href="#setMinSize%2Cint%2Cint"
+    title="setMinSize(width, height: int)">setMinSize(width, height: int)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">setUseGlobalToken
+      <li><a class="reference" href="#setUseGlobalToken%2Cbool"
+    title="setUseGlobalToken(val: bool)">setUseGlobalToken(val: bool)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">setUseServer
       <li><a class="reference" href="#setUseServer%2Cbool"
-    title="setUseServer(val: bool)">setUseServer,<wbr>bool</a></li>
+    title="setUseServer(val: bool)">setUseServer(val: bool)</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">dispatchCommandLineArg
-      <li><a class="reference" href="#dispatchCommandLineArg%2Cstring"
-    title="dispatchCommandLineArg(escapedArgv: string): string">dispatchCommandLineArg,<wbr>string</a></li>
-  <li><a class="reference" href="#dispatchCommandLineArg%2Ccstring"
-    title="dispatchCommandLineArg(escapedArgv: cstring): cstring">dispatchCommandLineArg,<wbr>cstring</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">readAndParseJsonCmdFile
-      <li><a class="reference" href="#readAndParseJsonCmdFile%2Cstring"
-    title="readAndParseJsonCmdFile(filename: string)">readAndParseJsonCmdFile,<wbr>string</a></li>
-  <li><a class="reference" href="#readAndParseJsonCmdFile%2Ccstring"
-    title="readAndParseJsonCmdFile(filename: cstring)">readAndParseJsonCmdFile,<wbr>cstring</a></li>
+  <ul class="simple nested-toc-section">start
+      <li><a class="reference" href="#start%2Ccstring%2Ccint%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint"
+    title="start(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
+      bindAddr: cstring = nimviewSettings.bindAddr;
+      title: cstring = nimviewSettings.title;
+      width: cint = nimviewSettings.width.cint;
+      height: cint = nimviewSettings.width.cint;
+      resizable: cint = nimviewSettings.resizable.cint;
+      run: cint = nimviewSettings.run.cint)">start(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
+      bindAddr: cstring = nimviewSettings.bindAddr;
+      title: cstring = nimviewSettings.title;
+      width: cint = nimviewSettings.width.cint;
+      height: cint = nimviewSettings.width.cint;
+      resizable: cint = nimviewSettings.resizable.cint;
+      run: cint = nimviewSettings.run.cint)</a></li>
+  <li><a class="reference" href="#start%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool"
+    title="start(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
+      port: int = nimviewSettings.port;
+      bindAddr: string = nimviewSettings.bindAddr;
+      title: string = nimviewSettings.title; width: int = nimviewSettings.width;
+      height: int = nimviewSettings.height;
+      resizable: bool = nimviewSettings.resizable;
+      run: bool = nimviewSettings.run)">start(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
+      port: int = nimviewSettings.port;
+      bindAddr: string = nimviewSettings.bindAddr;
+      title: string = nimviewSettings.title; width: int = nimviewSettings.width;
+      height: int = nimviewSettings.height;
+      resizable: bool = nimviewSettings.resizable;
+      run: bool = nimviewSettings.run)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">startDesktop
-      <li><a class="reference" href="#startDesktop%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool%2Cbool"
+      <li><a class="reference" href="#startDesktop%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint%2Ccint"
+    title="startDesktop(indexHtmlFile: cstring;
+             title: cstring = nimviewSettings.title.cstring;
+             width: cint = nimviewSettings.width.cint;
+             height: cint = nimviewSettings.height.cint;
+             resizable: cint = nimviewSettings.resizable.cint;
+             debug: cint = nimviewSettings.debug.cint;
+             run: cint = nimviewSettings.run.cint)">startDesktop(indexHtmlFile: cstring;
+             title: cstring = nimviewSettings.title.cstring;
+             width: cint = nimviewSettings.width.cint;
+             height: cint = nimviewSettings.height.cint;
+             resizable: cint = nimviewSettings.resizable.cint;
+             debug: cint = nimviewSettings.debug.cint;
+             run: cint = nimviewSettings.run.cint)</a></li>
+  <li><a class="reference" href="#startDesktop%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool%2Cbool"
     title="startDesktop(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
              title: string = nimviewSettings.title;
              width: int = nimviewSettings.width;
              height: int = nimviewSettings.height;
              resizable: bool = nimviewSettings.resizable;
              debug: bool = nimviewSettings.debug;
-             run: bool = nimviewSettings.run)">startDesktop,<wbr>string,<wbr>string,<wbr>int,<wbr>int,<wbr>bool,<wbr>bool,<wbr>bool</a></li>
-  <li><a class="reference" href="#startDesktop%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint%2Ccint"
-    title="startDesktop(indexHtmlFile: cstring; title: cstring = nimviewSettings.title;
-             width: cint = nimviewSettings.width.cint;
-             height: cint = nimviewSettings.height.cint;
-             resizable: cint = nimviewSettings.resizable.cint;
-             debug: cint = nimviewSettings.debug.cint;
-             run: cint = nimviewSettings.run.cint)">startDesktop,<wbr>cstring,<wbr>cstring,<wbr>cint,<wbr>cint,<wbr>cint,<wbr>cint,<wbr>cint</a></li>
+             run: bool = nimviewSettings.run)">startDesktop(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
+             title: string = nimviewSettings.title;
+             width: int = nimviewSettings.width;
+             height: int = nimviewSettings.height;
+             resizable: bool = nimviewSettings.resizable;
+             debug: bool = nimviewSettings.debug;
+             run: bool = nimviewSettings.run)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">startHttpServer
+      <li><a class="reference" href="#startHttpServer%2Ccstring%2Ccint%2Ccstring%2Ccint"
+    title="startHttpServer(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
+                bindAddr: cstring = nimviewSettings.bindAddr.cstring;
+                run: cint = nimviewSettings.run.cint)">startHttpServer(indexHtmlFile: cstring; port: cint = nimviewSettings.port.cint;
+                bindAddr: cstring = nimviewSettings.bindAddr.cstring;
+                run: cint = nimviewSettings.run.cint)</a></li>
+  <li><a class="reference" href="#startHttpServer%2Cstring%2Cint%2Cstring%2Cbool"
+    title="startHttpServer(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
+                port: int = nimviewSettings.port;
+                bindAddr: string = nimviewSettings.bindAddr;
+                run: bool = nimviewSettings.run)">startHttpServer(indexHtmlFile: string = nimviewSettings.indexHtmlFile;
+                port: int = nimviewSettings.port;
+                bindAddr: string = nimviewSettings.bindAddr;
+                run: bool = nimviewSettings.run)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">stop
       <li><a class="reference" href="#stop"
-    title="stop()">stop</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">setColor
-      <li><a class="reference" href="#setColor%2Cuint8%2Cuint8%2Cuint8%2Cuint8"
-    title="setColor(r, g, b, alpha: uint8)">setColor,<wbr>uint8,<wbr>uint8,<wbr>uint8,<wbr>uint8</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">enableStorage
-      <li><a class="reference" href="#enableStorage%2Ccstring"
-    title="enableStorage(fileName: cstring)">enableStorage,<wbr>cstring</a></li>
-  <li><a class="reference" href="#enableStorage"
-    title="enableStorage()">enableStorage</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">selectFolderDialog
-      <li><a class="reference" href="#selectFolderDialog%2Cstring"
-    title="selectFolderDialog(title: string): string">selectFolderDialog,<wbr>string</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">setMaxSize
-      <li><a class="reference" href="#setMaxSize%2Cint%2Cint"
-    title="setMaxSize(width, height: int)">setMaxSize,<wbr>int,<wbr>int</a></li>
-  <li><a class="reference" href="#setMaxSize%2Ccint%2Ccint"
-    title="setMaxSize(width, height: cint)">setMaxSize,<wbr>cint,<wbr>cint</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">dispatchJsonRequest
-      <li><a class="reference" href="#dispatchJsonRequest%2CJsonNode"
-    title="dispatchJsonRequest(jsonMessage: JsonNode): string">dispatchJsonRequest,<wbr>JsonNode</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">setUseGlobalToken
-      <li><a class="reference" href="#setUseGlobalToken%2Cbool"
-    title="setUseGlobalToken(val: bool)">setUseGlobalToken,<wbr>bool</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">parseAny
-      <li><a class="reference" href="#parseAny%2CJsonNode"
-    title="parseAny[T](value: JsonNode): T">parseAny,<wbr>JsonNode</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">enableRequestLogger
-      <li><a class="reference" href="#enableRequestLogger"
-    title="enableRequestLogger()">enableRequestLogger</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">dispatchHttpRequest
-      <li><a class="reference" href="#dispatchHttpRequest%2CJsonNode%2CHttpHeaders"
-    title="dispatchHttpRequest(jsonMessage: JsonNode; headers: HttpHeaders): string">dispatchHttpRequest,<wbr>JsonNode,<wbr>HttpHeaders</a></li>
+    title="stop()">stop()</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">stopDesktop
       <li><a class="reference" href="#stopDesktop"
-    title="stopDesktop()">stopDesktop</a></li>
+    title="stopDesktop()">stopDesktop()</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">stopHttpServer
       <li><a class="reference" href="#stopHttpServer"
-    title="stopHttpServer()">stopHttpServer</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">setFullscreen
-      <li><a class="reference" href="#setFullscreen%2Cbool"
-    title="setFullscreen(fullScreen: bool = true)">setFullscreen,<wbr>bool</a></li>
-
-  </ul>
-  <ul class="simple nested-toc-section">dispatchRequest
-      <li><a class="reference" href="#dispatchRequest%2Cstring%2Cstring"
-    title="dispatchRequest(request: string; value: string): string">dispatchRequest,<wbr>string,<wbr>string</a></li>
-  <li><a class="reference" href="#dispatchRequest%2Ccstring%2Ccstring"
-    title="dispatchRequest(request, value: cstring): cstring">dispatchRequest,<wbr>cstring,<wbr>cstring</a></li>
+    title="stopHttpServer()">stopHttpServer()</a></li>
 
   </ul>
 
@@ -387,8 +452,11 @@ function main() {
 <li>
   <a class="reference reference-toplevel" href="#17" id="67">Macros</a>
   <ul class="simple simple-toc-section">
+      <ul class="simple nested-toc-section">callFrontendJs
       <li><a class="reference" href="#callFrontendJs.m%2Cstring%2Cvarargs%5Buntyped%5D"
-    title="callFrontendJs(functionName: string; params: varargs[untyped])">callFrontendJs</a></li>
+    title="callFrontendJs(functionName: string; params: varargs[untyped])">callFrontendJs(functionName: string; params: varargs[untyped])</a></li>
+
+  </ul>
 
   </ul>
 </li>
@@ -402,6 +470,7 @@ function main() {
 </ul>
 
   </div>
+  
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
@@ -409,40 +478,20 @@ function main() {
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="globalToken.html">globalToken</a>, <a class="reference external" href="storage.html">storage</a>, <a class="reference external" href="nimview.html">nimview</a>
+<a class="reference external" href="globalToken.html">globalToken</a>, <a class="reference external" href="storage.html">storage</a>, <a class="reference external" href="sharedTypes.html">sharedTypes</a>
 </dl></div>
 <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
 <dl class="item">
-<a id="ReqDeniedException"></a>
-<dt><pre><a href="nimview.html#ReqDeniedException"><span class="Identifier">ReqDeniedException</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
+<div id="CstringFunc">
+<dt><pre><a href="nimview.html#CstringFunc"><span class="Identifier">CstringFunc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">jsArg</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> {.<span class="Identifier">cdecl</span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="ServerException"></a>
-<dt><pre><a href="nimview.html#ServerException"><span class="Identifier">ServerException</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="ReqUnknownException"></a>
-<dt><pre><a href="nimview.html#ReqUnknownException"><span class="Identifier">ReqUnknownException</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="CstringFunc"></a>
-<dt><pre><a href="nimview.html#CstringFunc"><span class="Identifier">CstringFunc</span></a> <span class="Other">=</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">jsArg</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">cdecl</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="ReqFunction"></a>
+</div>
+<div id="ReqFunction">
 <dt><pre><a href="nimview.html#ReqFunction"><span class="Identifier">ReqFunction</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">nimCallback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">values</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">jsSignature</span><span class="Other">:</span> <span class="Identifier">string</span>
@@ -452,110 +501,132 @@ function main() {
 
 
 </dd>
+</div>
 
 </dl></div>
 <div class="section" id="8">
 <h1><a class="toc-backref" href="#8">Vars</a></h1>
 <dl class="item">
-<a id="myWebView"></a>
+<div id="customJsEval">
+<dt><pre><a href="nimview.html#customJsEval"><span class="Identifier">customJsEval</span></a><span class="Other">:</span> <span class="Identifier">pointer</span></pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="myWebView">
 <dt><pre><a href="nimview.html#myWebView"><span class="Identifier">myWebView</span></a><span class="Other">:</span> <span class="Identifier">Webview</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="myWs"></a>
+</div>
+<div id="myWs">
 <dt><pre><a href="nimview.html#myWs"><span class="Identifier">myWs</span></a><span class="Other">:</span> <span class="Identifier">WebSocket</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="requestLogger"></a>
-<dt><pre><a href="nimview.html#requestLogger"><span class="Identifier">requestLogger</span></a><span class="Other">:</span> <span class="Identifier">FileLogger</span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="customJsEval"></a>
-<dt><pre><a href="nimview.html#customJsEval"><span class="Identifier">customJsEval</span></a><span class="Other">:</span> <a href="nimview.html#CstringFunc"><span class="Identifier">CstringFunc</span></a></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="nimviewSettings"></a>
+</div>
+<div id="nimviewSettings">
 <dt><pre><a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a> <span class="Other">=</span> <span class="Identifier">deepCopy</span><span class="Other">(</span><span class="Identifier">defaultSettings</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="useServer"></a>
-<dt><pre><a href="nimview.html#useServer"><span class="Identifier">useServer</span></a> <span class="Other">=</span> <span class="DecNumber">true</span> <span class="Identifier">or</span> <span class="Identifier">fileExists</span><span class="Other">(</span><span class="StringLit">&quot;/.dockerenv&quot;</span><span class="Other">)</span></pre></dt>
+</div>
+<div id="requestLogger">
+<dt><pre><a href="nimview.html#requestLogger"><span class="Identifier">requestLogger</span></a><span class="Other">:</span> <span class="Identifier">FileLogger</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="useGlobalToken"></a>
+</div>
+<div id="useGlobalToken">
 <dt><pre><a href="nimview.html#useGlobalToken"><span class="Identifier">useGlobalToken</span></a> <span class="Other">=</span> <span class="DecNumber">false</span></pre></dt>
 <dd>
 
 
 
 </dd>
+</div>
+<div id="useServer">
+<dt><pre><a href="nimview.html#useServer"><span class="Identifier">useServer</span></a> <span class="Other">=</span> <span class="DecNumber">true</span> <span class="Identifier">or</span> <span class="Identifier">fileExists</span><span class="Other">(</span><span class="StringLit">&quot;/.dockerenv&quot;</span><span class="Other">)</span></pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
 
 </dl></div>
 <div class="section" id="10">
 <h1><a class="toc-backref" href="#10">Consts</a></h1>
 <dl class="item">
-<a id="copyright_nimview"></a>
+<div id="copyright_nimview">
 <dt><pre><a href="nimview.html#copyright_nimview"><span class="Identifier">copyright_nimview</span></a> <span class="Other">=</span> <span class="StringLit">&quot;© Copyright 2021, by Marco Mengelkoch&quot;</span></pre></dt>
 <dd>
 
 
 
 </dd>
+</div>
 
 </dl></div>
 <div class="section" id="12">
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
-<a id="parseAny,JsonNode"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#parseAny%2CJsonNode"><span class="Identifier">parseAny</span></a><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">T</span></pre></dt>
+<div id="addRequest,string,proc(varargs[PPyObject])">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28varargs%5BPPyObject%5D%29"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+                <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">valuesdef</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">PPyObject</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="addRequest,string,proc(JsonNode),string"></a>
+</div>
+<div id="addRequest,string,proc)">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%29"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="addRequest,string,proc)_2">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%29_2"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="addRequest,string,proc(JsonNode),string">
 <dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28JsonNode%29%2Cstring"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">values</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-                <span class="Identifier">jsSignature</span> <span class="Other">=</span> <span class="StringLit">&quot;value&quot;</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+                <span class="Identifier">jsSignature</span> <span class="Other">=</span> <span class="StringLit">&quot;value&quot;</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-This will register a function &quot;callback&quot; that can run on back-end. &quot;addRequest&quot; will be performed with &quot;value&quot; each time the javascript client calls: <tt class="docutils literal"><span class="pre">window.ui.backend(request, value, function(response) {...})</span></tt> with the specific &quot;request&quot; value. There are also overloaded functions for less or additional parameters There is a wrapper for python, C and C++ to handle strings in each specific programming language Notice for python: There is no check for correct function signature!
+This will register a function &quot;callback&quot; that can run on back-end. &quot;addRequest&quot; will be performed with &quot;value&quot; each time the javascript client calls: <tt class="docutils literal"><span class="pre"><span class="Identifier">window</span><span class="Operator">.</span><span class="Identifier">ui</span><span class="Operator">.</span><span class="Identifier">backend</span><span class="Punctuation">(</span><span class="Identifier">request</span><span class="Punctuation">,</span> <span class="Identifier">value</span><span class="Punctuation">,</span> <span class="Identifier">function</span><span class="Punctuation">(</span><span class="Identifier">response</span><span class="Punctuation">)</span> <span class="Punctuation">{</span><span class="Operator">...</span><span class="Punctuation">}</span><span class="Punctuation">)</span></span></tt> with the specific &quot;request&quot; value. There are also overloaded functions for less or additional parameters There is a wrapper for python, C and C++ to handle strings in each specific programming language Notice for python: There is no check for correct function signature!
 
 </dd>
-<a id="addRequest_argc_argv_rstr,cstring,proc(cint,cstringArray),proc(pointer),cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest_argc_argv_rstr%2Ccstring%2Cproc%28cint%2CcstringArray%29%2Cproc%28pointer%29%2Ccstring"><span class="Identifier">addRequest_argc_argv_rstr</span></a><span class="Other">(</span><span class="Identifier">crequest</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">argc</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
-    <span class="Identifier">argv</span><span class="Other">:</span> <span class="Identifier">cstringArray</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">cdecl</span></span><span class="Other">.}</span></span><span class="Other">;</span> <span class="Identifier">freeFunc</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">cdecl</span></span><span class="Other">.}</span></span> <span class="Other">=</span> <span class="Identifier">free_c</span><span class="Other">;</span> <span class="Identifier">signature</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <span class="StringLit">&quot;argc, array&quot;</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="addRequest,string,proc(T1)"></a>
+</div>
+<div id="addRequest,string,proc(T1)">
 <dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="addRequest,string,proc(T1,T2)"></a>
+</div>
+<div id="addRequest,string,proc(T1,T2)">
 <dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
                            <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span> <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
 <dd>
@@ -563,7 +634,8 @@ This will register a function &quot;callback&quot; that can run on back-end. &qu
 
 
 </dd>
-<a id="addRequest,string,proc(T1,T2,T3)"></a>
+</div>
+<div id="addRequest,string,proc(T1,T2,T3)">
 <dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
     <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T3</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
 <dd>
@@ -571,15 +643,17 @@ This will register a function &quot;callback&quot; that can run on back-end. &qu
 
 
 </dd>
-<a id="addRequest,string,proc(T1,T2,T4,T4)"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT4%2CT4%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">T4</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
-    <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">;</span> <span class="Identifier">value4</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1,T2,T3,T4)">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">T4</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
+    <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T3</span><span class="Other">;</span> <span class="Identifier">value4</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="addRequest,string,proc(T1,T2,T4,T4,T5)"></a>
+</div>
+<div id="addRequest,string,proc(T1,T2,T4,T4,T5)">
 <dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT4%2CT4%2CT5%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">T4</span><span class="Other">,</span> <span class="Identifier">T5</span><span class="Other">,</span> <span class="Identifier">R</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span>
     <span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span> <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">;</span> <span class="Identifier">value4</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">;</span> <span class="Identifier">value5</span><span class="Other">:</span> <span class="Identifier">T5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">R</span><span class="Other">)</span></pre></dt>
 <dd>
@@ -587,290 +661,370 @@ This will register a function &quot;callback&quot; that can run on back-end. &qu
 
 
 </dd>
-<a id="addRequest,string,proc)"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%29"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1,T2,T3,T4,T5)">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%2CT5%29"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">T4</span><span class="Other">,</span> <span class="Identifier">T5</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
+    <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T3</span><span class="Other">;</span> <span class="Identifier">value4</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">;</span> <span class="Identifier">value5</span><span class="Other">:</span> <span class="Identifier">T5</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="addRequest,string,proc)_2"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%29_2"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1,T2,T3,T4)_2">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%2CT4%29_2"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">,</span> <span class="Identifier">T4</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
+    <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T3</span><span class="Other">;</span> <span class="Identifier">value4</span><span class="Other">:</span> <span class="Identifier">T4</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="getCallbackFunc,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#getCallbackFunc%2Cstring"><span class="Identifier">getCallbackFunc</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">values</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1,T2,T3)_2">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%2CT3%29_2"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">,</span> <span class="Identifier">T3</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span>
+    <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">;</span> <span class="Identifier">value3</span><span class="Other">:</span> <span class="Identifier">T3</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="initSettings,string,int,string,string,int,int,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#initSettings%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool"><span class="Identifier">initSettings</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="Identifier">defaultIndex</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">8000</span><span class="Other">;</span>
-                  <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;localhost&quot;</span><span class="Other">;</span> <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;nimview&quot;</span><span class="Other">;</span>
-                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">640</span><span class="Other">;</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">480</span><span class="Other">;</span> <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">NimviewSettings</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1,T2)_2">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%2CT2%29_2"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">,</span> <span class="Identifier">T2</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+                        <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">;</span> <span class="Identifier">value2</span><span class="Other">:</span> <span class="Identifier">T2</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="enableStorage,cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#enableStorage%2Ccstring"><span class="Identifier">enableStorage</span></a><span class="Other">(</span><span class="Identifier">fileName</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span>
-                                        <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Registers &quot;getStoredVal&quot; and &quot;setStoredVal&quot; as requests Use &quot;backend.setStoredVal(key, x)&quot; to store a value persistent in &quot;storage.json&quot; Use &quot;backend.getStoredVal(key)&quot; in js to read a stored value
-
-</dd>
-<a id="enableStorage"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#enableStorage"><span class="Identifier">enableStorage</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Registers &quot;getStoredVal&quot; and &quot;setStoredVal&quot; as requests Use &quot;backend.setStoredVal(key, x)&quot; to store a value persistent in &quot;storage.json&quot; Use &quot;backend.getStoredVal(key)&quot; in js to read a stored value
-
-</dd>
-<a id="callFrontendJs,string,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#callFrontendJs%2Cstring%2Cstring"><span class="Identifier">callFrontendJs</span></a><span class="Other">(</span><span class="Identifier">functionName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">argsString</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest,string,proc(T1)_2">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28T1%29_2"><span class="Identifier">addRequest</span></a><span class="Other">[</span><span class="Identifier">T1</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value1</span><span class="Other">:</span> <span class="Identifier">T1</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">void</span><span class="Other">)</span></pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="callFrontendJs,cstring,cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#callFrontendJs%2Ccstring%2Ccstring"><span class="Identifier">callFrontendJs</span></a><span class="Other">(</span><span class="Identifier">functionName</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">argsString</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="addRequest_argc_argv_rstr,cstring,proc(cint,cstringArray),proc(pointer),cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#addRequest_argc_argv_rstr%2Ccstring%2Cproc%28cint%2CcstringArray%29%2Cproc%28pointer%29%2Ccstring"><span class="Identifier">addRequest_argc_argv_rstr</span></a><span class="Other">(</span><span class="Identifier">crequest</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">argc</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
+    <span class="Identifier">argv</span><span class="Other">:</span> <span class="Identifier">cstringArray</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> {.<span class="Identifier">cdecl</span>.}<span class="Other">;</span> <span class="Identifier">freeFunc</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">)</span> {.
+    <span class="Identifier">cdecl</span>.} <span class="Other">=</span> <span class="Identifier">free_c</span><span class="Other">;</span> <span class="Identifier">signature</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <span class="StringLit">&quot;argc, array&quot;</span><span class="Other">)</span> {.
+    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="addRequest,string,proc(varargs[PPyObject])"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#addRequest%2Cstring%2Cproc%28varargs%5BPPyObject%5D%29"><span class="Identifier">addRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-                <span class="Identifier">callback</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">valuesdef</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">PPyObject</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="callFrontendJs,cstring,cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#callFrontendJs%2Ccstring%2Ccstring"><span class="Identifier">callFrontendJs</span></a><span class="Other">(</span><span class="Identifier">functionName</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">argsString</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> {.
+    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="enableRequestLogger"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#enableRequestLogger"><span class="Identifier">enableRequestLogger</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
-                             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="callFrontendJs,string,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#callFrontendJs%2Cstring%2Cstring"><span class="Identifier">callFrontendJs</span></a><span class="Other">(</span><span class="Identifier">functionName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">argsString</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Start to log all requests with content, even passwords, into file &quot;requests.log&quot;. The file can be used for automated tests, to archive and replay all actions.
+
 
 </dd>
-<a id="disableRequestLogger"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#disableRequestLogger"><span class="Identifier">disableRequestLogger</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="disableRequestLogger">
+<dt><pre><span class="Keyword">proc</span> <a href="#disableRequestLogger"><span class="Identifier">disableRequestLogger</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 Will stop to log to &quot;requests.log&quot; (default)
 
 </dd>
-<a id="setUseServer,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setUseServer%2Cbool"><span class="Identifier">setUseServer</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-If true, use Http Server instead of Webview.
-
-</dd>
-<a id="setCustomJsEval,CstringFunc"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setCustomJsEval%2CCstringFunc"><span class="Identifier">setCustomJsEval</span></a><span class="Other">(</span><span class="Identifier">evalFunc</span><span class="Other">:</span> <a href="nimview.html#CstringFunc"><span class="Identifier">CstringFunc</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="dispatchCommandLineArg,cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchCommandLineArg%2Ccstring"><span class="Identifier">dispatchCommandLineArg</span></a><span class="Other">(</span><span class="Identifier">escapedArgv</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> {.
+    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="setUseGlobalToken,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setUseGlobalToken%2Cbool"><span class="Identifier">setUseGlobalToken</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-The global token is a weak session-free CSRF check. Still much better than no CSRF protection. Per default enabled in release mode. If false, deactivate global token in release mode.
-
-</dd>
-<a id="dispatchJsonRequest,JsonNode"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchJsonRequest%2CJsonNode"><span class="Identifier">dispatchJsonRequest</span></a><span class="Other">(</span><span class="Identifier">jsonMessage</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Global json dispatcher that will be called from webview AND httpserver This will extract specific values that were prepared by nimview.js and forward those values to the string dispatcher.
-
-</dd>
-<a id="dispatchRequest,string,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchRequest%2Cstring%2Cstring"><span class="Identifier">dispatchRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span>
-    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">,</span>
-    <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Global string dispatcher that will trigger a previously registered functions Used for testing or Android
-
-</dd>
-<a id="dispatchRequest,cstring,cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchRequest%2Ccstring%2Ccstring"><span class="Identifier">dispatchRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">,</span> <span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
-    <span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="selectFolderDialog,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#selectFolderDialog%2Cstring"><span class="Identifier">selectFolderDialog</span></a><span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Will open a &quot;sect folder dialog&quot; if in webview mode and return the selection. Will return emptys string in webserver mode
-
-</dd>
-<a id="selectFileDialog,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#selectFileDialog%2Cstring"><span class="Identifier">selectFileDialog</span></a><span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Will open a &quot;sect file dialog&quot; if in webview mode and return the selection. Will return emptys string in webserver mode
-
-</dd>
-<a id="dispatchCommandLineArg,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchCommandLineArg%2Cstring"><span class="Identifier">dispatchCommandLineArg</span></a><span class="Other">(</span><span class="Identifier">escapedArgv</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="dispatchCommandLineArg,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchCommandLineArg%2Cstring"><span class="Identifier">dispatchCommandLineArg</span></a><span class="Other">(</span><span class="Identifier">escapedArgv</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 Will handle previously logged request json and forward those to registered functions.
 
 </dd>
-<a id="dispatchCommandLineArg,cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchCommandLineArg%2Ccstring"><span class="Identifier">dispatchCommandLineArg</span></a><span class="Other">(</span><span class="Identifier">escapedArgv</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="readAndParseJsonCmdFile,string"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#readAndParseJsonCmdFile%2Cstring"><span class="Identifier">readAndParseJsonCmdFile</span></a><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Will open, parse a file of previously logged requests and re-runs those requests.
-
-</dd>
-<a id="readAndParseJsonCmdFile,cstring"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#readAndParseJsonCmdFile%2Ccstring"><span class="Identifier">readAndParseJsonCmdFile</span></a><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span>
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="dispatchHttpRequest,JsonNode,HttpHeaders"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#dispatchHttpRequest%2CJsonNode%2CHttpHeaders"><span class="Identifier">dispatchHttpRequest</span></a><span class="Other">(</span><span class="Identifier">jsonMessage</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">;</span> <span class="Identifier">headers</span><span class="Other">:</span> <span class="Identifier">HttpHeaders</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+</div>
+<div id="dispatchHttpRequest,JsonNode,HttpHeaders">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchHttpRequest%2CJsonNode%2CHttpHeaders"><span class="Identifier">dispatchHttpRequest</span></a><span class="Other">(</span><span class="Identifier">jsonMessage</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">;</span> <span class="Identifier">headers</span><span class="Other">:</span> <span class="Identifier">HttpHeaders</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
     <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">,</span>
-    <span class="Identifier">ReqUnknownException</span><span class="Other">,</span> <span class="Identifier">ReqDeniedException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+    <span class="Identifier">ReqUnknownException</span><span class="Other">,</span> <span class="Identifier">ReqDeniedException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 Modify this, if you want to add some authentication, input format validation or if you want to process HttpHeaders.
 
 </dd>
-<a id="run"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#run"><span class="Identifier">run</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="dispatchJsonRequest,JsonNode">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchJsonRequest%2CJsonNode"><span class="Identifier">dispatchJsonRequest</span></a><span class="Other">(</span><span class="Identifier">jsonMessage</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Global json dispatcher that will be called from webview AND httpserver This will extract specific values that were prepared by nimview.js and forward those values to the string dispatcher.
+
+</dd>
+</div>
+<div id="dispatchRequest,cstring,cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchRequest%2Ccstring%2Ccstring"><span class="Identifier">dispatchRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">,</span> <span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">cstring</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+    <span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="startHttpServer,string,int,string,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#startHttpServer%2Cstring%2Cint%2Cstring%2Cbool"><span class="Identifier">startHttpServer</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">indexHtmlFile</span><span class="Other">;</span>
-                     <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">;</span>
-                     <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
-                     <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="dispatchRequest,string,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#dispatchRequest%2Cstring%2Cstring"><span class="Identifier">dispatchRequest</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span>
+    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">,</span>
+    <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Start Http server in blocking mode. indexHtmlFile will displayed for &quot;/&quot;. Files in parent folder or sub folders may be accessed without further check. Will run forever.
+Global string dispatcher that will trigger a previously registered functions Used for testing or Android
 
 </dd>
-<a id="startHttpServer,cstring,cint,cstring,cint"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#startHttpServer%2Ccstring%2Ccint%2Ccstring%2Ccint"><span class="Identifier">startHttpServer</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span>
-                     <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-                     <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
-                     <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma">
-    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="enableRequestLogger">
+<dt><pre><span class="Keyword">proc</span> <a href="#enableRequestLogger"><span class="Identifier">enableRequestLogger</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+                             <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+Start to log all requests with content, even passwords, into file &quot;requests.log&quot;. The file can be used for automated tests, to archive and replay all actions.
 
 </dd>
-<a id="stopHttpServer"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#stopHttpServer"><span class="Identifier">stopHttpServer</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="enableStorage">
+<dt><pre><span class="Keyword">proc</span> <a href="#enableStorage"><span class="Identifier">enableStorage</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Will stop the Http server async - will not wait for stop
+Registers &quot;getStoredVal&quot; and &quot;setStoredVal&quot; as requests Use &quot;backend.setStoredVal(key, x)&quot; to store a value persistent in &quot;storage.json&quot; Use &quot;backend.getStoredVal(key)&quot; in js to read a stored value
 
 </dd>
-<a id="stopDesktop"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#stopDesktop"><span class="Identifier">stopDesktop</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-                     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="enableStorage,cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#enableStorage%2Ccstring"><span class="Identifier">enableStorage</span></a><span class="Other">(</span><span class="Identifier">fileName</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span>
+                                        <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ServerException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Will stop the Desktop app - may trigger application exit.
+Registers &quot;getStoredVal&quot; and &quot;setStoredVal&quot; as requests Use &quot;backend.setStoredVal(key, x)&quot; to store a value persistent in &quot;storage.json&quot; Use &quot;backend.getStoredVal(key)&quot; in js to read a stored value
 
 </dd>
-<a id="stop"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#stop"><span class="Identifier">stop</span></a><span class="Other">(</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Will stop the Http server - will not wait for stop
-
-</dd>
-<a id="startDesktop,string,string,int,int,bool,bool,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#startDesktop%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool%2Cbool"><span class="Identifier">startDesktop</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">indexHtmlFile</span><span class="Other">;</span>
-                  <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">;</span>
-                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">;</span>
-                  <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">height</span><span class="Other">;</span>
-                  <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">;</span>
-                  <span class="Identifier">debug</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">debug</span><span class="Other">;</span>
-                  <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
-    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
-
-</dd>
-<a id="startDesktop,cstring,cstring,cint,cint,cint,cint,cint"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#startDesktop%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint%2Ccint"><span class="Identifier">startDesktop</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span>
-                  <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">;</span>
-                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-                  <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">height</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-                  <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-                  <span class="Identifier">debug</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">debug</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-                  <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="focus,int,int">
+<dt><pre><span class="Keyword">proc</span> <a href="#focus%2Cint%2Cint"><span class="Identifier">focus</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                                 <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="start,string,int,string,string,int,int,bool,bool"></a>
+</div>
+<div id="getCallbackFunc,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#getCallbackFunc%2Cstring"><span class="Identifier">getCallbackFunc</span></a><span class="Other">(</span><span class="Identifier">request</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">proc</span> <span class="Other">(</span><span class="Identifier">values</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ServerException</span><span class="Other">,</span> <span class="Identifier">ReqUnknownException</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="init">
+<dt><pre><span class="Keyword">proc</span> <a href="#init"><span class="Identifier">init</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="initSettings,string,int,string,string,int,int,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#initSettings%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool"><span class="Identifier">initSettings</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="Identifier">defaultIndex</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">8000</span><span class="Other">;</span>
+                  <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;localhost&quot;</span><span class="Other">;</span> <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;nimview&quot;</span><span class="Other">;</span>
+                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">640</span><span class="Other">;</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">480</span><span class="Other">;</span> <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">NimviewSettings</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="parseAny,JsonNode">
+<dt><pre><span class="Keyword">proc</span> <a href="#parseAny%2CJsonNode"><span class="Identifier">parseAny</span></a><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">value</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">T</span></pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="readAndParseJsonCmdFile,cstring">
+<dt><pre><span class="Keyword">proc</span> <a href="#readAndParseJsonCmdFile%2Ccstring"><span class="Identifier">readAndParseJsonCmdFile</span></a><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="readAndParseJsonCmdFile,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#readAndParseJsonCmdFile%2Cstring"><span class="Identifier">readAndParseJsonCmdFile</span></a><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Will open, parse a file of previously logged requests and re-runs those requests.
+
+</dd>
+</div>
+<div id="run">
+<dt><pre><span class="Keyword">proc</span> <a href="#run"><span class="Identifier">run</span></a><span class="Other">(</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+You need to use this function if you started nimview with start(run=false)
+
+</dd>
+</div>
+<div id="selectFileDialog,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#selectFileDialog%2Cstring"><span class="Identifier">selectFileDialog</span></a><span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Will open a &quot;sect file dialog&quot; if in webview mode and return the selection. Will return emptys string in webserver mode
+
+</dd>
+</div>
+<div id="selectFolderDialog,string">
+<dt><pre><span class="Keyword">proc</span> <a href="#selectFolderDialog%2Cstring"><span class="Identifier">selectFolderDialog</span></a><span class="Other">(</span><span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Will open a &quot;sect folder dialog&quot; if in webview mode and return the selection. Will return emptys string in webserver mode
+
+</dd>
+</div>
+<div id="setBorderless,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#setBorderless%2Cbool"><span class="Identifier">setBorderless</span></a><span class="Other">(</span><span class="Identifier">decorated</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Use gtk mode without borders, only works on linux and only in desktop mode
+
+</dd>
+</div>
+<div id="setColor,uint8,uint8,uint8,uint8">
+<dt><pre><span class="Keyword">proc</span> <a href="#setColor%2Cuint8%2Cuint8%2Cuint8%2Cuint8"><span class="Identifier">setColor</span></a><span class="Other">(</span><span class="Identifier">r</span><span class="Other">,</span> <span class="Identifier">g</span><span class="Other">,</span> <span class="Identifier">b</span><span class="Other">,</span> <span class="Identifier">alpha</span><span class="Other">:</span> <span class="Identifier">uint8</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                                       <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setCustomJsEval,CstringFunc">
+<dt><pre><span class="Keyword">proc</span> <a href="#setCustomJsEval%2CCstringFunc"><span class="Identifier">setCustomJsEval</span></a><span class="Other">(</span><span class="Identifier">evalFunc</span><span class="Other">:</span> <a href="nimview.html#CstringFunc"><span class="Identifier">CstringFunc</span></a><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setFullscreen,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#setFullscreen%2Cbool"><span class="Identifier">setFullscreen</span></a><span class="Other">(</span><span class="Identifier">fullScreen</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span>
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setMaxSize,cint,cint">
+<dt><pre><span class="Keyword">proc</span> <a href="#setMaxSize%2Ccint%2Ccint"><span class="Identifier">setMaxSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setMaxSize,int,int">
+<dt><pre><span class="Keyword">proc</span> <a href="#setMaxSize%2Cint%2Cint"><span class="Identifier">setMaxSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                                      <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setMinSize,cint,cint">
+<dt><pre><span class="Keyword">proc</span> <a href="#setMinSize%2Ccint%2Ccint"><span class="Identifier">setMinSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setMinSize,int,int">
+<dt><pre><span class="Keyword">proc</span> <a href="#setMinSize%2Cint%2Cint"><span class="Identifier">setMinSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                                      <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="setUseGlobalToken,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#setUseGlobalToken%2Cbool"><span class="Identifier">setUseGlobalToken</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+The global token is a weak session-free CSRF check. Still much better than no CSRF protection. Per default enabled in release mode. If false, deactivate global token in release mode.
+
+</dd>
+</div>
+<div id="setUseServer,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#setUseServer%2Cbool"><span class="Identifier">setUseServer</span></a><span class="Other">(</span><span class="Identifier">val</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+If true, use Http Server instead of Webview.
+
+</dd>
+</div>
+<div id="start,cstring,cint,cstring,cstring,cint,cint,cint,cint">
+<dt><pre><span class="Keyword">proc</span> <a href="#start%2Ccstring%2Ccint%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint"><span class="Identifier">start</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+           <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
+           <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">;</span>
+           <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+           <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+           <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+           <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+
+
+</dd>
+</div>
+<div id="start,string,int,string,string,int,int,bool,bool">
 <dt><pre><span class="Keyword">proc</span> <a href="#start%2Cstring%2Cint%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool"><span class="Identifier">start</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">indexHtmlFile</span><span class="Other">;</span>
            <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">;</span>
            <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
@@ -878,97 +1032,111 @@ Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
            <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">;</span>
            <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">height</span><span class="Other">;</span>
            <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">;</span>
-           <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
-    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+           <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
+    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 Tries to automatically select the Http server in debug mode or when no UI available and the Webview Desktop App in Release mode, if UI available. The debug mode information will not be available for python or dll.
 
 </dd>
-<a id="start,cstring,cint,cstring,cstring,cint,cint,cint,cint"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#start%2Ccstring%2Ccint%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint"><span class="Identifier">start</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-           <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
-           <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">;</span>
-           <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-           <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-           <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
-           <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="startDesktop,cstring,cstring,cint,cint,cint,cint,cint">
+<dt><pre><span class="Keyword">proc</span> <a href="#startDesktop%2Ccstring%2Ccstring%2Ccint%2Ccint%2Ccint%2Ccint%2Ccint"><span class="Identifier">startDesktop</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span>
+                  <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">.</span><span class="Identifier">cstring</span><span class="Other">;</span>
+                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+                  <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">height</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+                  <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+                  <span class="Identifier">debug</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">debug</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+                  <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="setBorderless,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setBorderless%2Cbool"><span class="Identifier">setBorderless</span></a><span class="Other">(</span><span class="Identifier">decorated</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="startDesktop,string,string,int,int,bool,bool,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#startDesktop%2Cstring%2Cstring%2Cint%2Cint%2Cbool%2Cbool%2Cbool"><span class="Identifier">startDesktop</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">indexHtmlFile</span><span class="Other">;</span>
+                  <span class="Identifier">title</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">title</span><span class="Other">;</span>
+                  <span class="Identifier">width</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">width</span><span class="Other">;</span>
+                  <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">height</span><span class="Other">;</span>
+                  <span class="Identifier">resizable</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">resizable</span><span class="Other">;</span>
+                  <span class="Identifier">debug</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">debug</span><span class="Other">;</span>
+                  <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
+    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-Use gtk mode without borders, only works on linux and only in desktop mode
+Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
 
 </dd>
-<a id="setFullscreen,bool"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setFullscreen%2Cbool"><span class="Identifier">setFullscreen</span></a><span class="Other">(</span><span class="Identifier">fullScreen</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="setColor,uint8,uint8,uint8,uint8"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setColor%2Cuint8%2Cuint8%2Cuint8%2Cuint8"><span class="Identifier">setColor</span></a><span class="Other">(</span><span class="Identifier">r</span><span class="Other">,</span> <span class="Identifier">g</span><span class="Other">,</span> <span class="Identifier">b</span><span class="Other">,</span> <span class="Identifier">alpha</span><span class="Other">:</span> <span class="Identifier">uint8</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="setMaxSize,int,int"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setMaxSize%2Cint%2Cint"><span class="Identifier">setMaxSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
-<dd>
-
-
-
-</dd>
-<a id="setMaxSize,cint,cint"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setMaxSize%2Ccint%2Ccint"><span class="Identifier">setMaxSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="startHttpServer,cstring,cint,cstring,cint">
+<dt><pre><span class="Keyword">proc</span> <a href="#startHttpServer%2Ccstring%2Ccint%2Ccstring%2Ccint"><span class="Identifier">startHttpServer</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">cstring</span><span class="Other">;</span>
+                     <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">;</span>
+                     <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">cstring</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">.</span><span class="Identifier">cstring</span><span class="Other">;</span>
+                     <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">cint</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">.</span><span class="Identifier">cint</span><span class="Other">)</span> {.
+    <span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
 
 
 </dd>
-<a id="setMinSize,int,int"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setMinSize%2Cint%2Cint"><span class="Identifier">setMinSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="startHttpServer,string,int,string,bool">
+<dt><pre><span class="Keyword">proc</span> <a href="#startHttpServer%2Cstring%2Cint%2Cstring%2Cbool"><span class="Identifier">startHttpServer</span></a><span class="Other">(</span><span class="Identifier">indexHtmlFile</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">indexHtmlFile</span><span class="Other">;</span>
+                     <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">port</span><span class="Other">;</span>
+                     <span class="Identifier">bindAddr</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">bindAddr</span><span class="Other">;</span>
+                     <span class="Identifier">run</span><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <a href="nimview.html#nimviewSettings"><span class="Identifier">nimviewSettings</span></a><span class="Other">.</span><span class="Identifier">run</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span>
+    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+Start Http server in blocking mode. indexHtmlFile will displayed for &quot;/&quot;. Files in parent folder or sub folders may be accessed without further check. Will run forever.
 
 </dd>
-<a id="setMinSize,cint,cint"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#setMinSize%2Ccint%2Ccint"><span class="Identifier">setMinSize</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="stop">
+<dt><pre><span class="Keyword">proc</span> <a href="#stop"><span class="Identifier">stop</span></a><span class="Other">(</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+              <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+Will stop the Http server - will not wait for stop
 
 </dd>
-<a id="focus,int,int"></a>
-<dt><pre><span class="Keyword">proc</span> <a href="#focus%2Cint%2Cint"><span class="Identifier">focus</span></a><span class="Other">(</span><span class="Identifier">width</span><span class="Other">,</span> <span class="Identifier">height</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">exportc</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+</div>
+<div id="stopDesktop">
+<dt><pre><span class="Keyword">proc</span> <a href="#stopDesktop"><span class="Identifier">stopDesktop</span></a><span class="Other">(</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">]</span><span class="Other">,</span>
+                     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></span>.}</pre></dt>
 <dd>
 
-
+Will stop the Desktop app - may trigger application exit.
 
 </dd>
+</div>
+<div id="stopHttpServer">
+<dt><pre><span class="Keyword">proc</span> <a href="#stopHttpServer"><span class="Identifier">stopHttpServer</span></a><span class="Other">(</span><span class="Other">)</span> {.<span class="Identifier">exportc</span><span class="Other">:</span> <span class="StringLit">&quot;nimview_$1&quot;</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<dd>
+
+Will stop the Http server async - will not wait for stop
+
+</dd>
+</div>
 
 </dl></div>
 <div class="section" id="17">
 <h1><a class="toc-backref" href="#17">Macros</a></h1>
 <dl class="item">
-<a id="callFrontendJs.m,string,varargs[untyped]"></a>
+<div id="callFrontendJs.m,string,varargs[untyped]">
 <dt><pre><span class="Keyword">macro</span> <a href="#callFrontendJs.m%2Cstring%2Cvarargs%5Buntyped%5D"><span class="Identifier">callFrontendJs</span></a><span class="Other">(</span><span class="Identifier">functionName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">params</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">untyped</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
 <dd>
 
-
+Call a function on the JS frontend immediately. Avoid calling this function from another thread as there might be issues with the Nim garbage collector. &quot;params&quot; should be a JS compatible value
 
 </dd>
+</div>
 
 </dl></div>
 <div class="section" id="19">
@@ -984,7 +1152,7 @@ Use gtk mode without borders, only works on linux and only in desktop mode
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-09-14 19:23:35 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-10-23 11:21:09 UTC</small>
       </div>
     </div>
   </div>

@@ -45,13 +45,10 @@ else:
   type PPyObject = string
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
-
-type ReqDeniedException* = object of CatchableError
-type ServerException* = object of CatchableError
-type ReqUnknownException* = object of CatchableError
 type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
 import nimview/globalToken
 import nimview/storage
+import nimview/sharedTypes
 export storage
 include nimview/requestMap
 
@@ -127,13 +124,13 @@ proc callFrontendJsEscaped(functionName: string, params: string) =
   {.gcsafe.}:
     if not customJsEval.isNil:
       let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-      cast[CstringFunc](customJsEval)(jsExec) 
+      cast[CstringFunc](customJsEval)(jsExec.cstring) 
     elif not myWebView.isNil:
       when compileWithWebview:
         let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
         myWebView.dispatch(proc() =
-          echo jsExec
-          discard myWebView.eval(jsExec))
+          info jsExec
+          discard myWebView.eval(jsExec.cstring))
     elif not myWs.isNil:
       when not defined(just_core):
         try:
@@ -337,7 +334,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
           myWs = ws
           while ws.readyState == ReadyState.Open:
             let packet = await ws.receiveStrPacket()
-            echo "Received packet: " & packet
+            info "Received packet: " & packet
         except WebSocketProtocolMismatchError:
           echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
         except WebSocketError:
@@ -441,13 +438,13 @@ proc run*() {.exportpy, exportc: "nimview_$1".} =
             let evalJsCode = "window.ui.applyResponse(" & $requestId & 
                 "," & response.escape("'","'") & ");" 
             myWebView.dispatch(proc() =
-              discard myWebView.eval(evalJsCode))
+              discard myWebView.eval(evalJsCode.cstring))
           except: 
             log.error getCurrentExceptionMsg()
             let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
             myWebView.dispatch(proc() =
-              echo evalJsCode
-              discard myWebView.eval(evalJsCode))
+              info evalJsCode
+              discard myWebView.eval(evalJsCode.cstring))
 
 proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
     port: int = nimviewSettings.port,
@@ -480,7 +477,7 @@ proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile,
 
 proc startHttpServer*(indexHtmlFile: cstring, 
     port: cint = nimviewSettings.port.cint,
-    bindAddr: cstring = nimviewSettings.bindAddr,
+    bindAddr: cstring = nimviewSettings.bindAddr.cstring,
     run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
   startHttpServer($indexHtmlFile, port, $bindAddr, run)
 
@@ -517,7 +514,7 @@ when not defined(just_core):
 
   when compileWithWebview:
     proc desktopThread(url: string, title: string, width: int, height: int, 
-      resizable: bool, debug: bool, run: bool)  =
+      resizable: bool, debug: bool, run: bool)  =  
       {.gcsafe.}:
         # var fullScreen = true
         if myWebView.isNil:
@@ -537,9 +534,9 @@ when not defined(just_core):
         if not run:
           discard runBarrier.recv()
         myWebView.run()
-        myWebView.exit()
         nimviewSettings.run = false
         webviewQueue.send("")
+        myWebView.exit()
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
@@ -568,7 +565,7 @@ when not defined(just_core):
         nimview.run()
 
   proc startDesktop*(indexHtmlFile: cstring, 
-        title: cstring = nimviewSettings.title,
+        title: cstring = nimviewSettings.title.cstring,
         width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.height.cint, 
         resizable: cint = nimviewSettings.resizable.cint,
         debug: cint = nimviewSettings.debug.cint,
