@@ -5,6 +5,8 @@
 
 import strformat, typetraits
 import logging
+import json, macros, tables, strutils
+import sharedTypes
 
 type ReqFunction* = object
   nimCallback: proc (values: JsonNode): string
@@ -241,9 +243,9 @@ proc addRequest*(request: string, callback: proc(): void) =
   addRequest(request, proc (values: JsonNode): string = callback(), "")
 
 proc init*()
-proc getRequests(): string
+proc getRequests*(): string
 
-proc getRequests(): string =
+proc getRequests*(): string =
   {.gcsafe.}:
     init()
     var requestSeq = newJArray()
@@ -265,5 +267,3 @@ proc init*() =
   if reqMapStore.len == 0:
     reqMapStore = Table[string, ReqFunction]()
     addRequest("getRequests", getRequests)
-
-init()

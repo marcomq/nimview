@@ -3,58 +3,24 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import os, system, tables
-import json, macros, base64
+import os, system, tables, strutils
+import json, macros, httpcore, asyncdispatch
 import logging as log
-import asynchttpserver, asyncdispatch
 # run "nimble demo" to to compile and nur demo application
 
-when not defined(just_core):
-  const compileWithWebview = defined(useWebview) or not defined(useServer)
-  const useWebviewInThread = compileOption("threads") and not defined useWebviewSingleThreaded
-  import uri, strutils
-  import nimpy, ws
-  from nimpy/py_types import PPyObject
-  # import browsers
-  when compileWithWebview:
-    when useWebviewInThread:
-      import threadpool
-      var webviewQueue: Channel[string]
-      var runBarrier: Channel[bool]
-      var initBarrier: Channel[bool]
-      webviewQueue.open()
-      runBarrier.open()
-      initBarrier.open()
-    else:
-      {.hint: "Nimview 'callFrontendJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
-    when defined webview2:    
-      static: 
-        echo "Warning: Webview 2 is not stable yet!"
-      import nimview/webview2/src/webview except debug
-    else:
-      import nimview/webview/webview except debug
-    var myWebView*: Webview
-  else:
-    const myWebView*: pointer = nil
-  var myWs* {.threadVar.}: WebSocket
-else:
-  const compileWithWebview = false
-  const myWebView*: pointer = nil
-  const myWs*: pointer = nil
-  # Just core features. Disable httpserver, webview nimpy and exportpy
-  macro exportpy(def: untyped): untyped =
-    result = def
-  type PPyObject = string
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
-type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
+const compileWithWebview = defined(useWebview) or not defined(useServer)
 import nimview/globalToken
 import nimview/storage
-import nimview/sharedTypes
 export storage
-include nimview/requestMap
+import nimview/sharedTypes
+import nimview/requestMap
+requestMap.init()
+export addRequest
+export addRequest_argc_argv_rstr
+type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
 
-var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 var requestLogger* {.threadVar.}: FileLogger
 var staticDir {.threadVar.}: string
 var customJsEval*: pointer 
@@ -68,6 +34,8 @@ type NimviewSettings = object
   height*: int
   resizable*: bool
   debug*: bool
+  useHttpServer*: bool
+  useGlobalToken*: bool
   useStaticIndexContent*: bool
   run*: bool
 
@@ -77,9 +45,23 @@ const defaultIndex =
   else:
     "../dist/inlined.html"
 
+const displayAvailable = 
+  when (system.hostOS == "windows"): 
+    true 
+  else: os.getEnv("DISPLAY") != ""
+
+
 proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",
         width: int = 640, height: int = 480, resizable: bool = true): NimviewSettings =
+        
+  var useServer = 
+    not compileWithWebview or 
+    defined(useServer) or 
+    not defined(release) or 
+    not displayAvailable or 
+    (os.fileExists("/.dockerenv"))
+    
   result.indexHtmlFile = indexHtmlFile
   result.port = port
   result.bindAddr = bindAddr
@@ -89,6 +71,8 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
   result.resizable = resizable
   result.debug = not defined release
   result.run = true
+  result.useHttpServer = useServer
+  result.useGlobalToken = defined(release)
   result.useStaticIndexContent =
     when declared(doNotLoadIndexContent):
       true
@@ -98,8 +82,6 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
 const defaultSettings = initSettings()
 var nimviewSettings* = defaultSettings.deepCopy()
 
-log.addHandler(newConsoleLogger())
-
 var indexContent {.threadVar.}: string
 const indexContentStatic = 
   if fileExists(getProjectPath() & "/" & defaultSettings.indexHtmlFile):
@@ -107,11 +89,33 @@ const indexContentStatic =
   else:
     ""
 
+when not defined(just_core):
+  import nimpy
+  import uri, base64
+  from nimpy/py_types import PPyObject
+  include nimview/httpRenderer
+  when compileWithWebview:
+    const useWebviewInThread = compileOption("threads") and not defined useWebviewSingleThreaded
+    proc computeMessageWebview(message: string)
+    include nimview/webviewRenderer
+    # export webviewRenderer.selectFolderDialog
+    # export webviewRenderer.selectFileDialog
+else:
+  const compileWithWebview = false
+  # Just core features. Disable httpserver, webview nimpy and exportpy
+  macro exportpy(def: untyped): untyped =
+    result = def
+  type PPyObject = string
+  proc evalJs(evalJsCode: string) = discard
+
+log.addHandler(newConsoleLogger())
+
+
 proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Registers "getStoredVal" and "setStoredVal" as requests
   ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
   ## Use "backend.getStoredVal(key)" in js to read a stored value
-  initStorage($fileName)
+  storage.initStorage($fileName)
   addRequest("getStoredVal", getStoredVal)
   addRequest("setStoredVal", setStoredVal)
 
@@ -127,20 +131,12 @@ proc callFrontendJsEscaped(functionName: string, params: string) =
     if not customJsEval.isNil:
       let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
       cast[CstringFunc](customJsEval)(jsExec.cstring) 
-    elif not myWebView.isNil:
-      when compileWithWebview:
-        let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-        myWebView.dispatch(proc() =
-          info jsExec
-          discard myWebView.eval(jsExec.cstring))
-    elif not myWs.isNil:
+    elif nimviewSettings.useHttpServer:
       when not defined(just_core):
-        try:
-          asynccheck myWs.send("{\"function\":\"" & functionName & "\",\"args\":[" & params & "]}")
-        except WebSocketProtocolMismatchError:
-          echo "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-        except CatchableError:
-          echo "Call frontend error: ", getCurrentExceptionMsg()
+        callFrontendJsEscapedHttp(functionName, params)
+    else:
+      when compileWithWebview:
+        callFrontendJsEscapedWebview(functionName, params)
 
 proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
   callFrontendJsEscaped(functionName, "\"" & argsString & "\"")
@@ -187,21 +183,9 @@ proc disableRequestLogger*() {.exportpy.} =
   if not requestLogger.isNil:
     requestLogger.levelThreshold = log.lvlNone
 
-const displayAvailable = 
-  when (system.hostOS == "windows"): 
-    true 
-  else: os.getEnv("DISPLAY") != ""
-var useServer* = 
-  not compileWithWebview or 
-  defined(useServer) or 
-  not defined(release) or 
-  not displayAvailable or 
-  (os.fileExists("/.dockerenv"))
-var useGlobalToken* = defined(release)
-
 proc setUseServer*(val: bool) {.exportpy.} =
   ## If true, use Http Server instead of Webview.
-  useServer = val
+  nimviewSettings.useHttpServer = val
 
 proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".} =
   {.gcsafe.}:
@@ -211,7 +195,7 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## The global token is a weak session-free CSRF check. Still much better than no CSRF protection.
   ## Per default enabled in release mode.
   ## If false, deactivate global token in release mode.
-  useGlobalToken = val
+  nimviewSettings.useGlobalToken = val
   
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## Global json dispatcher that will be called from webview AND httpserver
@@ -219,7 +203,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   ## and forward those values to the string dispatcher.
   let request = jsonMessage["request"].getStr()
   if request == "getGlobalToken":
-    return $ %* {"useGlobalToken": useGlobalToken}
+    return $ %* {"useGlobalToken": nimviewSettings.useGlobalToken}
   if not requestLogger.isNil:
     requestLogger.log(log.lvlInfo, $jsonMessage)
   let callbackFunc = getCallbackFunc(request)
@@ -233,20 +217,6 @@ proc dispatchRequest*(request: string, value: string): string =
 
 proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
   result = $dispatchRequest($request, $value)
-
-proc selectFolderDialog*(title: string): string  {.exportpy.} =
-  ## Will open a "sect folder dialog" if in webview mode and return the selection.
-  ## Will return emptys string in webserver mode
-  when compileWithWebview and not defined webview2:
-    if not myWebView.isNil():
-      result = myWebView.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
-      
-proc selectFileDialog*(title: string): string  {.exportpy.} =
-  ## Will open a "sect file dialog" if in webview mode and return the selection.
-  ## Will return emptys string in webserver mode
-  when compileWithWebview and not defined webview2:
-    if not myWebView.isNil():
-      result = myWebView.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
 proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   ## Will handle previously logged request json and forward those to registered functions.
@@ -281,125 +251,11 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
 
 proc readAndParseJsonCmdFile*(filename: cstring) {.exportc: "nimview_$1".} =
   readAndParseJsonCmdFile($filename)
-
-proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
-  ## Modify this, if you want to add some authentication, input format validation
-  ## or if you want to process HttpHeaders.
-  if not useGlobalToken or globalToken.checkToken(headers):
-      return dispatchJsonRequest(jsonMessage)
-  else:
-      let request = jsonMessage["request"].getStr()
-      if request == "getGlobalToken":
-        return $ %* {"useGlobalToken": useGlobalToken}
-      else:
-        raise newException(ReqDeniedException, "403 - Token expired")
-
-proc handleRequest(request: Request): Future[void] {.async.} =
-  ## used by HttpServer
-  var response: string
-  var requestPath: string = request.url.path
-  var header = @[("Content-Type", "application/javascript")]
-  let separatorFound = requestPath.rfind({'#', '?'})
-  if separatorFound != -1:
-    requestPath = requestPath[0 ..< separatorFound]
-  if requestPath == "/":
-    requestPath = "/index.html"
-  if requestPath == "/index.html":
-    when defined(release):
-      if not indexContent.isEmptyOrWhitespace() and indexContent == indexContentStatic:
-        header = @[("Content-Type", "text/html;charset=utf-8")]
-        header.add(responseHttpHeader)
-        await request.respond(Http200, indexContent, newHttpHeaders(header))
-        return
-        
-  try:
-    var potentialFilename = staticDir &
-        requestPath.replace("../", "").replace("..", "")
-    if os.fileExists(potentialFilename):
-      debug "Sending " & potentialFilename
-      let fileData = splitFile(potentialFilename)
-      let contentType = case fileData.ext:
-        of ".json": "application/json;charset=utf-8"
-        of ".js": "text/javascript;charset=utf-8"
-        of ".css": "text/css;charset=utf-8"
-        of ".jpg": "image/jpeg"
-        of ".txt": "text/plain;charset=utf-8"
-        of ".map": "application/octet-stream"
-        else: "text/html;charset=utf-8"
-      header = @[("Content-Type", contentType)]
-      header.add(responseHttpHeader)
-      await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
-    elif requestPath == "/ws":
-      when not defined(just_core):
-        try:
-          var ws = await newWebSocket(request)
-          myWs = ws
-          while ws.readyState == ReadyState.Open:
-            let packet = await ws.receiveStrPacket()
-            info "Received packet: " & packet
-        except WebSocketProtocolMismatchError:
-          echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
-        except WebSocketError:
-          echo "Socket error: ", getCurrentExceptionMsg()
-    elif (request.body == ""):
-        raise newException(ReqUnknownException, "404 - File not found")
-    else:
-      # if not a file, assume this is a json request
-      var jsonMessage: JsonNode
-      debug request.body
-      # if unlikely(request.body == ""):
-      #   jsonMessage = parseJson(uri.decodeUrl(requestPath))
-      # else:
-      jsonMessage = parseJson(request.body)
-      {.gcsafe.}:
-        var currentToken = globalToken.byteToString(globalToken.getFreshToken())
-        response = dispatchHttpRequest(jsonMessage, request.headers)
-        var header = @{"global-token": currentToken}
-        await request.respond(Http200, response, newHttpHeaders(header))
-
-  except ReqUnknownException: 
-    await request.respond(Http404, 
-      $ %* {"error": "404", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
-  except ReqDeniedException:
-    await request.respond(Http403, 
-      $ %* {"error": "403", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
-  except ServerException:        
-    await request.respond(Http500, 
-      $ %* {"error": "500", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
-  except JsonParsingError, KeyError:
-    await request.respond(Http500, 
-      $ %* {"error": "500", "value": "request doesn't contain valid json"}, 
-      newHttpHeaders(responseHttpHeader))
-  except:
-    await request.respond(Http500, 
-      $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
-      
-proc getCurrentAppDir(): string =
-    let applicationName = os.getAppFilename().extractFilename()
-    # debug applicationName
-    if (applicationName.startsWith("python") or applicationName.startsWith("platform-python")):
-      result = os.getCurrentDir()
-    else:
-      result = os.getAppDir()
       
 when not defined(release):
   proc checkFileExists(filePath: string, message: string) =
     if not os.fileExists(filePath):
       raise newException(IOError, message)
-
-proc getAbsPath(indexHtmlFile: string): (string, string) =
-  let separatorFound = indexHtmlFile.rfind({'#', '?'})
-  if separatorFound == -1:
-    result[0] = indexHtmlFile
-  else:
-    result[0] = indexHtmlFile[0 ..< separatorFound]
-    result[1] = indexHtmlFile[separatorFound .. ^1]
-  if (not os.isAbsolute(result[0])):
-    result[0] = getCurrentAppDir() & "/" & indexHtmlFile
 
 proc updateIndexContent(indexHtmlFile: string) =
   if not nimviewSettings.useStaticIndexContent:
@@ -420,8 +276,8 @@ proc serve() {.async.} =
     else:
       poll()
 
-when compileWithWebview:
-  proc computeMessageWebview(message: string) =
+proc computeMessageWebview(message: string) {.used.} =
+  when compileWithWebview:
     info message
     if message.len > 0:
       let jsonMessage = json.parseJson(message)
@@ -430,84 +286,58 @@ when compileWithWebview:
         let response = dispatchJsonRequest(jsonMessage)
         let evalJsCode = "window.ui.applyResponse(" & $requestId & 
             "," & response.escape("'","'") & ");" 
-        myWebView.dispatch(proc() =
-          discard myWebView.eval(evalJsCode.cstring))
+        evalJs(evalJsCode)
       except: 
         log.error getCurrentExceptionMsg()
         let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-        myWebView.dispatch(proc() =
-          info evalJsCode
-          discard myWebView.eval(evalJsCode.cstring))
+        evalJs(evalJsCode)
 
 proc run*() {.exportpy, exportc: "nimview_$1".} =
   ## You need to use this function if you started nimview with start(run=false)
   nimviewSettings.run = true
-  if useServer:
+  if nimviewSettings.useHttpServer:
     waitFor serve()
   else:
     when compileWithWebview:
       nimviewSettings.run = true
-      when useWebviewInThread:
-        runBarrier.send(true)
-        while nimviewSettings.run:
-          var message = webviewQueue.recv()
-          computeMessageWebview(message)
-      else:
-        myWebView.run()
-        myWebView.exit()
-          
-
-proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
-    port: int = nimviewSettings.port,
-    bindAddr: string = nimviewSettings.bindAddr,
-    run: bool = nimviewSettings.run) {.exportpy.} =
-  ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
-  ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
-  nimviewSettings.port = port
-  nimviewSettings.bindAddr = bindAddr
-  nimviewSettings.run = run
-  useServer = true
-  let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
-  updateIndexContent(indexHtmlPath)
-  discard parameter # needs to be inserted into url manually
-  when not defined(release):
-    if indexContent.isEmptyOrWhitespace():
-      checkFileExists(indexHtmlPath, "Required file index not found at " & indexHtmlPath & 
-        "; cannot start UI; the UI folder needs to be relative to the binary")
-  debug "Starting internal webserver on http://" & bindAddr & ":" & $port
-  when not defined(release):
-    echo "To develop javascript, run 'npm run dev' or 'npm run dev-ie'"
-    echo "Check the output, as some frontend dev environments prefer a proxy"
-  var origin = "http://" & bindAddr
-  if (bindAddr == "0.0.0.0"):
-    origin = "*"
-  responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
-  staticDir = indexHtmlPath.parentDir()
-  if run:
-    nimview.run()
-
-proc startHttpServer*(indexHtmlFile: cstring, 
-    port: cint = nimviewSettings.port.cint,
-    bindAddr: cstring = nimviewSettings.bindAddr.cstring,
-    run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
-  startHttpServer($indexHtmlFile, port, $bindAddr, run)
-
-proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
-  ## Will stop the Http server async - will not wait for stop
-  nimviewSettings.run = false
+      runWebview()
 
 when not defined(just_core):
-  proc toDataUrl(stream: string): string =
-    ## creates a dada url and escapes %
-    ## encoding all or using base64 would be correct, but IE is super slow when doing so
-    if stream.startsWith("data:"):
-      return stream
-    if (system.hostOS == "windows"): 
-      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
-    else:
-      result = "data:text/html;base64, " & base64.encode(stream)
-    
+  proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
+      port: int = nimviewSettings.port,
+      bindAddr: string = nimviewSettings.bindAddr,
+      run: bool = nimviewSettings.run) {.exportpy.} =
+    ## Start Http server in blocking mode. indexHtmlFile will displayed for "/".
+    ## Files in parent folder or sub folders may be accessed without further check. Will run forever.
+    nimviewSettings.port = port
+    nimviewSettings.bindAddr = bindAddr
+    nimviewSettings.run = run
+    nimviewSettings.useHttpServer = true
+    let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
+    updateIndexContent(indexHtmlPath)
+    discard parameter # needs to be inserted into url manually
+    when not defined(release):
+      if indexContent.isEmptyOrWhitespace():
+        checkFileExists(indexHtmlPath, "Required file index not found at " & indexHtmlPath & 
+          "; cannot start UI; the UI folder needs to be relative to the binary")
+    debug "Starting internal webserver on http://" & bindAddr & ":" & $port
+    when not defined(release):
+      echo "To develop javascript, run 'npm run dev' or 'npm run dev-ie'"
+      echo "Check the output, as some frontend dev environments prefer a proxy"
+    var origin = "http://" & bindAddr
+    if (bindAddr == "0.0.0.0"):
+      origin = "*"
+    responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
+    staticDir = indexHtmlPath.parentDir()
+    if run:
+      nimview.run()
 
+  proc startHttpServer*(indexHtmlFile: cstring, 
+      port: cint = nimviewSettings.port.cint,
+      bindAddr: cstring = nimviewSettings.bindAddr.cstring,
+      run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
+    startHttpServer($indexHtmlFile, port, $bindAddr, run)
+  
   proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
     when compileWithWebview:
@@ -523,53 +353,26 @@ when not defined(just_core):
     stopHttpServer()
     stopDesktop()
 
-  when compileWithWebview:
-    proc desktopThread(url: string, title: string, width: int, height: int, 
-      resizable: bool, debug: bool, run: bool)  =  
-      {.gcsafe.}:
-        # var fullScreen = true
-        if myWebView.isNil:
-          myWebView = webview.newWebView(title, url, width,
-              height, resizable = resizable, debug = debug)
-        when not defined webview2:
-          myWebView.bindProc("nimview", "alert", proc (message: string) =
-              myWebView.info("alert", message))
-          let dispatchCall = proc (message: string) =
-            when useWebviewInThread:
-              webviewQueue.send(message)
-            else:
-              computeMessageWebview(message)
-          myWebView.bindProc("nimview", "call", dispatchCall)
-        else: # webview2
-          let dispatchCall = proc (jsonMessage: JsonNode) =
-            when useWebviewInThread:
-              webviewQueue.send(message)
-            else:
-              computeMessageWebview($jsonMessag)
-          myWebView.bindProc("nimview.call", dispatchCall)
-        nimviewSettings.run = false
-        when useWebviewInThread:
-          initBarrier.send(true)
-          if not run:
-            discard runBarrier.recv()
-          myWebView.run()
-          webviewQueue.send("")
-          myWebView.exit()
-        else:
-          if run:
-            myWebView.run()
-            myWebView.exit()
-
+  proc toDataUrl(stream: string): string {.used.} =
+    ## creates a dada url and escapes %
+    ## encoding all or using base64 would be correct, but IE is super slow when doing so
+    if stream.startsWith("data:"):
+      return stream
+    if (system.hostOS == "windows"): 
+      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+    else:
+      result = "data:text/html;base64, " & base64.encode(stream)
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
-        width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
+        width: int = nimviewSettings.width, 
+        height: int = nimviewSettings.height, 
         resizable: bool = nimviewSettings.resizable,
         debug: bool = nimviewSettings.debug,
         run: bool = nimviewSettings.run) {.exportpy.} = 
     ## Will start Webview Desktop UI to display the index.hmtl file in blocking mode.
     when compileWithWebview:
-      useServer = false
+      nimviewSettings.useHttpServer = false
       let (indexHtmlPath, parameter) = getAbsPath(indexHtmlFile)
       discard parameter
       updateIndexContent(indexHtmlPath)
@@ -594,11 +397,12 @@ when not defined(just_core):
 
   proc startDesktop*(indexHtmlFile: cstring, 
         title: cstring = nimviewSettings.title.cstring,
-        width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.height.cint, 
+        width: cint = nimviewSettings.width.cint, 
+        height: cint = nimviewSettings.height.cint, 
         resizable: cint = nimviewSettings.resizable.cint,
         debug: cint = nimviewSettings.debug.cint,
         run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
-      startDesktop($indexHtmlFile, $title, width, height, 
+      startDesktop($indexHtmlFile, $title, width.int, height.int,
         cast[bool](resizable), cast[bool](debug), cast[bool](run))
 
   proc start*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, port: int = nimviewSettings.port, 
@@ -609,7 +413,7 @@ when not defined(just_core):
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
     ## The debug mode information will not be available for python or dll.
-    if useServer:
+    if nimviewSettings.useHttpServer:
       startHttpServer(indexHtmlFile, port, bindAddr, run=run)
     else:
       startDesktop(indexHtmlFile, title, width, height, resizable=resizable, run=run)
@@ -621,49 +425,6 @@ when not defined(just_core):
         run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} =
       start($indexHtmlFile, port, $bindAddr, $title, width, height, 
         resizable=cast[bool](resizable), run=cast[bool](run))
-  
-  proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
-    ## Use gtk mode without borders, only works on linux and only in desktop mode
-    when defined(linux) and compileWithWebview: 
-      if not myWebView.isNil():
-        {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
-
-  proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
-    when compileWithWebview and not defined webview2:
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          discard myWebView.setFullscreen(fullScreen))
-
-
-  proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
-    when compileWithWebview and not defined webview2:
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          myWebView.setColor(r, g, b, alpha))
-
-  proc setMaxSize*(width, height: int) {.exportpy.} =
-    when compileWithWebview and not defined webview2:
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          myWebView.setMaxSize(width.cint, height.cint))
-        
-  proc setMaxSize*(width, height: cint) {.exportc.} =
-    setMaxSize(width, height)
-
-  proc setMinSize*(width, height: int) {.exportpy.} =
-    when compileWithWebview and not defined webview2:
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          myWebView.setMinSize(width.cint, height.cint))
-        
-  proc setMinSize*(width, height: cint) {.exportc.} =
-    setMinSize(width, height)
-
-  proc focus*(width, height: int) {.exportpy, exportc.} =
-    when compileWithWebview and not defined webview2:
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          myWebView.focus())
 
 when isMainModule:
   proc main() =
