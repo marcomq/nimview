@@ -91,6 +91,11 @@ const indexContentStatic =
 
 when not defined(just_core):
   import nimpy
+  # nimpy needs to be called first in file nimview.nim to work properly
+  proc setUseServer*(val: bool) {.exportpy.} =
+    ## If true, use Http Server instead of Webview.
+    nimviewSettings.useHttpServer = val
+
   import uri, base64
   from nimpy/py_types import PPyObject
   include nimview/httpRenderer
@@ -183,10 +188,6 @@ proc disableRequestLogger*() {.exportpy.} =
   if not requestLogger.isNil:
     requestLogger.levelThreshold = log.lvlNone
 
-proc setUseServer*(val: bool) {.exportpy.} =
-  ## If true, use Http Server instead of Webview.
-  nimviewSettings.useHttpServer = val
-
 proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".} =
   {.gcsafe.}:
     customJsEval = evalFunc
@@ -240,10 +241,10 @@ proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   if (os.fileExists(filename)):
     debug "opening file for parsing: " & filename
     let file = system.open(filename, system.FileMode.fmRead)
-    var line: TaintedString
+    var line: string
     while (file.readLine(line)):
       # TODO: escape line if source file cannot be trusted
-      let retVal = dispatchCommandLineArg(line.string)
+      let retVal = dispatchCommandLineArg(line)
       debug retVal
     close(file)
   else:
@@ -346,7 +347,10 @@ when not defined(just_core):
         myWebView.dispatch(proc() = 
           myWebView.terminate()
           dealloc(myWebView))
-        
+
+  proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
+    ## Will stop the Http server async - will not wait for stop
+    nimviewSettings.run = false     
 
   proc stop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Http server - will not wait for stop

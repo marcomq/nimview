@@ -4,7 +4,7 @@
 # git clone https://github.com/marcomq/nimview
 
 import asynchttpserver
-import ws, uri
+import ws
 var myWs* {.threadVar.}: WebSocket
 
 var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
@@ -37,11 +37,6 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
     result[1] = indexHtmlFile[separatorFound .. ^1]
   if (not os.isAbsolute(result[0])):
     result[0] = getCurrentAppDir() & "/" & indexHtmlFile
-
-
-proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
-  ## Will stop the Http server async - will not wait for stop
-  nimviewSettings.run = false
 
 proc dispatchJsonRequest*(jsonMessage: JsonNode): string
 
