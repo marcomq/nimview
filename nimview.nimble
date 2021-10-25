@@ -35,8 +35,8 @@ proc execSh(cmd: string) =
 proc builDemoBinaries() = 
   let baseDir = thisDir()
   cd baseDir / "examples/svelte_todo"
-  exec "nim c -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
-  exec "nim c -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
+  exec "nim c -f -d:release -d:useServer --out:" & baseDir & "/demo/httpTodo.exe src/App.nim"
+  exec "nim c -f -d:release --app:gui --out:" & baseDir & "/demo/appTodo.exe src/App.nim"
   cd baseDir
 
 proc builDemoJs() = 

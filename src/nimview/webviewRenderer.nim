@@ -17,9 +17,9 @@ else:
 when defined webview2:    
     static: 
         echo "Warning: Webview 2 is not stable yet!"
-    import nimview/webview2/src/webview except debug
+    import webview2/src/webview except debug
 else:
-    import nimview/webview/webview except debug
+    import webview/webview except debug
 
 var myWebView*: Webview
 

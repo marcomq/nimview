@@ -41,12 +41,16 @@ proc runTests() =
 proc generateDocs() = 
   execNim "doc -d:useStdLib -o:docs/" & library & ".html " & mainApp
 
-task "clean", "clean all files":
+proc cleanUp() =
   os.removeDir(buildDir)
+
+task "clean", "clean all files":
+  cleanUp()
 
 task "pyLib", "Build python lib":
   buildPyLib()
 
 task "test", "Run tests":
+  cleanUp()
   runTests()
   echo "all python tests passed"

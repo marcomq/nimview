@@ -1,6 +1,6 @@
 discard """
   action: "compile"
-  cmd: "nim $target --hints:on -d:testing $file"
+  cmd: "nim $target -f --hints:on -d:testing $file"
 """
 import ../src/nimview
 

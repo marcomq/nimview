@@ -1,6 +1,6 @@
 discard """
   action: "run"
-  cmd: "nim $target --hints:on -d:testing $file"
+  cmd: "nim $target -f --hints:on -d:testing $file"
   output: '''
 WARN Error calling function, args: {"request":"echoAndModify","data":[],"responseId":0}
 WARN Error calling function, args: {"request":"echoAndModify3","data":["first"],"responseId":2}
