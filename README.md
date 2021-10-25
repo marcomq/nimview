@@ -299,9 +299,10 @@ or in case that there is already a session-based CSRF mitigation used by middlew
 
 ### Multithreading
 Nimview was initially planned to run single-threaded. But calling back-end functions stopped Webview from updating the DOM.
-Therefore, an additional Webview thread was added that sends information back to the main thread with Nim Channels.
-So all registered functions will be executed on the main thread, but you still need to compile Nim with `--threads:on` / `--pthread`.
-You may still spawn new threads and call `callFrontendJs` to send information back to the UI. 
+Therefore, an additional Webview thread was added automatically that sends information back to the main thread with Nim Channels,
+if the application was compiled with the option `threads:on`. On linux, it is also recommended to use `gc:orc` to avoid issues
+with the Nim garbage collector. You can still enforce to use Nimview to be completely single threaded if you compile with 
+`-d:useWebviewSingleThreaded`. 
 Check the Nim manual on how to deal with multithreading and sharing data as multithreading is still complicate in Nim.
 
 You may also use threads in Python or C++.

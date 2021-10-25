@@ -11,14 +11,22 @@ import asynchttpserver, asyncdispatch
 
 when not defined(just_core):
   const compileWithWebview = defined(useWebview) or not defined(useServer)
+  const useWebviewInThread = compileOption("threads") and not defined useWebviewSingleThreaded
   import uri, strutils
   import nimpy, ws
   from nimpy/py_types import PPyObject
   # import browsers
   when compileWithWebview:
-    import threadpool
-    when not compileOption("threads"):
-      {.error: "Nimview requires --threads:on compiler option".}
+    when useWebviewInThread:
+      import threadpool
+      var webviewQueue: Channel[string]
+      var runBarrier: Channel[bool]
+      var initBarrier: Channel[bool]
+      webviewQueue.open()
+      runBarrier.open()
+      initBarrier.open()
+    else:
+      {.hint: "Nimview 'callFrontendJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
     when defined webview2:    
       static: 
         echo "Warning: Webview 2 is not stable yet!"
@@ -26,12 +34,6 @@ when not defined(just_core):
     else:
       import nimview/webview/webview except debug
     var myWebView*: Webview
-    var webviewQueue: Channel[string]
-    var runBarrier: Channel[bool]
-    var initBarrier: Channel[bool]
-    webviewQueue.open()
-    runBarrier.open()
-    initBarrier.open()
   else:
     const myWebView*: pointer = nil
   var myWs* {.threadVar.}: WebSocket
@@ -418,6 +420,25 @@ proc serve() {.async.} =
     else:
       poll()
 
+when compileWithWebview:
+  proc computeMessageWebview(message: string) =
+    info message
+    if message.len > 0:
+      let jsonMessage = json.parseJson(message)
+      let requestId = jsonMessage["requestId"].getInt()
+      try:
+        let response = dispatchJsonRequest(jsonMessage)
+        let evalJsCode = "window.ui.applyResponse(" & $requestId & 
+            "," & response.escape("'","'") & ");" 
+        myWebView.dispatch(proc() =
+          discard myWebView.eval(evalJsCode.cstring))
+      except: 
+        log.error getCurrentExceptionMsg()
+        let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
+        myWebView.dispatch(proc() =
+          info evalJsCode
+          discard myWebView.eval(evalJsCode.cstring))
+
 proc run*() {.exportpy, exportc: "nimview_$1".} =
   ## You need to use this function if you started nimview with start(run=false)
   nimviewSettings.run = true
@@ -426,25 +447,15 @@ proc run*() {.exportpy, exportc: "nimview_$1".} =
   else:
     when compileWithWebview:
       nimviewSettings.run = true
-      runBarrier.send(true)
-      while nimviewSettings.run:
-        var message = webviewQueue.recv()
-        info message
-        if message.len > 0:
-          let jsonMessage = json.parseJson(message)
-          let requestId = jsonMessage["requestId"].getInt()
-          try:
-            let response = dispatchJsonRequest(jsonMessage)
-            let evalJsCode = "window.ui.applyResponse(" & $requestId & 
-                "," & response.escape("'","'") & ");" 
-            myWebView.dispatch(proc() =
-              discard myWebView.eval(evalJsCode.cstring))
-          except: 
-            log.error getCurrentExceptionMsg()
-            let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-            myWebView.dispatch(proc() =
-              info evalJsCode
-              discard myWebView.eval(evalJsCode.cstring))
+      when useWebviewInThread:
+        runBarrier.send(true)
+        while nimviewSettings.run:
+          var message = webviewQueue.recv()
+          computeMessageWebview(message)
+      else:
+        myWebView.run()
+        myWebView.exit()
+          
 
 proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
     port: int = nimviewSettings.port,
@@ -524,19 +535,31 @@ when not defined(just_core):
           myWebView.bindProc("nimview", "alert", proc (message: string) =
               myWebView.info("alert", message))
           let dispatchCall = proc (message: string) =
-            webviewQueue.send(message)
+            when useWebviewInThread:
+              webviewQueue.send(message)
+            else:
+              computeMessageWebview(message)
           myWebView.bindProc("nimview", "call", dispatchCall)
         else: # webview2
           let dispatchCall = proc (jsonMessage: JsonNode) =
-            webviewQueue.send($jsonMessage)
+            when useWebviewInThread:
+              webviewQueue.send(message)
+            else:
+              computeMessageWebview($jsonMessag)
           myWebView.bindProc("nimview.call", dispatchCall)
-        initBarrier.send(true)
-        if not run:
-          discard runBarrier.recv()
-        myWebView.run()
         nimviewSettings.run = false
-        webviewQueue.send("")
-        myWebView.exit()
+        when useWebviewInThread:
+          initBarrier.send(true)
+          if not run:
+            discard runBarrier.recv()
+          myWebView.run()
+          webviewQueue.send("")
+          myWebView.exit()
+        else:
+          if run:
+            myWebView.run()
+            myWebView.exit()
+
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
@@ -553,14 +576,19 @@ when not defined(just_core):
       when not defined(release):
         checkFileExists(indexHtmlPath, "Required file index.html not found at " & indexHtmlPath & 
           "; cannot start UI; the UI folder needs to be relative to the binary")
+      var url: string
       if parameter.isEmptyOrWhitespace() and 
         (indexHtmlFile.contains("inlined.html") or indexHtmlPath.startsWith("data:")):
         debug "Starting desktop with data url"
-        spawn desktopThread(toDataUrl(indexContent), title, width, height, resizable, debug, run)
+        url = toDataUrl(indexContent)
       else:
         debug "Starting desktop with file url"
-        spawn desktopThread("file://" & indexHtmlPath & parameter, title, width, height, resizable, debug, run)
-      discard initBarrier.recv()
+        url = "file://" & indexHtmlPath & parameter
+      when useWebviewInThread:
+        spawn desktopThread(url, title, width, height, resizable, debug, run)
+        discard initBarrier.recv()
+      else:
+        desktopThread(url, title, width, height, resizable, debug, run)
       if run:
         nimview.run()
 
