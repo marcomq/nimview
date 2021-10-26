@@ -8,6 +8,7 @@ import json, macros, httpcore, asyncdispatch
 import logging as log
 # run "nimble demo" to to compile and nur demo application
 
+# available compileFlags: -d:compileWithWebview -d:useServer -d:just_core -d:useWebviewSingleThreaded -d:noMain
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 const compileWithWebview = defined(useWebview) or not defined(useServer)

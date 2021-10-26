@@ -178,6 +178,7 @@ struct webview_priv
   WEBVIEW_API int webview_eval(struct webview *w, const char *js);
   WEBVIEW_API int webview_inject_css(struct webview *w, const char *css);
   WEBVIEW_API void webview_set_title(struct webview *w, const char *title);
+  WEBVIEW_API void webview_set_icon(struct webview *w, const char *icon);
   WEBVIEW_API void webview_focus(struct webview *w);
   WEBVIEW_API void webview_minsize(struct webview *w, int width, int height);  
   WEBVIEW_API void webview_maxsize(struct webview *w, int width, int height);
@@ -456,6 +457,21 @@ struct webview_priv
     hints.max_height = w->priv.max_height;
     
     gtk_window_set_geometry_hints(GTK_WINDOW(w->priv.window), w->priv.window, &hints, usedHints);
+  }
+
+  WEBVIEW_API void webview_set_icon(struct webview *w, const char *icon) {
+    if (icon == NULL || icon == "") {
+      return;
+    }
+
+    GError *gerror = NULL;
+    GdkPixbuf *image = gdk_pixbuf_new_from_file(icon, &gerror);
+
+    if (gerror != NULL) {
+      return;
+    }
+
+    gtk_window_set_icon(GTK_WINDOW(w->priv.window), image);
   }
 
   WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen)
@@ -1753,6 +1769,13 @@ struct webview_priv
     w->priv.max_height = height;
   }
 
+  WEBVIEW_API void webview_set_icon(struct webview *w, const char *icon) {
+      HINSTANCE hInstance = GetModuleHandle(NULL);
+
+      HANDLE wIcon = LoadImage(hInstance, icon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+      SendMessage(w->priv.hwnd, (UINT)WM_SETICON, ICON_BIG, (LPARAM)wIcon);
+  }
+
   WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen)
   {
     if (w->priv.is_fullscreen == !!fullscreen)
@@ -2347,6 +2370,8 @@ struct webview_priv
     waitUntilDone:NO];
   }
   
+  WEBVIEW_API void webview_set_icon(struct webview *w, const char *icon) {}
+
   WEBVIEW_API void webview_set_fullscreen(struct webview *w, int fullscreen)
   {
     int b = ((([w->priv.window styleMask] & NSWindowStyleMaskFullScreen) ==

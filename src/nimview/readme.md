@@ -8,4 +8,8 @@ update to latest:
 git subtree pull --prefix src/nimview/webview  https://github.com/marcomq/webview.git master --squash
 git subtree pull --prefix src/nimview/webview2  https://github.com/marcomq/webview.git update --squash
 
+push back to webview:
+git subtree push --prefix src/nimview/webview  https://github.com/marcomq/webview.git master
+git subtree push --prefix src/nimview/webview2  https://github.com/marcomq/webview.git update
+
 ```

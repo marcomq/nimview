@@ -55,6 +55,7 @@ proc eval*(w: Webview; js: cstring): cint {.importc: "webview_eval", header: "we
 proc injectCss*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: "webview.h".}
 proc setTitle*(w: Webview; title: cstring) {.importc: "webview_set_title", header: "webview.h".}
 proc setColor*(w: Webview; r,g,b,a: uint8) {.importc: "webview_set_color", header: "webview.h".}
+proc setIcon*(w: Webview; icon: cstring) {.importc: "webview_set_icon", header: "webview.h".}
 proc setFullscreen*(w: Webview; fullscreen: cint) {.importc: "webview_set_fullscreen", header: "webview.h".}
 proc setMinSize*(w: Webview; width, height: cint) {.importc: "webview_minsize", header: "webview.h".}
 proc setMaxSize*(w: Webview; width, height: cint) {.importc: "webview_maxsize", header: "webview.h".}

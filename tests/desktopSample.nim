@@ -18,6 +18,7 @@ proc main() =
   nimview.setBorderless()
   nimview.setFullscreen()
   nimview.setColor(1,2,3,50)
+  nimview.setIcon(currentSourcePath.parentDir() / "icon.ico") # will not be visible in fullscreen
   nimviewSettings.width = 600
   nimview.enableStorage()
   nimview.enableRequestLogger()

@@ -26,7 +26,7 @@ proc buildPyLib() =
   let outputLib = buildDir / library & "." & pyDllExtension
   if outputLib.needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_py")
-    execNim "c -d:release -d:useStdLib -d:noMain --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
+    execNim "c -d:release -d:noMain --gc:orc --deepCopy:on --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
       " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
     os.copyFile(outputLib, thisDir / "src" / library & "." & pyDllExtension)
 
@@ -39,7 +39,7 @@ proc runTests() =
   execCmd "python src/pyTest.py"
 
 proc generateDocs() = 
-  execNim "doc -d:useStdLib -o:docs/" & library & ".html " & mainApp
+  execNim "doc -o:docs/" & library & ".html " & mainApp
 
 proc cleanUp() =
   os.removeDir(buildDir)

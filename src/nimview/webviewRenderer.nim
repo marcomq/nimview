@@ -45,6 +45,11 @@ proc selectFileDialog*(title: string): string  {.exportpy.} =
   when not defined webview2:
     if not myWebView.isNil():
       result = myWebView.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
+
+proc setIcon*(icon: string) {.exportpy.} = 
+  when not defined webview2:
+    myWebView.dispatch(proc() = 
+        myWebView.setIcon(icon.cstring))
       
 proc evalJs*(evalJsCode: string) =
     myWebView.dispatch(proc() =
