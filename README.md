@@ -342,4 +342,4 @@ The Desktop mode is using IE11 as platform, so there might be security issues wh
 ```
 
 ### Documentation
-A documentation is [here](https://htmlpreview.github.io/?https://github.com/marcomq/nimview/blob/master/docs/nimview.html)
+A documentation is [here](https://htmlpreview.github.io/?https://github.com/marcomq/nimview/blob/master/docs/theindex.html)

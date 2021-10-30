@@ -47,7 +47,13 @@ proc builDemoJs() =
   cd baseDir
 
 task docs, "Generate doc":
-  exec "nim doc -o:docs/nimview.html src/nimview.nim"
+  exec "nim doc -o:docs/theindex.html src/nimview.nim "
+  exec "nim doc -o:docs/webviewRenderer.html src/nimview/webviewRenderer.nim"
+  exec "nim doc -o:docs/httpRenderer.html src/nimview/httpRenderer.nim"
+  exec "nim doc -o:docs/storage.html src/nimview/storage.nim"
+  exec "nim doc -o:docs/sharedTypes.html src/nimview/sharedTypes.nim"
+  exec "nim doc -o:docs/requestMap.html src/nimview/requestMap.nim"
+  exec "nim doc -o:docs/globals.html src/nimview/globals.nim"
   # let cmd = "inliner -n --preserve-comments --iesafe --inlinemin docs/nimview_tmp.html > docs/nimview.html"
   # execSh cmd
 
