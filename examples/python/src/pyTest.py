@@ -18,7 +18,7 @@ def echoAndModify3(value1, value2):
     return (result + " by python")
 
 def stopNimview(value):
-    nimview.stopDesktop()
+    nimview.stop()
     return ""
 
 nimview.addRequest("echoAndModify", echoAndModify)

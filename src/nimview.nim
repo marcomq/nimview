@@ -11,84 +11,18 @@ import logging as log
 # available compileFlags: -d:compileWithWebview -d:useServer -d:just_core -d:useWebviewSingleThreaded -d:noMain
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
-const compileWithWebview = defined(useWebview) or not defined(useServer)
-import nimview/globalToken
 import nimview/storage
 export storage
 import nimview/sharedTypes
 import nimview/requestMap
 requestMap.init()
+import nimview/globals
+export dispatchJsonRequest
 export addRequest
 export addRequest_argc_argv_rstr
-type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
+export requestLogger, customJsEval, nimviewSettings
+log.addHandler(newConsoleLogger())
 
-var requestLogger* {.threadVar.}: FileLogger
-var staticDir {.threadVar.}: string
-var customJsEval*: pointer 
-
-type NimviewSettings = object
-  indexHtmlFile*: string
-  port*: int
-  bindAddr*: string
-  title*: string
-  width*: int
-  height*: int
-  resizable*: bool
-  debug*: bool
-  useHttpServer*: bool
-  useGlobalToken*: bool
-  useStaticIndexContent*: bool
-  run*: bool
-
-const defaultIndex = 
-  when not defined(release):
-    "../dist/index.html"
-  else:
-    "../dist/inlined.html"
-
-const displayAvailable = 
-  when (system.hostOS == "windows"): 
-    true 
-  else: os.getEnv("DISPLAY") != ""
-
-
-proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
-        bindAddr: string = "localhost", title: string = "nimview",
-        width: int = 640, height: int = 480, resizable: bool = true): NimviewSettings =
-        
-  var useServer = 
-    not compileWithWebview or 
-    defined(useServer) or 
-    not defined(release) or 
-    not displayAvailable or 
-    (os.fileExists("/.dockerenv"))
-    
-  result.indexHtmlFile = indexHtmlFile
-  result.port = port
-  result.bindAddr = bindAddr
-  result.title = title
-  result.width = width
-  result.height = height
-  result.resizable = resizable
-  result.debug = not defined release
-  result.run = true
-  result.useHttpServer = useServer
-  result.useGlobalToken = defined(release)
-  result.useStaticIndexContent =
-    when declared(doNotLoadIndexContent):
-      true
-    else:
-      false
-
-const defaultSettings = initSettings()
-var nimviewSettings* = defaultSettings.deepCopy()
-
-var indexContent {.threadVar.}: string
-const indexContentStatic = 
-  if fileExists(getProjectPath() & "/" & defaultSettings.indexHtmlFile):
-    staticRead(getProjectPath() & "/" & defaultSettings.indexHtmlFile)
-  else:
-    ""
 
 when not defined(just_core):
   import nimpy
@@ -99,13 +33,11 @@ when not defined(just_core):
 
   import uri, base64
   from nimpy/py_types import PPyObject
-  include nimview/httpRenderer
+  import nimview/httpRenderer
   when compileWithWebview:
-    const useWebviewInThread = compileOption("threads") and not defined useWebviewSingleThreaded
-    proc computeMessageWebview(message: string)
-    include nimview/webviewRenderer
-    # export webviewRenderer.selectFolderDialog
-    # export webviewRenderer.selectFileDialog
+    import nimview/webviewRenderer
+    export selectFolderDialog, selectFileDialog, setMinSize, setMaxSize, focus
+    export stopDesktop, setBorderless, setFullScreen, setColor, setIcon
 else:
   const compileWithWebview = false
   # Just core features. Disable httpserver, webview nimpy and exportpy
@@ -113,9 +45,6 @@ else:
     result = def
   type PPyObject = string
   proc evalJs(evalJsCode: string) = discard
-
-log.addHandler(newConsoleLogger())
-
 
 proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Registers "getStoredVal" and "setStoredVal" as requests
@@ -198,18 +127,6 @@ proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## Per default enabled in release mode.
   ## If false, deactivate global token in release mode.
   nimviewSettings.useGlobalToken = val
-  
-proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
-  ## Global json dispatcher that will be called from webview AND httpserver
-  ## This will extract specific values that were prepared by nimview.js
-  ## and forward those values to the string dispatcher.
-  let request = jsonMessage["request"].getStr()
-  if request == "getGlobalToken":
-    return $ %* {"useGlobalToken": nimviewSettings.useGlobalToken}
-  if not requestLogger.isNil:
-    requestLogger.log(log.lvlInfo, $jsonMessage)
-  let callbackFunc = getCallbackFunc(request)
-  result = callbackFunc(jsonMessage["data"])
 
 proc dispatchRequest*(request: string, value: string): string =
   ## Global string dispatcher that will trigger a previously registered functions
@@ -268,31 +185,6 @@ proc updateIndexContent(indexHtmlFile: string) =
   if indexContent.isEmptyOrWhitespace:
     debug "Using default " & defaultSettings.indexHtmlFile
     indexContent = indexContentStatic
-    
-proc serve() {.async.} = 
-  var server = newAsyncHttpServer()
-  listen(server, Port(nimviewSettings.port), nimviewSettings.bindAddr)
-  while nimviewSettings.run:
-    if server.shouldAcceptRequest():
-      await server.acceptRequest(handleRequest)
-    else:
-      poll()
-
-proc computeMessageWebview(message: string) {.used.} =
-  when compileWithWebview:
-    info message
-    if message.len > 0:
-      let jsonMessage = json.parseJson(message)
-      let requestId = jsonMessage["requestId"].getInt()
-      try:
-        let response = dispatchJsonRequest(jsonMessage)
-        let evalJsCode = "window.ui.applyResponse(" & $requestId & 
-            "," & response.escape("'","'") & ");" 
-        evalJs(evalJsCode)
-      except: 
-        log.error getCurrentExceptionMsg()
-        let evalJsCode = "window.ui.rejectResponse(" & $requestId & ");"
-        evalJs(evalJsCode)
 
 proc run*() {.exportpy, exportc: "nimview_$1".} =
   ## You need to use this function if you started nimview with start(run=false)
@@ -339,15 +231,6 @@ when not defined(just_core):
       bindAddr: cstring = nimviewSettings.bindAddr.cstring,
       run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
     startHttpServer($indexHtmlFile, port, $bindAddr, run)
-  
-  proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
-    ## Will stop the Desktop app - may trigger application exit.
-    when compileWithWebview:
-      debug "stopping ..."
-      if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-          myWebView.terminate()
-          dealloc(myWebView))
 
   proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Http server async - will not wait for stop
@@ -356,7 +239,8 @@ when not defined(just_core):
   proc stop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Http server - will not wait for stop
     stopHttpServer()
-    stopDesktop()
+    when compileWithWebview:
+      stopDesktop()
 
   proc toDataUrl(stream: string): string {.used.} =
     ## creates a dada url and escapes %
@@ -393,10 +277,9 @@ when not defined(just_core):
         debug "Starting desktop with file url"
         url = "file://" & indexHtmlPath & parameter
       when useWebviewInThread:
-        spawn desktopThread(url, title, width, height, resizable, debug, run)
-        discard initBarrier.recv()
+        spawnDesktopThread(url, title, width, height, resizable, debug, run)
       else:
-        desktopThread(url, title, width, height, resizable, debug, run)
+        runDesktop(url, title, width, height, resizable, debug, run)
       if run:
         nimview.run()
 

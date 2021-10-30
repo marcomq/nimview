@@ -3,11 +3,16 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import asynchttpserver
+import asynchttpserver, json, httpcore, asyncdispatch, os, strutils
 import ws
+import globalToken
+import globals
+import sharedTypes
+import logging as log
+
 var myWs* {.threadVar.}: WebSocket
 
-var responseHttpHeader {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
+var responseHttpHeader* {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
 
 proc callFrontendJsEscapedHttp*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
@@ -28,7 +33,7 @@ proc getCurrentAppDir(): string =
     else:
       result = os.getAppDir()
 
-proc getAbsPath(indexHtmlFile: string): (string, string) =
+proc getAbsPath*(indexHtmlFile: string): (string, string) =
   let separatorFound = indexHtmlFile.rfind({'#', '?'})
   if separatorFound == -1:
     result[0] = indexHtmlFile
@@ -37,8 +42,6 @@ proc getAbsPath(indexHtmlFile: string): (string, string) =
     result[1] = indexHtmlFile[separatorFound .. ^1]
   if (not os.isAbsolute(result[0])):
     result[0] = getCurrentAppDir() & "/" & indexHtmlFile
-
-proc dispatchJsonRequest*(jsonMessage: JsonNode): string
 
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
   ## Modify this, if you want to add some authentication, input format validation
@@ -52,7 +55,7 @@ proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
       else:
         raise newException(ReqDeniedException, "403 - Token expired")
 
-proc handleRequest(request: Request): Future[void] {.async.} =
+proc handleRequest*(request: Request): Future[void] {.async.} =
   ## used by HttpServer
   var response: string
   var requestPath: string = request.url.path
@@ -136,3 +139,12 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
       newHttpHeaders(responseHttpHeader))
       
+    
+proc serve*() {.async.} = 
+  var server = newAsyncHttpServer()
+  listen(server, Port(nimviewSettings.port), nimviewSettings.bindAddr)
+  while nimviewSettings.run:
+    if server.shouldAcceptRequest():
+      await server.acceptRequest(handleRequest)
+    else:
+      poll()
