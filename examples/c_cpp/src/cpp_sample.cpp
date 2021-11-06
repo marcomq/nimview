@@ -15,6 +15,6 @@ std::string echoAndModify(const std::string& something) {
 
 int main(int argc, char* argv[]) {
     nimview::nimMain();
-    nimview::addRequest<std::string>("echoAndModify", echoAndModify);
+    nimview::add<std::string>("echoAndModify", echoAndModify);
     nimview::start("../dist/index.html", 8000, "localhost");
 }

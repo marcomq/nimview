@@ -14,9 +14,9 @@ when useWebviewInThread:
     runBarrier.open()
     initBarrier.open()
 else:
-    {.hint: "Nimview 'callFrontendJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
+    {.hint: "Nimview 'callJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
 when defined webview2:   
-    {.warn:  "Warning: Webview 2 is not stable yet!" .}
+    {.warning:  "Warning: Webview 2 is not stable yet!" .}
     import ../nimview/webview2/src/webview except debug
 else:
     import ../nimview/webview/webview except debug

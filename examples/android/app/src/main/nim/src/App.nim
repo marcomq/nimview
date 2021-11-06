@@ -13,7 +13,7 @@ proc countDown() =
   callFrontendJs("alert", "1")
   sleep(1000)
 
-addRequest("countDown", countDown)
+add("countDown", countDown)
 
 when not defined(just_core):
   start()

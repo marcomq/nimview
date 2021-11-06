@@ -123,7 +123,7 @@ namespace nimview {
     }
 
     template<typename T1, typename T2, typename T3, typename T4> 
-    void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3, T4)> &callback) {
+    void addt(const std::string &request, const std::function<std::string(T1, T2, T3, T4)> &callback) {
         requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 4) {
                 throw std::runtime_error("Less than 4 arguments");
@@ -133,12 +133,12 @@ namespace nimview {
         };
         requestMap.insert(std::make_pair(request, lambda));
         std::string signature = typeName<T1>() + ", " + typeName<T2>() + ", " + typeName<T3>() + ", " + typeName<T4>();
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+        nimview_add_argc_argv_rstr(const_cast<char*>(request.c_str()), 
             findAndCall, free, const_cast<char*>(signature.c_str()));
     }
     
     template<typename T1, typename T2, typename T3> 
-    void addRequest(const std::string &request, const std::function<std::string(T1, T2, T3)> &callback) {
+    void add(const std::string &request, const std::function<std::string(T1, T2, T3)> &callback) {
         requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 3) {
                 throw std::runtime_error("Less than 3 arguments");
@@ -148,12 +148,12 @@ namespace nimview {
         };
         requestMap.insert(std::make_pair(request, lambda));
         std::string signature = typeName<T1>() + ", " + typeName<T2>() + ", " + typeName<T3>();
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+        nimview_add_argc_argv_rstr(const_cast<char*>(request.c_str()), 
             findAndCall, free, const_cast<char*>(signature.c_str()));
     }
     
     template<typename T1, typename T2> 
-    void addRequest(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
+    void add(const std::string &request, const std::function<std::string(T1, T2)> &callback) {
         requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 2) {
                 throw std::runtime_error("Less than 2 arguments");
@@ -163,12 +163,12 @@ namespace nimview {
         };
         requestMap.insert(std::make_pair(request, lambda));
         std::string signature = typeName<T1>() + ", " + typeName<T2>();
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+        nimview_add_argc_argv_rstr(const_cast<char*>(request.c_str()), 
             findAndCall, free, const_cast<char*>(signature.c_str()));
     }  
 
     template<typename T1> 
-    void addRequest(const std::string &request, const std::function<std::string(T1)> &callback) {
+    void add(const std::string &request, const std::function<std::string(T1)> &callback) {
         requestFunction lambda = [&, callback](int argc, char** argv) {
             if (argc <= 1) {
                 throw std::runtime_error("Less than 1 argument");
@@ -178,16 +178,16 @@ namespace nimview {
         };
         requestMap.insert(std::make_pair(request, lambda));
         std::string signature = typeName<T1>();
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), 
+        nimview_add_argc_argv_rstr(const_cast<char*>(request.c_str()), 
             findAndCall, free, const_cast<char*>(signature.c_str()));
     }
 
-    void addRequest(const std::string &request, const std::function<std::string(void)> &callback) {
+    void add(const std::string &request, const std::function<std::string(void)> &callback) {
         requestFunction lambda = [&, callback](int argc, char** argv) {
             return strToNewCharPtr(callback());
         };
         requestMap.insert(std::make_pair(request, lambda));
-        nimview_addRequest_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free, "void");
+        nimview_add_argc_argv_rstr(const_cast<char*>(request.c_str()), findAndCall, free, "void");
     }
 
 #ifndef JUST_CORE
@@ -199,7 +199,7 @@ namespace nimview {
         nimMain();
         ::nimview_startHttpServer(const_cast<char*>(folder), port, const_cast<char*>(bindAddr), run);
     };
-    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool run = true)  {
+    void start(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false, bool run = true)  {
         nimMain();
         #ifdef _WIN32
             bool runWithGui = true;
@@ -210,14 +210,18 @@ namespace nimview {
             runWithGui = false;
         #endif
         if (runWithGui) {
-            nimview::startDesktop(folder, title, width, height, resizable, false, run);
+            nimview::startDesktop(folder, title, width, height, resizable, debug, run);
         }
         else {
             nimview::startHttpServer(folder, port, bindAddr, run);
         }
     }
+    void init(const char* folder, int port = 8000, const char* bindAddr = "localhost", const char* title = "nimview", int width = 640, int height = 480, bool resizable = true, bool debug = false) {
+        start(folder, port, bindAddr, title, width, height, resizable, debug);
+    }
     auto stopHttpServer = ::nimview_stopHttpServer;
     auto stopDesktop = ::nimview_stopDesktop;
+    auto stop = ::nimview_stop;
 #endif
     char* dispatchRequest(char* request, char* value) {
         nimMain();
@@ -233,17 +237,29 @@ namespace nimview {
     void enableStorage(const std::string &fileName = "storage.js") {
         ::nimview_enableStorage(const_cast<char*>(fileName.c_str()));
     }
-    void callFrontendJs(const std::string &functionName, const std::string &args) {
-        ::nimview_callFrontendJs(const_cast<char*>(functionName.c_str()), const_cast<char*>(args.c_str())); 
+    void callJs(const std::string &functionName, const std::string &args) {
+        ::nimview_callJs(const_cast<char*>(functionName.c_str()), const_cast<char*>(args.c_str())); 
     }
+    auto callFrontendJs = callJs;
     auto setCustomJsEval = ::nimview_setCustomJsEval;
-    auto addRequest_void = ::nimview_addRequest;
-    auto addRequest_rstr = ::nimview_addRequest_rstr;
-    auto addRequest_cstring = ::nimview_addRequest_cstring;
-    auto addRequest_cstring_rstr = ::nimview_addRequest_cstring_rstr;
-    auto addRequest_clonglong = ::nimview_addRequest_clonglong;
-    auto addRequest_clonglong_rstr = ::nimview_addRequest_clonglong_rstr;
-    auto addRequest_cdouble = ::nimview_addRequest_cdouble;
-    auto addRequest_cdouble_rstr = ::nimview_addRequest_cdouble_rstr;    
-    auto addRequest_argc_argv_rstr = ::nimview_addRequest_argc_argv_rstr;    
+    auto add_void = ::nimview_add;
+    auto add_rstr = ::nimview_add_rstr;
+    auto add_cstring = ::nimview_add_cstring;
+    auto add_cstring_rstr = ::nimview_add_cstring_rstr;
+    auto add_clonglong = ::nimview_add_clonglong;
+    auto add_clonglong_rstr = ::nimview_add_clonglong_rstr;
+    auto add_cdouble = ::nimview_add_cdouble;
+    auto add_cdouble_rstr = ::nimview_add_cdouble_rstr;    
+    auto add_argc_argv_rstr = ::nimview_add_argc_argv_rstr;  
+    // deprecated start
+    auto addRequest_void = ::nimview_add;
+    auto addRequest_rstr = ::nimview_add_rstr;
+    auto addRequest_cstring = ::nimview_add_cstring;
+    auto addRequest_cstring_rstr = ::nimview_add_cstring_rstr;
+    auto addRequest_clonglong = ::nimview_add_clonglong;
+    auto addRequest_clonglong_rstr = ::nimview_add_clonglong_rstr;
+    auto addRequest_cdouble = ::nimview_add_cdouble;
+    auto addRequest_cdouble_rstr = ::nimview_add_cdouble_rstr;    
+    auto addRequest_argc_argv_rstr = ::nimview_add_argc_argv_rstr; 
+    // deprecated end     
 }

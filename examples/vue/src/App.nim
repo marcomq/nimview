@@ -13,8 +13,8 @@ proc countDown() =
   sleep(1000)
 
 proc main() =
-  addRequest("appendSomething", appendSomething)
-  addRequest("countDown", countDown)
+  add("appendSomething", appendSomething)
+  add("countDown", countDown)
   let argv = os.commandLineParams()
   for arg in argv:
     readAndParseJsonCmdFile(arg)

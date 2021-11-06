@@ -36,8 +36,8 @@ const displayAvailable =
     true 
   else: os.getEnv("DISPLAY") != ""
 
-
-const compileWithWebview* = defined(useWebview) or not defined(useServer)
+const preferWebview = defined(useWebview) or not defined(useServer)
+const compileWithWebview* = not defined(just_core) and preferWebview
 
 proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000, 
         bindAddr: string = "localhost", title: string = "nimview",

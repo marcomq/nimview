@@ -24,11 +24,11 @@ proc stopNimview() =
     nimview.stopDesktop()
 
 
-nimview.addRequest("echoAndModify", echoAndModify)
-nimview.addRequest("echoAndModify2", echoAndModify2)
-nimview.addRequest("echoAndModify3", echoAndModify3)
-nimview.addRequest("echoAndModify4", echoAndModify4)
-nimview.addRequest("stopNimview", stopNimview)
+nimview.add("echoAndModify", echoAndModify)
+nimview.add("echoAndModify2", echoAndModify2)
+nimview.add("echoAndModify3", echoAndModify3)
+nimview.add("echoAndModify4", echoAndModify4)
+nimview.add("stopNimview", stopNimview)
 
 discard nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"data\":[\"this is a test\"],\"responseId\":0}")
 discard nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"data\":[],\"responseId\":4}") 

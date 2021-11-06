@@ -24,7 +24,7 @@ char* echoAndModify(char* something) {
 int main(int argc, char* argv[]) {
     printf(" starting c code\n");
     NimMain();
-    nimview_addRequest_cstring_rstr("echoAndModify", echoAndModify, free);
+    nimview_add_cstring_rstr("echoAndModify", echoAndModify, free);
 #ifdef _DEBUG
     nimview_startHttpServer("../dist/index.html", 8000, "localhost", 1);
 #else

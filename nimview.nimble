@@ -1,4 +1,4 @@
-version     = "0.3.3"
+version     = "0.4.0"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
@@ -66,8 +66,10 @@ task test, "Run tests":
   let baseDir = thisDir()
   cd baseDir / "examples/c_cpp"
   let nake = system.findExe("nake")
+  exec nake & " clean"
   exec nake & " test"
   cd baseDir / "examples/python"
+  exec nake & " clean"
   exec nake & " test"
   cd baseDir
   exec "testament pattern \"tests/*.nim\""

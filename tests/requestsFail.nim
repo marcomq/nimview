@@ -28,11 +28,11 @@ proc stopNimview() =
 
 proc main() =
     logging.getHandlers()[0].levelThreshold = lvlWarn
-    nimview.addRequest("echoAndModify", echoAndModify)
-    nimview.addRequest("echoAndModify2", echoAndModify2)
-    nimview.addRequest("echoAndModify3", echoAndModify3)
-    nimview.addRequest("echoAndModify4", echoAndModify4)
-    nimview.addRequest("stopNimview", stopNimview)
+    nimview.add("echoAndModify", echoAndModify)
+    nimview.add("echoAndModify2", echoAndModify2)
+    nimview.add("echoAndModify3", echoAndModify3)
+    nimview.add("echoAndModify4", echoAndModify4)
+    nimview.add("stopNimview", stopNimview)
 
     discard nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify\",\"data\":[],\"responseId\":0}") # will print warning
     discard nimview.dispatchCommandLineArg("{\"request\":\"echoAndModify2\",\"data\":[\"unused\"],\"responseId\":1}")  # will currently not print warning

@@ -11,6 +11,6 @@ proc echoAndModify(value: string): string =
   result = "'" & value & "' modified by minimal"
 
 when isMainModule:
-  addRequest("callJsProgress", callJsProgress)
-  addRequest("echoAndModify", echoAndModify)
+  add("callJsProgress", callJsProgress)
+  add("echoAndModify", echoAndModify)
   startDesktop("dist/index.html", debug=true)

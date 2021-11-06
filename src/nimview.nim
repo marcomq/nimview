@@ -8,7 +8,7 @@ import json, macros, httpcore, asyncdispatch
 import logging as log
 # run "nimble demo" to to compile and nur demo application
 
-# available compileFlags: -d:compileWithWebview -d:useServer -d:just_core -d:useWebviewSingleThreaded -d:noMain
+# available compileFlags: -d:useServer -d:useWebview -d:just_core -d:useWebviewSingleThreaded -d:noMain
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
 import nimview/storage
@@ -18,11 +18,13 @@ import nimview/requestMap
 requestMap.init()
 import nimview/globals
 export dispatchJsonRequest
-export addRequest
-export addRequest_argc_argv_rstr
+export requestMap.add
+export requestMap.add_argc_argv_rstr
 export requestLogger, customJsEval, nimviewSettings
 log.addHandler(newConsoleLogger())
 
+template addRequest*(x,y) {.used, deprecated:" use 'add' instead".} = add(x,y)
+template addRequest_argc_argv_rstr*(x,y) {.used, deprecated:" use 'add' instead".} = add_argc_argv_rstr(x,y)
 
 when not defined(just_core):
   import nimpy
@@ -39,7 +41,6 @@ when not defined(just_core):
     export selectFolderDialog, selectFileDialog, setMinSize, setMaxSize, focus
     export stopDesktop, setBorderless, setFullScreen, setColor, setIcon
 else:
-  const compileWithWebview = false
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
     result = def
@@ -51,8 +52,8 @@ proc enableStorage*(fileName: cstring) {.exportc: "nimview_$1".} =
   ## Use "backend.setStoredVal(key, x)" to store a value persistent in "storage.json"
   ## Use "backend.getStoredVal(key)" in js to read a stored value
   storage.initStorage($fileName)
-  addRequest("getStoredVal", getStoredVal)
-  addRequest("setStoredVal", setStoredVal)
+  add("getStoredVal", getStoredVal)
+  add("setStoredVal", setStoredVal)
 
 proc enableStorage*()  =
   ## Registers "getStoredVal" and "setStoredVal" as requests
@@ -73,13 +74,13 @@ proc callFrontendJsEscaped(functionName: string, params: string) =
       when compileWithWebview:
         callFrontendJsEscapedWebview(functionName, params)
 
-proc callFrontendJs*(functionName: string, argsString: string) {.exportpy.} =
+proc callJs*(functionName: string, argsString: string) {.exportpy.} =
   callFrontendJsEscaped(functionName, "\"" & argsString & "\"")
 
-proc callFrontendJs*(functionName: cstring, argsString: cstring) {.exportc: "nimview_$1".} =
+proc callJs*(functionName: cstring, argsString: cstring) {.exportc: "nimview_$1".} =
   callFrontendJsEscaped($functionName, "\"" & $argsString & "\"")
 
-macro callFrontendJs*(functionName: string, params: varargs[untyped]) =
+macro callJs*(functionName: string, params: varargs[untyped]) =
   ## Call a function on the JS frontend immediately.
   ## Avoid calling this function from another thread as there might be issues with
   ## the Nim garbage collector.
@@ -87,9 +88,12 @@ macro callFrontendJs*(functionName: string, params: varargs[untyped]) =
   quote do:
     callFrontendJsEscaped(`functionName`, $(%*`params`))
 
+template callFrontendJs*(x,y) {.used, deprecated:" use 'callJs' instead".} = 
+  callJs(x,y)
+
 when not defined(just_core):
-  proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
-    addRequest(request, proc (values: JsonNode): string =
+  proc add*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} =
+    add(request, proc (values: JsonNode): string =
         var argSeq = newSeq[PPyObject]()
         if (values.kind == JArray):
           newSeq(argSeq, values.len)
@@ -99,6 +103,10 @@ when not defined(just_core):
           argSeq.add(parseAny[string](values).toPyObjectArgument())
         result = callback(argSeq),
       "array")
+  
+  proc addRequest*(request: string, callback: proc(valuesdef: varargs[PPyObject]): string) {.exportpy.} = 
+    ## deprecated: "use 'add' instead".
+    add(request, callback)
 
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
@@ -186,17 +194,17 @@ proc updateIndexContent(indexHtmlFile: string) =
     debug "Using default " & defaultSettings.indexHtmlFile
     indexContent = indexContentStatic
 
-proc run*() {.exportpy, exportc: "nimview_$1".} =
-  ## You need to use this function if you started nimview with start(run=false)
-  nimviewSettings.run = true
-  if nimviewSettings.useHttpServer:
-    waitFor serve()
-  else:
-    when compileWithWebview:
-      nimviewSettings.run = true
-      runWebview()
-
 when not defined(just_core):
+  proc run*() {.exportpy, exportc: "nimview_$1".} =
+    ## You need to use this function if you started nimview with start(run=false)
+    nimviewSettings.run = true
+    if nimviewSettings.useHttpServer:
+      waitFor serve()
+    else:
+      when compileWithWebview:
+        nimviewSettings.run = true
+        runWebview()
+        
   proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
       port: int = nimviewSettings.port,
       bindAddr: string = nimviewSettings.bindAddr,
@@ -297,6 +305,7 @@ when not defined(just_core):
         bindAddr: string = nimviewSettings.bindAddr, title: string = nimviewSettings.title,
         width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
         resizable: bool = nimviewSettings.resizable,
+        debug: bool = nimviewSettings.debug,
         run: bool = nimviewSettings.run) {.exportpy.} =
     ## Tries to automatically select the Http server in debug mode or when no UI available
     ## and the Webview Desktop App in Release mode, if UI available.
@@ -304,29 +313,39 @@ when not defined(just_core):
     if nimviewSettings.useHttpServer:
       startHttpServer(indexHtmlFile, port, bindAddr, run=run)
     else:
-      startDesktop(indexHtmlFile, title, width, height, resizable=resizable, run=run)
+      startDesktop(indexHtmlFile, title, width, height, resizable=resizable, debug=debug, run=run)
 
   proc start*(indexHtmlFile: cstring, port: cint = nimviewSettings.port.cint, 
         bindAddr: cstring = nimviewSettings.bindAddr, title: cstring = nimviewSettings.title,
         width: cint = nimviewSettings.width.cint, height: cint = nimviewSettings.width.cint, 
         resizable: cint = nimviewSettings.resizable.cint,
+        debug: cint = nimviewSettings.debug.cint,
         run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} =
       start($indexHtmlFile, port, $bindAddr, $title, width, height, 
-        resizable=cast[bool](resizable), run=cast[bool](run))
+        resizable=cast[bool](resizable), debug=cast[bool](debug), run=cast[bool](run))
+
+  proc init*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, port: int = nimviewSettings.port, 
+        bindAddr: string = nimviewSettings.bindAddr, title: string = nimviewSettings.title,
+        width: int = nimviewSettings.width, height: int = nimviewSettings.height, 
+        resizable: bool = nimviewSettings.resizable,
+        debug: bool = nimviewSettings.debug,
+        run: bool = false) {.exportpy.} =
+      start(indexHtmlFile, port, bindAddr, title, width, height, 
+        resizable, run = false)
 
 when isMainModule:
   proc main() =
     when not defined(noMain):
       debug "starting nim main"
       when system.appType != "lib" and not defined(just_core):
-        addRequest("appendSomething4", proc(): string =
+        add("appendSomething4", proc(): string =
           debug "called func"
           result = "'' modified by Nim Backend")
 
-        addRequest("appendSomething", proc(val: string): string =
+        add("appendSomething", proc(val: string): string =
           result = ":)'" & $(val) & "' modified by Nim Backend")
 
-        addRequest("appendSomething3", proc(val: int, val2: string): string =
+        add("appendSomething3", proc(val: int, val2: string): string =
           result = ":)'" & $(val) & " " & $(val2) & "' modified by Nim Backend")
 
         let argv = os.commandLineParams()

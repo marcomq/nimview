@@ -94,7 +94,7 @@ def echoAndModify(value): # One input value in the function signature is require
     print ("From front-end: " + value)
     return (value + " appended")
 
-nimview.addRequest("echoAndModify", echoAndModify)
+nimview.add("echoAndModify", echoAndModify)
 nimview.start("minimal_ui_sample/index.html")
 ```
 
@@ -103,7 +103,7 @@ The same in Nim:
 ## Minimal Nim example
 ```
 import nimview
-nimview.addRequest("echoAndModify", proc (value: string): string =
+nimview.add("echoAndModify", proc (value: string): string =
   echo "From front-end: " & value
   result = "'" & value & "' modified by back-end")
 nimview.start()
@@ -154,10 +154,10 @@ If you need Json, you need to parse this value in javascript manually, for examp
 In case you want to use C++ - don't write your own C++ Json parser. Feel free to use https://github.com/nlohmann/json. You might re-use it in other code locations.
 
 It is also possible to call front-end functions directly from back-end by using
-`callFrontendJs`. You may trigger an `alert("Hello World!")` on the frontend by 
+`callJs`. You may trigger an `alert("Hello World!")` on the frontend by 
 using following Nim code:
 ```
-  nimview.callFrontendJs("alert", "Hello World!")
+  nimview.callJs("alert", "Hello World!")
 ```
 in your back-end code. You may use as many parameters as you want.
 This works directy for functions in the global js "window" namespace. If you need 
