@@ -22,6 +22,7 @@ type NimviewSettings* = object
   debug*: bool
   useHttpServer*: bool
   useGlobalToken*: bool
+  responseHttpHeader*: seq[tuple[key, val: string]]
   useStaticIndexContent*: bool
   run*: bool
 
@@ -61,6 +62,7 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
   result.run = true
   result.useHttpServer = useServer
   result.useGlobalToken = defined(release)
+  result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
   result.useStaticIndexContent =
     when declared(doNotLoadIndexContent):
       true

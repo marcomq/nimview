@@ -11,8 +11,7 @@ import sharedTypes
 import logging as log
 
 var myWs* {.threadVar.}: WebSocket
-
-var responseHttpHeader* {.threadVar.}: seq[tuple[key, val: string]] # will be set when starting httpserver
+var globalTokens {.threadVar.}: GlobalTokens
 
 proc callFrontendJsEscapedHttp*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
@@ -46,7 +45,7 @@ proc getAbsPath*(indexHtmlFile: string): (string, string) =
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
   ## Modify this, if you want to add some authentication, input format validation
   ## or if you want to process HttpHeaders.
-  if not nimviewSettings.useGlobalToken or globalToken.checkToken(headers):
+  if not nimviewSettings.useGlobalToken or globalTokens.checkToken(headers):
       return dispatchJsonRequest(jsonMessage)
   else:
       let request = jsonMessage["request"].getStr()
@@ -55,11 +54,13 @@ proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
       else:
         raise newException(ReqDeniedException, "403 - Token expired")
 
-proc handleRequest*(request: Request): Future[void] {.async.} =
+proc handleRequest(request: Request): Future[void] {.async.} =
   ## used by HttpServer
   var response: string
   var requestPath: string = request.url.path
   var header = @[("Content-Type", "application/javascript")]
+  {.gcsafe.}:
+    let defaultHeader = nimviewSettings.responseHttpHeader
   let separatorFound = requestPath.rfind({'#', '?'})
   if separatorFound != -1:
     requestPath = requestPath[0 ..< separatorFound]
@@ -69,7 +70,7 @@ proc handleRequest*(request: Request): Future[void] {.async.} =
     when defined(release):
       if not indexContent.isEmptyOrWhitespace() and indexContent == indexContentStatic:
         header = @[("Content-Type", "text/html;charset=utf-8")]
-        header.add(responseHttpHeader)
+        header.add(defaultHeader)
         await request.respond(Http200, indexContent, newHttpHeaders(header))
         return
         
@@ -88,7 +89,7 @@ proc handleRequest*(request: Request): Future[void] {.async.} =
         of ".map": "application/octet-stream"
         else: "text/html;charset=utf-8"
       header = @[("Content-Type", contentType)]
-      header.add(responseHttpHeader)
+      header.add(defaultHeader)
       await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
     elif requestPath == "/ws":
       when not defined(just_core):
@@ -113,35 +114,37 @@ proc handleRequest*(request: Request): Future[void] {.async.} =
       # else:
       jsonMessage = parseJson(request.body)
       {.gcsafe.}:
-        var currentToken = globalToken.byteToString(globalToken.getFreshToken())
+        let byteToken = globalTokens.getFreshToken()
+        let currentToken = globalToken.byteToString(byteToken)
         response = dispatchHttpRequest(jsonMessage, request.headers)
-        var header = @{"global-token": currentToken}
+        let header = @{"global-token": currentToken}
         await request.respond(Http200, response, newHttpHeaders(header))
 
   except ReqUnknownException: 
     await request.respond(Http404, 
       $ %* {"error": "404", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
+      newHttpHeaders(defaultHeader))
   except ReqDeniedException:
     await request.respond(Http403, 
       $ %* {"error": "403", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
+      newHttpHeaders(defaultHeader))
   except ServerException:        
     await request.respond(Http500, 
       $ %* {"error": "500", "value": getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
+      newHttpHeaders(defaultHeader))
   except JsonParsingError, KeyError:
     await request.respond(Http500, 
       $ %* {"error": "500", "value": "request doesn't contain valid json"}, 
-      newHttpHeaders(responseHttpHeader))
+      newHttpHeaders(defaultHeader))
   except:
     await request.respond(Http500, 
       $ %* {"error": "500", "value": "server error: " & getCurrentExceptionMsg()}, 
-      newHttpHeaders(responseHttpHeader))
+      newHttpHeaders(defaultHeader))
       
     
 proc serve*() {.async.} = 
   var server = newAsyncHttpServer()
+  globalTokens = globalToken.init()
   listen(server, Port(nimviewSettings.port), nimviewSettings.bindAddr)
   while nimviewSettings.run:
     if server.shouldAcceptRequest():

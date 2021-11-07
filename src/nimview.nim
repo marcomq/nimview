@@ -143,7 +143,8 @@ proc dispatchRequest*(request: string, value: string): string =
   result = dispatchJsonRequest(jsonRequest);
 
 proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
-  result = $dispatchRequest($request, $value)
+  let stringResult = $dispatchRequest($request, $value)
+  result = stringResult.cstring
 
 proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   ## Will handle previously logged request json and forward those to registered functions.
@@ -160,7 +161,8 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
     warn "Error calling line arg: " & escapedArgv & ", " & getCurrentExceptionMsg()
 
 proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc: "nimview_$1".} =
-  result = $dispatchCommandLineArg($escapedArgv)
+  let stringResult = $dispatchCommandLineArg($escapedArgv)
+  result = stringResult.cstring
 
 proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   ## Will open, parse a file of previously logged requests and re-runs those requests.
@@ -229,7 +231,7 @@ when not defined(just_core):
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
-    responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
+    nimviewSettings.responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
     staticDir = indexHtmlPath.parentDir()
     if run:
       nimview.run()
@@ -237,8 +239,10 @@ when not defined(just_core):
   proc startHttpServer*(indexHtmlFile: cstring, 
       port: cint = nimviewSettings.port.cint,
       bindAddr: cstring = nimviewSettings.bindAddr.cstring,
-      run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} = 
-    startHttpServer($indexHtmlFile, port, $bindAddr, run)
+      run: cint = nimviewSettings.run.cint) {.exportc: "nimview_$1".} =
+    let indexFileString: string = $indexHtmlFile
+    let bindAddrString: string = $bindAddr
+    startHttpServer(indexFileString, int(port), bindAddrString, bool(run))
 
   proc stopHttpServer*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Http server async - will not wait for stop

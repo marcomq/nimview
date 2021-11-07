@@ -289,7 +289,8 @@ proc bindProc*[P](w: Webview, scope, name: string, p: proc(arg:P)) =
   # TODO eval jscode
   w.dispatch(proc() = 
     w.applyGtkWorkaround()
-    discard w.eval(jsTemplateOnlyArg%[name, scope]))
+    let myArg = jsTemplateOnlyArg%[name, scope]
+    discard w.eval(myArg.cstring))
 
 macro bindProcs*(w: Webview, scope: string, n: untyped): untyped =
   ## bind procs like:
