@@ -4,8 +4,6 @@
 # git clone https://github.com/marcomq/nimview
 
 import times, asynchttpserver, std/sysrand, base64
-when compileOption("threads"):
-    import locks
 
 type Token = object 
     token: array[32, byte]
@@ -14,13 +12,9 @@ type Token = object
 type GlobalTokens* = object
     ## 3 tokens that rotate
     tokens*: array[3, Token]
-    when compileOption("threads"):
-        tokensLock*: Lock
 
 proc init*(): GlobalTokens =
     var self: GlobalTokens
-    when compileOption("threads"):
-        initLock(self.tokensLock)
     for i in 0 ..< self.tokens.len:
         self.tokens[i].generated = times.now() - 5.minutes
 
@@ -61,16 +55,10 @@ proc getFreshToken*(self: var GlobalTokens): array[32, byte] =
             tokenPlusInterval = currentToken[].generated + interval.seconds
     except:
         discard
-    when compileOption("threads"):
-        acquire(self.tokensLock)
-    try:    
-        if tokenPlusInterval < currentTime: 
-            let randomValue = sysrand.urandom(32)
-            for i in 0 ..< randomValue.len:
-                result[i] = randomValue[i]
-            currentToken[].generated = currentTime
-            currentToken[].token = result
-        result = currentToken[].token
-    finally:
-        when compileOption("threads"):
-            release(self.tokensLock)
+    if tokenPlusInterval < currentTime: 
+        let randomValue = sysrand.urandom(32)
+        for i in 0 ..< randomValue.len:
+            result[i] = randomValue[i]
+        currentToken[].generated = currentTime
+        currentToken[].token = result
+    result = currentToken[].token
