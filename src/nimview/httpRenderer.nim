@@ -60,7 +60,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
   var requestPath: string = request.url.path
   var header = @[("Content-Type", "application/javascript")]
   {.gcsafe.}:
-    let defaultHeader = nimviewSettings.responseHttpHeader
+    let defaultHeader = nimviewVars.responseHttpHeader
   let separatorFound = requestPath.rfind({'#', '?'})
   if separatorFound != -1:
     requestPath = requestPath[0 ..< separatorFound]
@@ -75,8 +75,9 @@ proc handleRequest(request: Request): Future[void] {.async.} =
         return
         
   try:
-    var potentialFilename = staticDir &
-        requestPath.replace("../", "").replace("..", "")
+    {.gcsafe.}:
+      let potentialFilename = nimviewVars.staticDir &
+          requestPath.replace("../", "").replace("..", "")
     if os.fileExists(potentialFilename):
       debug "Sending " & potentialFilename
       let fileData = splitFile(potentialFilename)

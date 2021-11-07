@@ -109,7 +109,7 @@ proc add_argc_argv_rstr*(crequest: cstring,
       ,
       $signature)
 
-macro generateCExportsForParams(exportParams: typed): untyped =
+macro generateCExportsForParams(exportParams: typed): untyped {.used.} =
   ## Will create C functions add... for given type
   result = newStmtList()
   let exportC = "{.exportc: \"nimview_$1\".}"
@@ -159,7 +159,7 @@ macro generateCExportsForParams(exportParams: typed): untyped =
     """
   result.add(parseStmt(procString))
 
-macro generateCExports(exportParams: typed): untyped =
+macro generateCExports(exportParams: typed): untyped {.used.} =
   ## factory to create C functions add... for specific types
   result = newStmtList()
   var procString: string = "generateCExportsForParams([])"

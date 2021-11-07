@@ -20,7 +20,7 @@ import nimview/globals
 export dispatchJsonRequest
 export requestMap.add
 export requestMap.add_argc_argv_rstr
-export requestLogger, customJsEval, nimviewSettings
+export nimviewSettings
 log.addHandler(newConsoleLogger())
 
 template addRequest*(x,y) {.used, deprecated:" use 'add' instead".} = add(x,y)
@@ -64,9 +64,9 @@ proc enableStorage*()  =
 proc callFrontendJsEscaped(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
   {.gcsafe.}:
-    if not customJsEval.isNil:
+    if not nimviewVars.customJsEval.isNil:
       let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-      cast[CstringFunc](customJsEval)(jsExec.cstring) 
+      cast[CstringFunc](nimviewVars.customJsEval)(jsExec.cstring) 
     elif nimviewSettings.useHttpServer:
       when not defined(just_core):
         callFrontendJsEscapedHttp(functionName, params)
@@ -111,24 +111,24 @@ when not defined(just_core):
 proc enableRequestLogger*() {.exportpy.} =
   ## Start to log all requests with content, even passwords, into file "requests.log".
   ## The file can be used for automated tests, to archive and replay all actions.
-  if requestLogger.isNil:
+  if nimviewVars.requestLogger.isNil:
     debug "creating request logger, further requests will be logged to file and flushed at application end"
     if not os.fileExists("requests.log"):
       var createFile = system.open("requests.log", system.fmWrite)
       createFile.close()
     var requestLoggerTmp = newFileLogger("requests.log", fmtStr="",bufSize=0)
 
-    requestLogger.swap(requestLoggerTmp)
-  requestLogger.levelThreshold = log.lvlAll
+    nimviewVars.requestLogger.swap(requestLoggerTmp)
+  nimviewVars.requestLogger.levelThreshold = log.lvlAll
 
 proc disableRequestLogger*() {.exportpy.} =
   ## Will stop to log to "requests.log" (default)
-  if not requestLogger.isNil:
-    requestLogger.levelThreshold = log.lvlNone
+  if not nimviewVars.requestLogger.isNil:
+    nimviewVars.requestLogger.levelThreshold = log.lvlNone
 
 proc setCustomJsEval*(evalFunc: CstringFunc) {.exportc: "nimview_$1".} =
   {.gcsafe.}:
-    customJsEval = evalFunc
+    nimviewVars.customJsEval = evalFunc
 
 proc setUseGlobalToken*(val: bool) {.exportpy.} =
   ## The global token is a weak session-free CSRF check. Still much better than no CSRF protection.
@@ -231,8 +231,8 @@ when not defined(just_core):
     var origin = "http://" & bindAddr
     if (bindAddr == "0.0.0.0"):
       origin = "*"
-    nimviewSettings.responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
-    staticDir = indexHtmlPath.parentDir()
+    nimviewVars.responseHttpHeader = @[("Access-Control-Allow-Origin", origin)]
+    nimviewVars.staticDir = indexHtmlPath.parentDir()
     if run:
       nimview.run()
 

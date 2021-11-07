@@ -8,9 +8,12 @@ import logging as log
 import requestMap
 
 type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
-var requestLogger* {.threadVar.}: FileLogger
-var staticDir* {.threadVar.}: string
-var customJsEval*: pointer 
+type RuntimeVars* = object
+  requestLogger*: FileLogger
+  staticDir*: string
+  customJsEval*: pointer
+  responseHttpHeader*: seq[tuple[key, val: string]]
+
 type NimviewSettings* = object
   indexHtmlFile*: string
   port*: int
@@ -22,7 +25,6 @@ type NimviewSettings* = object
   debug*: bool
   useHttpServer*: bool
   useGlobalToken*: bool
-  responseHttpHeader*: seq[tuple[key, val: string]]
   useStaticIndexContent*: bool
   run*: bool
 
@@ -62,15 +64,19 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
   result.run = true
   result.useHttpServer = useServer
   result.useGlobalToken = defined(release)
-  result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
   result.useStaticIndexContent =
     when declared(doNotLoadIndexContent):
       true
     else:
       false
 
+proc initRuntime*(): RuntimeVars =
+  result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
+
+
 const defaultSettings* = initSettings()
-var nimviewSettings* = defaultSettings.deepCopy()
+var nimviewSettings* = initSettings()
+var nimviewVars* = initRuntime()
 
 var indexContent* {.threadVar.}: string
 const indexContentStatic* = 
@@ -86,7 +92,7 @@ proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
   let request = jsonMessage["request"].getStr()
   if request == "getGlobalToken":
     return $ %* {"useGlobalToken": nimviewSettings.useGlobalToken}
-  if not requestLogger.isNil:
-    requestLogger.log(log.lvlInfo, $jsonMessage)
+  if not nimviewVars.requestLogger.isNil:
+    nimviewVars.requestLogger.log(log.lvlInfo, $jsonMessage)
   let callbackFunc = requestMap.getCallbackFunc(request)
   result = callbackFunc(jsonMessage["data"])
