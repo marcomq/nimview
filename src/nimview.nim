@@ -11,10 +11,9 @@ import logging as log
 # available compileFlags: -d:useServer -d:useWebview -d:just_core -d:useWebviewSingleThreaded -d:noMain
 
 const copyright_nimview* = "© Copyright 2021, by Marco Mengelkoch"
-import nimview/storage
-export storage
 import nimview/sharedTypes
 import nimview/requestMap
+import nimview/storage
 requestMap.init()
 import nimview/globals
 import nimview/dispatchJsonRequest
@@ -22,6 +21,7 @@ export dispatchJsonRequest.dispatchJsonRequest
 export requestMap.add
 export requestMap.add_argc_argv_rstr
 export globals.nimviewSettings
+export storage
 log.addHandler(newConsoleLogger())
 
 template addRequest*(x,y) {.used, deprecated:" use 'add' instead".} = add(x,y)

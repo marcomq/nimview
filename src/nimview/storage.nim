@@ -7,42 +7,38 @@
 import strutils, os
 import std/[json, jsonutils]
 import tables, locks
-
-var storageLock: Lock
-initLock storageLock
-var storage {.guard: storageLock.} = Table[string, string]()
-var storageFile: string = "storage.json"
+import globals
 
 proc initStorage*(fileName: string = "") =
   try:
     if fileName != "":
-      storageFile = fileName
-    if os.fileExists(storageFile):
-      var storageString = system.readFile(storageFile)
+      nimviewVars.storageFile = fileName
+    if os.fileExists(nimviewVars.storageFile):
+      var storageString = system.readFile(nimviewVars.storageFile)
       if not storageString.isEmptyOrWhitespace():
-        withLock storageLock:
-          storage = storageString.parseJson().jsonTo(typeof storage)
+        withLock nimviewVars.storageLock:
+          nimviewVars.storage = storageString.parseJson().jsonTo(typeof nimviewVars.storage)
           echo storageString
   except:
     echo "Couldn't read storage"
 
 proc getStoredVal*(key: string): string =
   try:
-    withLock storageLock:
-      result = storage[key]
+    withLock nimviewVars.storageLock:
+      result = nimviewVars.storage[key]
   except KeyError:
     discard
 
 proc setStoredVal*(key, value: string): string = 
-  withLock storageLock:
+  withLock nimviewVars.storageLock:
     if value == "":
-      storage.del(key)
+      nimviewVars.storage.del(key)
     else:
-      storage[key] = value 
+      nimviewVars.storage[key] = value 
   try:
     var jsonOutput: JsonNode
-    withLock storageLock:
-      jsonOutput = storage.toJson()
-    system.writeFile(storageFile, $jsonOutput)
+    withLock nimviewVars.storageLock:
+      jsonOutput = nimviewVars.storage.toJson()
+    system.writeFile(nimviewVars.storageFile, $jsonOutput)
   except:
     echo "error setting storage key '" & key & "': " & getCurrentExceptionMsg()
