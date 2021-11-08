@@ -17,10 +17,11 @@ import nimview/sharedTypes
 import nimview/requestMap
 requestMap.init()
 import nimview/globals
-export dispatchJsonRequest
+import nimview/dispatchJsonRequest
+export dispatchJsonRequest.dispatchJsonRequest
 export requestMap.add
 export requestMap.add_argc_argv_rstr
-export nimviewSettings
+export globals.nimviewSettings
 log.addHandler(newConsoleLogger())
 
 template addRequest*(x,y) {.used, deprecated:" use 'add' instead".} = add(x,y)
@@ -206,6 +207,7 @@ when not defined(just_core):
       when compileWithWebview:
         nimviewSettings.run = true
         runWebview()
+        waitForThreads()
         
   proc startHttpServer*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
       port: int = nimviewSettings.port,
@@ -340,26 +342,9 @@ when not defined(just_core):
 when isMainModule:
   proc main() =
     when not defined(noMain):
-      debug "starting nim main"
+      echo "starting nim main"
       when system.appType != "lib" and not defined(just_core):
-        add("appendSomething4", proc(): string =
-          debug "called func"
-          result = "'' modified by Nim Backend")
-
-        add("appendSomething", proc(val: string): string =
-          result = ":)'" & $(val) & "' modified by Nim Backend")
-
-        add("appendSomething3", proc(val: int, val2: string): string =
-          result = ":)'" & $(val) & " " & $(val2) & "' modified by Nim Backend")
-
-        let argv = os.commandLineParams()
-        for arg in argv:
-          readAndParseJsonCmdFile(arg)
-        let indexHtmlFile = "../examples/svelte/dist/index.html"
-        enableRequestLogger()
-        enableStorage()
-        startDesktop(indexHtmlFile)
-        # startHttpServer(indexHtmlFile)
+        echo "main app"
   main()
 
 when defined(nimHasUsed):

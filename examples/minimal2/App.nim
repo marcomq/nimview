@@ -4,7 +4,7 @@ import os
 proc callJsProgress() =
   ## just simulating progress
   for i in 0..100: 
-    callFrontendJs("applyProgress", $(i) & "%")
+    callJs("applyProgress", $(i) & "%")
     os.sleep(20)
 
 proc echoAndModify(value: string): string =
@@ -14,3 +14,4 @@ when isMainModule:
   add("callJsProgress", callJsProgress)
   add("echoAndModify", echoAndModify)
   startDesktop("dist/index.html", debug=true)
+  
