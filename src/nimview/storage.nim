@@ -16,29 +16,25 @@ proc initStorage*(fileName: string = "") =
     if os.fileExists(nimviewVars.storageFile):
       var storageString = system.readFile(nimviewVars.storageFile)
       if not storageString.isEmptyOrWhitespace():
-        withLock nimviewVars.storageLock:
-          nimviewVars.storage = storageString.parseJson().jsonTo(typeof nimviewVars.storage)
-          echo storageString
+        nimviewVars.storage = storageString.parseJson().jsonTo(typeof nimviewVars.storage)
+        echo storageString
   except:
     echo "Couldn't read storage"
 
 proc getStoredVal*(key: string): string =
   try:
-    withLock nimviewVars.storageLock:
-      result = nimviewVars.storage[key]
+    result = nimviewVars.storage[key]
   except KeyError:
     discard
 
 proc setStoredVal*(key, value: string): string = 
-  withLock nimviewVars.storageLock:
-    if value == "":
-      nimviewVars.storage.del(key)
-    else:
-      nimviewVars.storage[key] = value 
+  if value == "":
+    nimviewVars.storage.del(key)
+  else:
+    nimviewVars.storage[key] = value 
   try:
     var jsonOutput: JsonNode
-    withLock nimviewVars.storageLock:
-      jsonOutput = nimviewVars.storage.toJson()
+    jsonOutput = nimviewVars.storage.toJson()
     system.writeFile(nimviewVars.storageFile, $jsonOutput)
   except:
     echo "error setting storage key '" & key & "': " & getCurrentExceptionMsg()

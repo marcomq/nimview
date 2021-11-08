@@ -3,7 +3,7 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import os, macros, tables, locks
+import os, macros, tables
 from sharedTypes import ReqFunction
 import logging as log
 
@@ -13,8 +13,7 @@ type RuntimeVars* = object
   staticDir*: string
   reqMapStore*: Table[string, ReqFunction]
   responseHttpHeader*: seq[tuple[key, val: string]]
-  storageLock*: Lock
-  storage* {.guard: storageLock.}: Table[string, string]
+  storage*: Table[string, string]
   storageFile*: string 
   customJsEval*: pointer
   httpRenderer*: pointer
@@ -80,9 +79,7 @@ proc initRuntime*(): RuntimeVars =
   result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
   result.reqMapStore = initTable[string, ReqFunction]()
   result.storageFile = "storage.json"
-  initLock result.storageLock
-  withLock result.storageLock:
-    result.storage = initTable[string, string]()
+  result.storage = initTable[string, string]()
 
 proc `=destroy`(x: var RuntimeVars) =
   # destroy of nimviewVars will create issues when using gc:orc
