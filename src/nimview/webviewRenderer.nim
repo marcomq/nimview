@@ -130,7 +130,8 @@ proc runWebview*() =
 proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
     ## Use gtk mode without borders, only works on linux and only in desktop mode
     when defined(linux): 
-        if not getInstance().webview.isNil():
+        let myWebView = getInstance().webview
+        if not myWebView.isNil():
             {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
 
 proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
