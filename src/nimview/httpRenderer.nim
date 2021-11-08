@@ -3,26 +3,43 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import asynchttpserver, json, httpcore, asyncdispatch, os, strutils
+import asynchttpserver, json, httpcore, asyncdispatch, os, strutils, sequtils
 import ws
 import globalToken
 import globals
 import sharedTypes
 import logging as log
+import dispatchJsonRequest
 
-var myWs* {.threadVar.}: WebSocket
-var globalTokens {.threadVar.}: GlobalTokens
+type HttpRenderer* = object
+  connections: seq[WebSocket] # old ws are not removed
+  globalTokens: GlobalTokens
+
+proc getInstance: ptr HttpRenderer =
+  {.gcsafe.}:
+    if nimviewVars.httpRenderer.isNil:
+      var newObj {.global.} = createShared(HttpRenderer)
+      nimviewVars.httpRenderer = newObj
+    return cast[ptr HttpRenderer](nimviewVars.httpRenderer)
 
 proc callFrontendJsEscapedHttp*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
-  {.gcsafe.}:
-    if not myWs.isNil:
+  var deletable = newSeq[int]()
+  for idx, wsCon in getInstance().connections:
+      if wsCon.readyState == ReadyState.Open:
         try:
-            asynccheck myWs.send("{\"function\":\"" & functionName & "\",\"args\":[" & params & "]}")
+            asynccheck wsCon.send("{\"function\":\"" & functionName & "\",\"args\":[" & params & "]}")
         except WebSocketProtocolMismatchError:
             log.info "Call frontend socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
         except CatchableError:
             log.error "Call frontend error: ", getCurrentExceptionMsg()
+      else:
+        deletable.add(idx)
+  for idx in deletable:
+    when NimMinor >= 6 or NimMajor > 1:
+      getInstance().connections.delete(idx..idx)
+    else:
+      getInstance().connections.delete(idx, idx)
 
 proc getCurrentAppDir(): string =
     let applicationName = os.getAppFilename().extractFilename()
@@ -45,7 +62,7 @@ proc getAbsPath*(indexHtmlFile: string): (string, string) =
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
   ## Modify this, if you want to add some authentication, input format validation
   ## or if you want to process HttpHeaders.
-  if not nimviewSettings.useGlobalToken or globalTokens.checkToken(headers):
+  if not nimviewSettings.useGlobalToken or getInstance().globalTokens.checkToken(headers):
       return dispatchJsonRequest(jsonMessage)
   else:
       let request = jsonMessage["request"].getStr()
@@ -96,7 +113,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       when not defined(just_core):
         try:
           var ws = await newWebSocket(request)
-          myWs = ws
+          getInstance().connections.add(ws)
           while ws.readyState == ReadyState.Open:
             let packet = await ws.receiveStrPacket()
             info "Received packet: " & packet
@@ -115,9 +132,9 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       # else:
       jsonMessage = parseJson(request.body)
       {.gcsafe.}:
-        let byteToken = globalTokens.getFreshToken()
-        let currentToken = globalToken.byteToString(byteToken)
         response = dispatchHttpRequest(jsonMessage, request.headers)
+        let byteToken = getInstance().globalTokens.getFreshToken()
+        let currentToken = globalToken.byteToString(byteToken)
         let header = @{"global-token": currentToken}
         await request.respond(Http200, response, newHttpHeaders(header))
 
@@ -145,7 +162,7 @@ proc handleRequest(request: Request): Future[void] {.async.} =
     
 proc serve*() {.async.} = 
   var server = newAsyncHttpServer()
-  globalTokens = globalToken.init()
+  getInstance().globalTokens = globalToken.init()
   listen(server, Port(nimviewSettings.port), nimviewSettings.bindAddr)
   while nimviewSettings.run:
     if server.shouldAcceptRequest():

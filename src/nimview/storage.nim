@@ -40,11 +40,9 @@ proc setStoredVal*(key, value: string): string =
     else:
       storage[key] = value 
   try:
-    var storageCopy: Table[string, string]
+    var jsonOutput: JsonNode
     withLock storageLock:
-      {.gcsafe.}:
-        storageCopy = deepCopy(storage)
-    let jsonOutput: JsonNode = storageCopy.toJson()
+      jsonOutput = storage.toJson()
     system.writeFile(storageFile, $jsonOutput)
   except:
     echo "error setting storage key '" & key & "': " & getCurrentExceptionMsg()

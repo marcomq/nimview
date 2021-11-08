@@ -7,12 +7,6 @@
 const useWebviewInThread* = compileOption("threads") and not defined useWebviewSingleThreaded
 when useWebviewInThread:
     import threadpool
-    var webviewQueue: Channel[string]
-    var runBarrier: Channel[bool]
-    var initBarrier: Channel[bool]
-    webviewQueue.open()
-    runBarrier.open()
-    initBarrier.open()
 else:
     {.hint: "Nimview 'callJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
 when defined webview2:   
@@ -24,142 +18,165 @@ import json
 import logging as log
 import nimpy, strutils
 import globals
+import dispatchJsonRequest
 
-var myWebView*: Webview
+type WebviewRenderer = object
+    webView*: Webview
+    when useWebviewInThread:
+        webviewQueue: Channel[string]
+        runBarrier: Channel[bool]
+        initBarrier: Channel[bool]
+
+
+proc getInstance: ptr WebviewRenderer =
+  {.gcsafe.}:
+    if nimviewVars.webviewRenderer.isNil:
+        var newObj {.global.} = createShared(WebviewRenderer)
+        when useWebviewInThread:
+            newObj.webviewQueue.open()
+            newObj.runBarrier.open()
+            newObj.initBarrier.open()
+        nimviewVars.webviewRenderer = newObj
+    return cast[ptr WebviewRenderer](nimviewVars.webviewRenderer)
 
 proc computeMessageWebview(message: string)
 
 proc callFrontendJsEscapedWebview*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
   {.gcsafe.}:
-    if not myWebView.isNil:
+    if not getInstance().webview.isNil:
         let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-        myWebView.dispatch(proc() =
+        getInstance().webView.dispatch(proc() =
             log.info jsExec
-            discard myWebView.eval(jsExec.cstring))
+            discard getInstance().webview.eval(jsExec.cstring))
 
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect folder dialog" if in webview mode and return the selection.
   ## Will return emptys string in webserver mode
   when not defined webview2:
-    if not myWebView.isNil():
-      result = myWebView.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
+    if not getInstance().webview.isNil():
+      result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
       
 proc selectFileDialog*(title: string): string  {.exportpy.} =
   ## Will open a "sect file dialog" if in webview mode and return the selection.
   ## Will return emptys string in webserver mode
   when not defined webview2:
-    if not myWebView.isNil():
-      result = myWebView.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
+    if not getInstance().webview.isNil():
+      result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
 proc setIcon*(icon: string) {.exportpy.} = 
   when not defined webview2:
-    myWebView.dispatch(proc() = 
-        myWebView.setIcon(icon.cstring))
+    getInstance().webview.dispatch(proc() = 
+        getInstance().webview.setIcon(icon.cstring))
       
 proc evalJs*(evalJsCode: string) =
-    myWebView.dispatch(proc() =
-        discard myWebView.eval(evalJsCode.cstring))
+    getInstance().webview.dispatch(proc() =
+        discard getInstance().webview.eval(evalJsCode.cstring))
 
 proc runDesktop*(url: string, title: string, width: int, height: int, 
     resizable: bool, debug: bool, run: bool)  =  
     {.gcsafe.}:
-        if myWebView.isNil:
-            myWebView = webview.newWebView(title, url, width,
+        if getInstance().webview.isNil:
+            getInstance().webview = webview.newWebView(title, url, width,
                 height, resizable = resizable, debug = debug)
         when not defined webview2:
-            myWebView.bindProc("nimview", "alert", proc (message: string) =
-                myWebView.info("alert", message))
+            getInstance().webview.bindProc("nimview", "alert", proc (message: string) =
+                getInstance().webview.info("alert", message))
             let dispatchCall = proc (message: string) =
                 when useWebviewInThread:
-                    webviewQueue.send(message)
+                    getInstance().webviewQueue.send(message)
                 else:
                     computeMessageWebview(message)
-            myWebView.bindProc("nimview", "call", dispatchCall)
+            getInstance().webview.bindProc("nimview", "call", dispatchCall)
         else: # webview2
             let dispatchCall = proc (jsonMessage: JsonNode) =
                 when useWebviewInThread:
                     webviewQueue.send(message)
                 else:
                     computeMessageWebview($jsonMessag)
-            myWebView.bindProc("nimview.call", dispatchCall)
-        # nimviewSettings.run = false
+            getInstance().webview.bindProc("nimview.call", dispatchCall)
         when useWebviewInThread:
-            initBarrier.send(true)
+            getInstance().initBarrier.send(true)
             if not run:
-                discard runBarrier.recv()
-            myWebView.run()
-            webviewQueue.send("") # will unblock listener and end loop
-            myWebView.exit()
+                discard getInstance().runBarrier.recv()
+            getInstance().webview.run()
+            getInstance().webviewQueue.send("")
+            getInstance().runBarrier.close()
+            getInstance().initBarrier.close()
+            getInstance().webview.exit()
 
 
 proc spawnDesktopThread*(url: string, title: string, width: int, height: int, 
     resizable: bool, debug: bool, run: bool)  =
     when useWebviewInThread:
         spawn runDesktop(url, title, width, height, resizable, debug, run)
-        discard initBarrier.recv()
+        discard getInstance().initBarrier.recv()
+    
+proc waitForThreads*() =
+    when useWebviewInThread:
+        sync()
 
 proc runWebview*() = 
     when useWebviewInThread:
-        runBarrier.send(true)
+        getInstance().runBarrier.send(true)
         while nimviewSettings.run:
-            var message = webviewQueue.recv()
+            var message = getInstance().webviewQueue.recv()
             computeMessageWebview(message)
     else:
-        myWebView.run()
-        myWebView.exit()
+        getInstance().webview.run()
+        getInstance().webview.exit()
 
 
 proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
     ## Use gtk mode without borders, only works on linux and only in desktop mode
     when defined(linux): 
-        if not myWebView.isNil():
+        if not getInstance().webview.isNil():
             {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
 
 proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
     when not defined webview2:
-        if not myWebView.isNil():
-            myWebView.dispatch(proc() = 
-                discard myWebView.setFullscreen(fullScreen))
+        if not getInstance().webview.isNil():
+            getInstance().webview.dispatch(proc() = 
+                discard getInstance().webview.setFullscreen(fullScreen))
 
 
 proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
     when not defined webview2:
-        if not myWebView.isNil():
-            myWebView.dispatch(proc() = 
-                myWebView.setColor(r, g, b, alpha))
+        if not getInstance().webview.isNil():
+            getInstance().webview.dispatch(proc() = 
+                getInstance().webview.setColor(r, g, b, alpha))
 
 proc setMaxSize*(width, height: int) {.exportpy.} =
     when not defined webview2:
-        if not myWebView.isNil():
-            myWebView.dispatch(proc() = 
-                myWebView.setMaxSize(width.cint, height.cint))
+        if not getInstance().webview.isNil():
+            getInstance().webview.dispatch(proc() = 
+                getInstance().webview.setMaxSize(width.cint, height.cint))
     
 proc setMaxSize*(width, height: cint) {.exportc.} =
     setMaxSize(width, height)
 
 proc setMinSize*(width, height: int) {.exportpy.} =
     when not defined webview2:
-        if not myWebView.isNil():
-            myWebView.dispatch(proc() = 
-                myWebView.setMinSize(width.cint, height.cint))
+        if not getInstance().webview.isNil():
+            getInstance().webview.dispatch(proc() = 
+                getInstance().webview.setMinSize(width.cint, height.cint))
     
 proc setMinSize*(width, height: cint) {.exportc.} =
     setMinSize(width, height)
 
 proc focus*(width, height: int) {.exportpy, exportc.} =
     when not defined webview2:
-        if not myWebView.isNil():
-            myWebView.dispatch(proc() = 
-                myWebView.focus())
+        if not getInstance().webview.isNil():
+            getInstance().webview.dispatch(proc() = 
+                getInstance().webview.focus())
   
 proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
     debug "stopping ..."
-    if not myWebView.isNil():
-        myWebView.dispatch(proc() = 
-            myWebView.terminate()
-            dealloc(myWebView))
+    if not getInstance().webview.isNil():
+        getInstance().webview.dispatch(proc() = 
+            getInstance().webview.terminate()
+            dealloc(getInstance().webview))
 
 proc computeMessageWebview(message: string) {.used.} =
     info message

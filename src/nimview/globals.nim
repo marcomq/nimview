@@ -3,16 +3,19 @@
 # Licensed under MIT License, see License file for more details
 # git clone https://github.com/marcomq/nimview
 
-import os, macros, json
+import os, macros, tables
+from sharedTypes import ReqFunction
 import logging as log
-import requestMap
 
 type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
 type RuntimeVars* = object
   requestLogger*: FileLogger
   staticDir*: string
-  customJsEval*: pointer
+  reqMapStore*: Table[string, ReqFunction]
   responseHttpHeader*: seq[tuple[key, val: string]]
+  customJsEval*: pointer
+  httpRenderer*: pointer
+  webviewRenderer*: pointer
 
 type NimviewSettings* = object
   indexHtmlFile*: string
@@ -72,11 +75,16 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
 
 proc initRuntime*(): RuntimeVars =
   result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
+  result.reqMapStore = initTable[string, ReqFunction]()
 
+proc `=destroy`(x: var RuntimeVars) =
+  # destroy of nimviewVars will create issues when using gc:orc
+  discard
 
 const defaultSettings* = initSettings()
-var nimviewSettings* = initSettings()
-var nimviewVars* = initRuntime()
+var nimviewSettings* {.global.} = initSettings()
+var nimviewVars* {.global.} = initRuntime()
+
 
 var indexContent* {.threadVar.}: string
 const indexContentStatic* = 
@@ -84,15 +92,3 @@ const indexContentStatic* =
     staticRead(getProjectPath() & "/" & defaultSettings.indexHtmlFile)
   else:
     ""
-  
-proc dispatchJsonRequest*(jsonMessage: JsonNode): string =
-  ## Global json dispatcher that will be called from webview AND httpserver
-  ## This will extract specific values that were prepared by nimview.js
-  ## and forward those values to the string dispatcher.
-  let request = jsonMessage["request"].getStr()
-  if request == "getGlobalToken":
-    return $ %* {"useGlobalToken": nimviewSettings.useGlobalToken}
-  if not nimviewVars.requestLogger.isNil:
-    nimviewVars.requestLogger.log(log.lvlInfo, $jsonMessage)
-  let callbackFunc = requestMap.getCallbackFunc(request)
-  result = callbackFunc(jsonMessage["data"])

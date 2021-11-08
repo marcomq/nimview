@@ -7,12 +7,7 @@ import strformat, typetraits
 import logging
 import json, macros, tables, strutils
 import sharedTypes
-
-type ReqFunction* = object
-  nimCallback: proc (values: JsonNode): string
-  jsSignature: string
-
-var reqMapStore : Table[string, ReqFunction]
+import globals
 
 proc fromStr[T](value: string): T =
   when T is string:
@@ -81,7 +76,7 @@ proc add*(request: string, callback: proc(values: JsonNode): string, jsSignature
   ## There is a wrapper for python, C and C++ to handle strings in each specific programming language
   ## Notice for python: There is no check for correct function signature!
   {.gcsafe.}:
-    reqMapStore[request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
+    nimviewVars.reqMapStore[request] = ReqFunction(nimCallback: callback, jsSignature: jsSignature)
     info "Adding request " & request
 
 proc free_c(somePtr: pointer) {.cdecl, importc: "free".}
@@ -243,19 +238,15 @@ proc add*(request: string, callback: proc(): string) =
 proc add*(request: string, callback: proc(): void) =
   add(request, proc (values: JsonNode): string = callback(), "")
 
-proc init*()
-proc getRequests*(): string
-
 proc getRequests*(): string =
   {.gcsafe.}:
-    init()
     var requestSeq = newJArray()
-    for key, value in reqMapStore:
+    for key, value in nimviewVars.reqMapStore:
       requestSeq.add(%* [key, value.jsSignature])
     return $requestSeq
 
 proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
-  reqMapStore.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
+  nimviewVars.reqMapStore.withValue(request, callbackFunc) do: # if request available, run request callbackFunc
     try:
       result = callbackFunc[].nimCallback
     except:
@@ -265,6 +256,5 @@ proc getCallbackFunc*(request: string): proc(values: JsonNode): string =
     raise newException(ReqUnknownException, "404 - Request unknown")
 
 proc init*() =
-  if reqMapStore.len == 0:
-    reqMapStore = Table[string, ReqFunction]()
+  if nimviewVars.reqMapStore.len == 0:
     add("getRequests", getRequests)
