@@ -5,6 +5,10 @@ tmp_c*
 **/x64/*
 debug.log
 
+nimcache/
+nimblecache/
+htmldocs/
+
 # local env files
 .env.local
 .env.*.local
