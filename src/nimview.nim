@@ -76,10 +76,10 @@ proc callFrontendJsEscaped(functionName: string, params: string) =
         callFrontendJsEscapedWebview(functionName, params)
 
 proc callJs*(functionName: string, argsString: string) {.exportpy.} =
-  callFrontendJsEscaped(functionName, "\"" & argsString & "\"")
+  callFrontendJsEscaped(functionName, "\"" & argsString.multiReplace([("\\", "\\\\"), ("\"", "\\\"")]) & "\"")
 
 proc callJs*(functionName: cstring, argsString: cstring) {.exportc: "nimview_$1".} =
-  callFrontendJsEscaped($functionName, "\"" & $argsString & "\"")
+  callFrontendJsEscaped($functionName, "\"" & ($argsString).multiReplace([("\\", "\\\\"), ("\"", "\\\"")])  & "\"")
 
 macro callJs*(functionName: string, params: varargs[untyped]) =
   ## Call a function on the JS frontend immediately.
