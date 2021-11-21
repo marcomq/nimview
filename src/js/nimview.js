@@ -48,7 +48,16 @@ ui.alert = (str) => {
         window.nimview.alert(str)
     }
 }
-ui.callRequest = async (request, signature, data) => {
+/**
+ * This function will usually not be required as nimview registers all back-end functions
+ * automatically to be available on front-end. You just need to call 
+ * backend.{registeredFunction}(...)
+ * You may still use this function to explicitely call a function on server
+ * @param {string} request 
+ * @param {*} data 
+ * @param {string} signature 
+ */
+ui.callRequest = async (request, data, signature) => {
     if (typeof signature === "undefined") {
         signature = ""
     }
@@ -115,7 +124,7 @@ ui.addRequest = (requestOrArray) => {
     let request = requestOrArray[0] + ""
     let signature = requestOrArray[1]  + "" // for debugging
     backend[request] = async (...data) => {
-        return ui.callRequest(request, signature, data)
+        return ui.callRequest(request, data, signature)
     }
 }
 ui.applyResponse = (requestId, data) => {
@@ -175,7 +184,7 @@ ui.init = (async () => {
                 ui.callFunction(resp.function, resp.args)
               }
         }
-        await ui.callRequest("getGlobalToken", "", []).then((resp) => {
+        await ui.callRequest("getGlobalToken", [], "").then((resp) => {
             let jsResp = JSON.parse(resp)
             if (jsResp.useGlobalToken) {
                 window.setInterval(ui.getGlobalToken, 60 * 1000)
@@ -184,7 +193,7 @@ ui.init = (async () => {
             ui.alert("getGlobalToken failed")
             ui.initFailed = true
         })
-        await ui.callRequest("getRequests", "", []).then((resp) => {
+        await ui.callRequest("getRequests", [], "").then((resp) => {
             let jsResp = JSON.parse(resp)
             for (let req of jsResp) { // req is type array
                 // bind all server requests to window.backend
@@ -227,10 +236,17 @@ backend.waitInit = () => {
  * This function is used to change the mapping of a frontend function,
  * so it wouldn't be necessary to alter the backend, if a frontend function name
  * changes. You may not need it.
- * Use this if you need to run the same backend with multiple frontends.
+ * Use this if you need to run the same backend with multiple frontends or if 
+ * you want to call a frontend function that has a dot notation
+ * @param {string} backendName - the function name that is called on backend
+ * @param {string} frontendName the function name that is called on frontend
  */
-backend.mapFrontendFunction = (backendName, frontendName) => {
+backend.map = (backendName, frontendName) => {
     ui.callbackMapping[backendName] = frontendName
 }
+/**
+ * @deprecated use backend.map instead
+ */
+backend.mapFrontendFunction = backend.map
 window.setTimeout(ui.init, 1) // may need to be increased on webview error
 export default backend
