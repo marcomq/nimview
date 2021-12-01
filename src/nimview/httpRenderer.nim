@@ -11,15 +11,16 @@ import sharedTypes
 import logging as log
 import dispatchJsonRequest
 
-type HttpRenderer* = object
+type HttpRenderer* = ref object
   connections: seq[WebSocket] # old ws are not removed
   globalTokens: GlobalTokens
 
 proc getInstance: ptr HttpRenderer =
   {.gcsafe.}:
     if nimviewVars.httpRenderer.isNil:
-      var newObj {.global.} = createShared(HttpRenderer)
-      nimviewVars.httpRenderer = newObj
+      var newObj {.global.} = new HttpRenderer
+      nimviewVars.httpRenderer = newObj.unsafeAddr
+      GC_ref(newObj)
     return cast[ptr HttpRenderer](nimviewVars.httpRenderer)
 
 proc callFrontendJsEscapedHttp*(functionName: string, params: string) =

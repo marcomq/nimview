@@ -20,7 +20,7 @@ import nimpy, strutils
 import globals
 import dispatchJsonRequest
 
-type WebviewRenderer = object
+type WebviewRenderer = ref object
     webView*: Webview
     when useWebviewInThread:
         webviewQueue: Channel[string]
@@ -31,12 +31,13 @@ type WebviewRenderer = object
 proc getInstance: ptr WebviewRenderer =
   {.gcsafe.}:
     if nimviewVars.webviewRenderer.isNil:
-        var newObj {.global.} = createShared(WebviewRenderer)
+        var newObj {.global.} = new WebviewRenderer
         when useWebviewInThread:
             newObj.webviewQueue.open()
             newObj.runBarrier.open()
             newObj.initBarrier.open()
-        nimviewVars.webviewRenderer = newObj
+        GC_ref(newObj)
+        nimviewVars.webviewRenderer = newObj.unsafeAddr
     return cast[ptr WebviewRenderer](nimviewVars.webviewRenderer)
 
 proc computeMessageWebview(message: string)

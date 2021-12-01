@@ -9,14 +9,14 @@ type Token = object
     token: array[32, byte]
     generated: times.DateTime
 
-type GlobalTokens* = object
+type GlobalTokens* = ref object
     ## 3 tokens that rotate
     tokens*: array[3, Token]
 
 proc init*(): GlobalTokens =
-    var self: GlobalTokens
-    for i in 0 ..< self.tokens.len:
-        self.tokens[i].generated = times.now() - 5.minutes
+    new result
+    for i in 0 ..< result.tokens.len:
+        result.tokens[i].generated = times.now() - 5.minutes
 
 proc checkIfTokenExists(self: GlobalTokens, token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here

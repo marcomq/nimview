@@ -8,7 +8,7 @@ from sharedTypes import ReqFunction
 import logging as log
 
 type CstringFunc* = proc(jsArg: cstring) {.cdecl.}
-type RuntimeVars* = object
+type RuntimeVars* = ref object
   requestLogger*: FileLogger
   staticDir*: string
   reqMapStore*: Table[string, ReqFunction]
@@ -75,19 +75,16 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
     else:
       false
 
-proc initRuntime*(): RuntimeVars =
+proc newRuntime*(): RuntimeVars =
+  new result
   result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
   result.reqMapStore = initTable[string, ReqFunction]()
   result.storageFile = "storage.json"
   result.storage = initTable[string, string]()
 
-proc `=destroy`(x: var RuntimeVars) =
-  # destroy of nimviewVars will create issues when using gc:orc
-  discard
-
 const defaultSettings* = initSettings()
 var nimviewSettings* {.global.} = initSettings()
-var nimviewVars* {.global.} = initRuntime()
+var nimviewVars* {.global.} = newRuntime()
 
 
 var indexContent* {.threadVar.}: string
