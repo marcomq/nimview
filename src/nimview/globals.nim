@@ -77,14 +77,15 @@ proc initSettings*(indexHtmlFile: string = defaultIndex, port: int = 8000,
 
 proc newRuntime*(): RuntimeVars =
   new result
+  GC_ref(result)
   result.responseHttpHeader = @[("Access-Control-Allow-Origin", "127.0.0.1")]
   result.reqMapStore = initTable[string, ReqFunction]()
   result.storageFile = "storage.json"
   result.storage = initTable[string, string]()
 
-const defaultSettings* = initSettings()
-var nimviewSettings* {.global.} = initSettings()
-var nimviewVars* {.global.} = newRuntime()
+const defaultSettings* :NimviewSettings = initSettings()
+var nimviewSettings* {.global.} :NimviewSettings = initSettings()
+var nimviewVars* {.global.} :RuntimeVars = newRuntime()
 
 
 var indexContent* {.threadVar.}: string

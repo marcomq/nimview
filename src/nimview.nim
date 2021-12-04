@@ -64,6 +64,9 @@ proc enableStorage*()  =
 
 proc callFrontendJsEscaped(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
+  ## "Nimview 'callJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. 
+  when useWebviewInThread and not (compileOption("gc", "arc") or compileOption("gc", "orc")):
+    log.error "'callJs' might crash when using threads and not using --gc:arc or --gc:orc "
   {.gcsafe.}:
     if not nimviewVars.customJsEval.isNil:
       let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"

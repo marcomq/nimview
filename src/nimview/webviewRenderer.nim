@@ -7,8 +7,6 @@
 const useWebviewInThread* = compileOption("threads") and not defined useWebviewSingleThreaded
 when useWebviewInThread:
     import threadpool
-else:
-    {.hint: "Nimview 'callJs' requires '--threads:on' compiler option to work properly. Webview back-end will block DOM updates otherwise. ".}
 when defined webview2:   
     {.warning:  "Warning: Webview 2 is not stable yet!" .}
     import ../nimview/webview2/src/webview except debug
@@ -74,6 +72,14 @@ proc evalJs*(evalJsCode: string) =
     getInstance().webview.dispatch(proc() =
         discard getInstance().webview.eval(evalJsCode.cstring))
 
+proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
+    ## Will stop the Desktop app - may trigger application exit.
+    debug "stopping ..."
+    if not getInstance().webview.isNil():
+        getInstance().webview.dispatch(proc() = 
+            getInstance().webview.terminate()
+            dealloc(getInstance().webview))
+
 proc runDesktop*(url: string, title: string, width: int, height: int, 
     resizable: bool, debug: bool, run: bool)  =  
     {.gcsafe.}:
@@ -104,7 +110,7 @@ proc runDesktop*(url: string, title: string, width: int, height: int,
             getInstance().webviewQueue.send("")
             getInstance().runBarrier.close()
             getInstance().initBarrier.close()
-            getInstance().webview.exit()
+            stopDesktop()
 
 
 proc spawnDesktopThread*(url: string, title: string, width: int, height: int, 
@@ -119,13 +125,14 @@ proc waitForThreads*() =
 
 proc runWebview*() = 
     when useWebviewInThread:
+        # actual webview is currently waiting in "runDesktop"
         getInstance().runBarrier.send(true)
         while nimviewSettings.run:
             var message = getInstance().webviewQueue.recv()
             computeMessageWebview(message)
     else:
         getInstance().webview.run()
-        getInstance().webview.exit()
+        stopDesktop()
 
 
 proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
@@ -172,14 +179,6 @@ proc focus*(width, height: int) {.exportpy, exportc.} =
             getInstance().webview.dispatch(proc() = 
                 getInstance().webview.focus())
   
-proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
-    ## Will stop the Desktop app - may trigger application exit.
-    debug "stopping ..."
-    if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.terminate()
-            dealloc(getInstance().webview))
-
 proc computeMessageWebview(message: string) {.used.} =
     info message
     if message.len == 0:

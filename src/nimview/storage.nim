@@ -6,7 +6,7 @@
 ## Implements a simple key / value store that can be used to store preferences
 import strutils, os
 import std/[json, jsonutils]
-import tables, locks
+import tables
 import globals
 
 proc initStorage*(fileName: string = "") =
