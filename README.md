@@ -22,6 +22,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 ## Table of Contents
 - [About](#about)
 - [Demo binary](#demo-binary)
+- [Youtube introduction](#youtube-introduction)
 - [Minimal Python Example](#minimal-python-example)
 - [Minimal Nim example](#minimal-nim-example)
 - [Javascript and HTML UI](#javascript-and-html-ui)
@@ -76,6 +77,11 @@ sha256sum df3d2595b9755b27b7034ce4970f44d3bca72544ce8915739062b4ba1d977158
 
 If you want to build this demo from source, you need to run `nimble demo` on the
 Nimview base folder.
+
+## Youtube introduction
+
+There is some small "Hello World" tutorial for nimview on youtube:
+https://www.youtube.com/watch?v=OykIbez7Vfc
 
 ## Minimal Python example
 The project is available for python via `pip install nimview` and for nim via `nimble install nimview`. 
