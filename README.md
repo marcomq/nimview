@@ -87,14 +87,14 @@ https://www.youtube.com/watch?v=OykIbez7Vfc
 The project is available for python via `pip install nimview` and for nim via `nimble install nimview`. 
 If you just want to display some simple static HTML (or alternatively a jpg), you can run:
 
-```
+```nim
 import nimview
 nimview.start("hello_world.html")
 ```
 
 If you want to actually trigger some server code from a button, you can do following in Python:
 
-```
+```nim
 import nimview
 def echoAndModify(value): # One input value in the function signature is required
     print ("From front-end: " + value)
@@ -107,7 +107,7 @@ nimview.start("minimal_ui_sample/index.html")
 The same in Nim:
 
 ## Minimal Nim example
-```
+```nim
 import nimview
 nimview.add("echoAndModify", proc (value: string): string =
   echo "From front-end: " & value
@@ -127,7 +127,7 @@ Nimview offers an npm package "npm install nimview" which makes your life easier
 on the front-end.
 If you want to trigger back-end code from Javascript, you can do following
 async callback:
-```
+```js
 import backend from "nimview"
 backend.waitInit().then(() => {
   backend.echoAndModify("test").then((resp) => {console.log(resp)})
@@ -142,7 +142,7 @@ Keep also in mind that the inlined.html is completely "inlined" for release mode
 keyword would not work for your script tags. So your javascript may be ready before
 the DOM is ready for Jasascript. You may still trigger to load the 
 javascript deferred when using 
-```
+```js
 document.addEventListener("DOMContentLoaded", function(event) { 
 ```
 to init your javascript when the DOM is ready, for example in your "main.js" for Svelte or Vue.
@@ -162,7 +162,7 @@ In case you want to use C++ - don't write your own C++ Json parser. Feel free to
 It is also possible to call front-end functions directly from back-end by using
 `callJs`. You may trigger an `alert("Hello World!")` on the frontend by 
 using following Nim code:
-```
+```nim
   nimview.callJs("alert", "Hello World!")
 ```
 in your back-end code. You may use as many parameters as you want.
