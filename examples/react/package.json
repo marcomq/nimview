@@ -16,12 +16,12 @@
         "@testing-library/jest-dom": "^5.16.1",
         "@testing-library/react": "^12.1.2",
         "@testing-library/user-event": "^13.5.0",
+        "@tauri-apps/tauri-inliner": "^1.13.2",
         "web-vitals": "^2.1.2"
     },
     "scripts": {
         "start": "react-scripts start",
-        "build": "react-scripts build",
-        "eject": "react-scripts eject"
+        "build": "react-scripts build && inliner -m --videos --preserve-comments dist/index.html > dist/inlined.html"
     },
     "eslintConfig": {
         "extends": [

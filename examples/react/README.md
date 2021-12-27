@@ -1,4 +1,20 @@
+# Nimview react application
+To compile your code, just run
+- npm install
+- npm run build
+- nim c -r -d:release --app:gui src/App.nim
+- (or, if you want to have an async count down button: `nim c -r -d:release --gc:orc --threads:on --app:gui src/App.nim`)
+
+The code was mostly generated with `create-react-app` as described in 
 https://reactjs.org/docs/create-a-new-react-app.html
+
+It was modified to run with Nimview. It was not optimized yet to be good for development 
+or production. You probably need to modify this code by yourself to add auto
+reload capabilities etc...
+
+
+
+Here is the auto-generated readme from react:
 
 # Getting Started with Create React App
 
