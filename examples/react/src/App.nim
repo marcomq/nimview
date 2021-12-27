@@ -2,7 +2,7 @@ import nimview
 import os
 
 proc appendSomething(value: string): string {.noSideEffect.} =
-  result = "'" & value & "' modified by React sample"
+  result = "'" & value & "' modified by react sample"
 
 proc countDown() =
   callJs("alert", "waiting 6 seconds")
@@ -15,10 +15,7 @@ proc countDown() =
 proc main() =
   add("appendSomething", appendSomething)
   add("countDown", countDown)
-  let argv = os.commandLineParams()
-  for arg in argv:
-    readAndParseJsonCmdFile(arg)
-  start("../build/index.html")
+  start()
   
 when isMainModule:
   main()
