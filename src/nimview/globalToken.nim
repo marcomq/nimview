@@ -7,7 +7,7 @@ import times, asynchttpserver, std/sysrand, base64
 
 type Token = object 
     token: array[32, byte]
-    generated: times.DateTime
+    generated: ref times.DateTime
 
 type GlobalTokens* = ref object
     ## 3 tokens that rotate
@@ -16,7 +16,8 @@ type GlobalTokens* = ref object
 proc init*(): GlobalTokens =
     new result
     for i in 0 ..< result.tokens.len:
-        result.tokens[i].generated = times.now() - 5.minutes
+        result.tokens[i].generated = new times.DateTime
+        result.tokens[i].generated[] = times.now() - 5.minutes
 
 proc checkIfTokenExists(self: GlobalTokens, token: array[32, byte]): bool =
     # Very unlikely, but it may be necessary to also lock here
@@ -51,14 +52,14 @@ proc getFreshToken*(self: var GlobalTokens): array[32, byte] =
     var currentToken = addr self.tokens[frame]
     var tokenPlusInterval = currentTime - interval.seconds
     try:
-        if currentToken[].generated.isInitialized():
-            tokenPlusInterval = currentToken[].generated + interval.seconds
+        if currentToken[].generated[].isInitialized():
+            tokenPlusInterval = currentToken[].generated[] + interval.seconds
     except:
         discard
     if tokenPlusInterval < currentTime: 
         let randomValue = sysrand.urandom(32)
         for i in 0 ..< randomValue.len:
             result[i] = randomValue[i]
-        currentToken[].generated = currentTime
+        currentToken[].generated[] = currentTime
         currentToken[].token = result
     result = currentToken[].token
