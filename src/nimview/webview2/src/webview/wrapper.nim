@@ -45,7 +45,7 @@ type
 
 var dispatchTable = newTable[int, ProcArgs]()
 
-proc wrapProc(seq: cstring, req: cstring, arg: pointer) {.cdecl.} =
+proc wrapProc(seq: ccstring, req: ccstring, arg: pointer) {.cdecl.} =
   var argUnref = dispatchTable[cast[int](arg)]
   let
     w = argUnref.w
@@ -66,7 +66,7 @@ proc wrapProc(seq: cstring, req: cstring, arg: pointer) {.cdecl.} =
 proc bindProc*(w: Webview, name: string, p: JsonProc) =
   let i = dispatchTable.len() + 1
   dispatchTable[i] = ProcArgs(w:w, p:p)
-  w.bindCb(name, wrapProc, cast[pointer](i))
+  w.bindCb(name.cstring, wrapProc, cast[pointer](i))
 
 proc bindProc*(w: Webview, name: string, p: proc(req: JsonNode)) =
   proc wrap(req: JsonNode): JsonNode =
@@ -99,7 +99,6 @@ proc bindProc*[A1](w: Webview, name: string, p: proc(arg1: A1)) =
   proc wrap(arg1: JsonNode) =
     p(arg1[0].jsonTo(A1))
   bindProc(w, name, wrap)
-
 
 # proc randomString(): string =
 #   randomize()

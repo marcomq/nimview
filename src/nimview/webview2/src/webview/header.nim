@@ -2,7 +2,6 @@ import os
 {.passC: "-DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION".}
 const webviewPath = currentSourcePath().parentDir() / "webview"
 {.passC: "-I" & webviewPath & "/" .}
-{.passC: "-I" & webviewPath & "/script/microsoft.web.webview2.1.0.664.37/build/native/include" .}
 
 when defined(linux):
   {.passC: "`pkg-config --cflags gtk+-3.0 webkit2gtk-4.0`".}
@@ -10,6 +9,7 @@ when defined(linux):
 elif defined(macosx):
   {.passL: "-framework WebKit".}
 elif defined(windows):  
+  {.passC: "-I" & webviewPath & "/script/microsoft.web.webview2.1.0.664.37/build/native/include" .}
   {.passC: "-DWEBVIEW_WINAPI=1".}
   {.passC: "-DWEBVIEW_HEADER" .}
   when defined(cpp) and defined(VCC):
@@ -23,7 +23,7 @@ elif defined(windows):
     # TODO: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\vsdevcmd.bat" to find includes
     # TODO: copy dll to target dir
     static: 
-      echo "Not building static binary, use --cc:vcc to build statically"
+      echo "Not building static binary, use `nim cpp --cc:vcc` to build statically"
 type
   ccstring* {.importc: "const char*".} = cstring
   Webview* {.importc: "webview_t",  header: "webview.h".} = pointer

@@ -40,45 +40,32 @@ proc getInstance: ptr WebviewRenderer =
 
 proc computeMessageWebview(message: string)
 
+proc evalJs*(evalJsCode: string) =
+    when not defined webview2: 
+        getInstance().webview.dispatch(proc() =
+            discard getInstance().webview.eval(evalJsCode.cstring))
+    else:
+        getInstance().webview.eval(evalJsCode.cstring)
+
 proc callFrontendJsEscapedWebview*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
   {.gcsafe.}:
     if not getInstance().webview.isNil:
-        let jsExec = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
-        getInstance().webView.dispatch(proc() =
-            log.info jsExec
-            discard getInstance().webview.eval(jsExec.cstring))
-
-proc selectFolderDialog*(title: string): string  {.exportpy.} =
-  ## Will open a "sect folder dialog" if in webview mode and return the selection.
-  ## Will return emptys string in webserver mode
-  when not defined webview2:
-    if not getInstance().webview.isNil():
-      result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
-      
-proc selectFileDialog*(title: string): string  {.exportpy.} =
-  ## Will open a "sect file dialog" if in webview mode and return the selection.
-  ## Will return emptys string in webserver mode
-  when not defined webview2:
-    if not getInstance().webview.isNil():
-      result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
-
-proc setIcon*(icon: string) {.exportpy.} = 
-  when not defined webview2:
-    getInstance().webview.dispatch(proc() = 
-        getInstance().webview.setIcon(icon.cstring))
-      
-proc evalJs*(evalJsCode: string) =
-    getInstance().webview.dispatch(proc() =
-        discard getInstance().webview.eval(evalJsCode.cstring))
+        let jsExec: string = "window.ui.callFunction(\"" & functionName & "\"," & params & ");"
+        log.info jsExec
+        evalJs(jsExec)
 
 proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
     debug "stopping ..."
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
+        when not defined webview2:
+            getInstance().webview.dispatch(proc() = 
+                getInstance().webview.terminate()
+                dealloc(getInstance().webview))
+        else:
             getInstance().webview.terminate()
-            dealloc(getInstance().webview))
+            dealloc(getInstance().webview)
 
 proc runDesktop*(url: string, title: string, width: int, height: int, 
     resizable: bool, debug: bool, run: bool)  =  
@@ -100,7 +87,7 @@ proc runDesktop*(url: string, title: string, width: int, height: int,
                 when useWebviewInThread:
                     webviewQueue.send(message)
                 else:
-                    computeMessageWebview($jsonMessag)
+                    computeMessageWebview($jsonMessage)
             getInstance().webview.bindProc("nimview.call", dispatchCall)
         when useWebviewInThread:
             getInstance().initBarrier.send(true)
@@ -135,46 +122,57 @@ proc runWebview*() =
         stopDesktop()
 
 
-proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
-    ## Use gtk mode without borders, only works on linux and only in desktop mode
-    when defined(linux): 
-        let myWebView = getInstance().webview
-        if not myWebView.isNil():
-            {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
+when not defined webview2:
+    proc selectFolderDialog*(title: string): string  {.exportpy.} =
+        ## Will open a "sect folder dialog" if in webview mode and return the selection.
+        ## Will return emptys string in webserver mode
+        if not getInstance().webview.isNil():
+            result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select Folder", flag=webview.dFlagDir)
+        
+    proc selectFileDialog*(title: string): string  {.exportpy.} =
+        ## Will open a "sect file dialog" if in webview mode and return the selection.
+        ## Will return emptys string in webserver mode
+        if not getInstance().webview.isNil():
+            result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
-proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
-    when not defined webview2:
+    proc setIcon*(icon: string) {.exportpy.} = 
+        getInstance().webview.dispatch(proc() = 
+            getInstance().webview.setIcon(icon.cstring))
+        
+    proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
+        ## Use gtk mode without borders, only works on linux and only in desktop mode
+        when defined(linux): 
+            let myWebView = getInstance().webview
+            if not myWebView.isNil():
+                {.emit: "gtk_window_set_decorated(GTK_WINDOW(`myWebView`->priv.window), `decorated`);".}
+
+    proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
         if not getInstance().webview.isNil():
             getInstance().webview.dispatch(proc() = 
                 discard getInstance().webview.setFullscreen(fullScreen))
 
-
-proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
-    when not defined webview2:
+    proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
         if not getInstance().webview.isNil():
             getInstance().webview.dispatch(proc() = 
                 getInstance().webview.setColor(r, g, b, alpha))
 
-proc setMaxSize*(width, height: int) {.exportpy.} =
-    when not defined webview2:
+    proc setMaxSize*(width, height: int) {.exportpy.} =
         if not getInstance().webview.isNil():
             getInstance().webview.dispatch(proc() = 
                 getInstance().webview.setMaxSize(width.cint, height.cint))
-    
-proc setMaxSize*(width, height: cint) {.exportc.} =
-    setMaxSize(width, height)
+        
+    proc setMaxSize*(width, height: cint) {.exportc.} =
+        setMaxSize(width.int, height.int)
 
-proc setMinSize*(width, height: int) {.exportpy.} =
-    when not defined webview2:
+    proc setMinSize*(width, height: int) {.exportpy.} =
         if not getInstance().webview.isNil():
             getInstance().webview.dispatch(proc() = 
                 getInstance().webview.setMinSize(width.cint, height.cint))
-    
-proc setMinSize*(width, height: cint) {.exportc.} =
-    setMinSize(width, height)
+        
+    proc setMinSize*(width, height: cint) {.exportc.} =
+        setMinSize(width.int, height.int)
 
-proc focus*(width, height: int) {.exportpy, exportc.} =
-    when not defined webview2:
+    proc focus*(width, height: int) {.exportpy, exportc.} =
         if not getInstance().webview.isNil():
             getInstance().webview.dispatch(proc() = 
                 getInstance().webview.focus())
