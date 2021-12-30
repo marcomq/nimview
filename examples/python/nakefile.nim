@@ -2,7 +2,6 @@ import nake
 import os, strutils, system
 
 let library = "nimview"
-let headerFile = library & ".h"
 let srcDir = "src"
 let mainApp = srcDir / "library.nim"
 let srcFiles = [mainApp]
@@ -26,7 +25,7 @@ proc buildPyLib() =
   let outputLib = buildDir / library & "." & pyDllExtension
   if outputLib.needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_py")
-    execNim "c -d:release -d:noMain --gc:orc --deepCopy:on --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
+    execNim "c -d:release -d:noMain --threads:on --gc:orc --deepCopy:on --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
       " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
     os.copyFile(outputLib, thisDir / "src" / library & "." & pyDllExtension)
 
@@ -37,9 +36,6 @@ proc runTests() =
   except:
     discard
   execCmd "python src/pyTest.py"
-
-proc generateDocs() = 
-  execNim "doc -o:docs/" & library & ".html " & mainApp
 
 proc cleanUp() =
   os.removeDir(buildDir)

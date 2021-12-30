@@ -3,32 +3,34 @@
 	
 	let currentItem = ""
 	let items = []
+	let hovering = false
 	let mainInput
-	let addItem = () => {
+
+	const addItem = () => {
 		items.push({id: Math.max(0, ...items.map(t => t.id)) + 1, text: currentItem, completed: false})
 		items = items
 		currentItem = ""
 		storeAll()
 		mainInput.focus()
 	}
-	let deleteItem = (id) => {
+	const deleteItem = (id) => {
 		items = items.filter(item => item.id !== id)
 		storeAll()
 	}
-	let uncheckAll = () => {
+	const uncheckAll = () => {
 		items.map(item => item.completed = false)
 		items = items
 		storeAll()
 	}
-	let checkAll = () => {
+	const checkAll = () => {
 		items.map(item => item.completed = true)
 		items = items
 		storeAll()
 	}
-	let storeAll = () => {
+	const storeAll = () => {
 		backend.setStoredVal("items", JSON.stringify(items))
 	}
-	let getAll = async () => {
+	const getAll = async () => {
 		try {
 			let jsonResponse = await backend.getStoredVal("items")
 			items = JSON.parse(jsonResponse)
@@ -39,6 +41,29 @@
 		mainInput.focus()
 	}
 	$: backend.waitInit().then(() => {getAll()})
+
+	const drop = (event, target) => {
+		event.dataTransfer.dropEffect = 'move'; 
+		const start = parseInt(event.dataTransfer.getData("text/plain"));
+		const newTracklist = items
+
+		if (start < target) {
+			newTracklist.splice(target + 1, 0, newTracklist[start]);
+			newTracklist.splice(start, 1);
+		} else {
+			newTracklist.splice(target, 0, newTracklist[start]);
+			newTracklist.splice(start + 1, 1);
+		}
+		items = newTracklist
+		storeAll()
+		hovering = null
+	}
+	const dragstart = (event, i) => {
+		event.dataTransfer.effectAllowed = 'move';
+		event.dataTransfer.dropEffect = 'move';
+		const start = i;
+		event.dataTransfer.setData('text/plain', start);
+	}
 </script>
 <main>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-success ">
@@ -67,9 +92,19 @@
 									item.completed = !item.completed
 									storeAll()
 								}} 
-								checked="{item.completed}" />{item.text}
+								checked="{item.completed}" />
+							<span 
+								draggable={true} 
+								on:dragstart={event => dragstart(event, item.id)}
+								on:drop|preventDefault={event => drop(event, item.id)}
+								on:dragenter={() => hovering = item.id}
+								class:is-active={hovering === item.id}
+								ondragover="return false">
+									{item.text}
+							</span>						
 						</label>
 						<a href={"#"} on:click|preventDefault={ () => deleteItem(item.id)} title="delete" class="delete float-right">x</a>
+
 					</li>
 				{/each}
 				</ul>
@@ -113,5 +148,9 @@ ul li input, .count-todos{
   font-size: 20px;
   color: #A00;
   margin-right: 9px;
+}
+.is-active {
+    background-color: #3273dc;
+    color: #fff;
 }
 </style>
