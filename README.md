@@ -46,7 +46,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 
 ## About
 
-The target of this project was to have a simple, ultra lightweight cross platform, cross programming language UI layer for desktop, cloud and moblile applications. Nimview applications have just a few MB in static executable size and are targeted to be easy to write, easy to read, stable and easy to test. The RAM consumption of basic Nimview applications is usually less than 20 MB.
+The target of this project was to have a simple, ultra lightweight cross platform, cross programming language UI layer for desktop, cloud and mobile applications. Nimview applications have just a few MB in static executable size and are targeted to be easy to write, easy to read, stable, secure and easy to test. The RAM consumption of basic Nimview applications is usually less than 20 MB on MS Windows.
 
 This project uses [Webview](https://github.com/oskca/webview) to render Desktop 
 applications and an integrated HttpServer for Development and Cloud.
@@ -57,7 +57,7 @@ Technically, the UI layer will be completely HTML/CSS/JS based and the back-end 
 Nim mostly acts as a "glue" layer as it can create python and C libraries easily. As long as you write Nim code, you might integrate the code in C/C++, Python or even Android. 
 The final result should be a binary executable that runs on Linux, Windows or MacOS Desktop and even [Android](https://github.com/marcomq/examples/android). IOS wasn't tested yet.
 
-The final application later doesn't require a webserver, but it is recommended to use the webserver during development or in debug mode.
+The final application later doesn't require a webserver, but it is recommended to use the webserver mode during development or in debug mode.
 You may also use the webserver for your cloud environemnt, but make sure to use additional authentication and a security reverse proxy when running on cloud.
 
 Node.js is recommended but not required if you want to build your Javascript UI layer with Svelte/Vue/React or the framework of your choice.
