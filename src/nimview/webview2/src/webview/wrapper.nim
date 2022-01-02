@@ -51,7 +51,11 @@ proc wrapProc(seq: ccstring, req: ccstring, arg: pointer) {.cdecl.} =
     w = argUnref.w
     p = argUnref.p
   try:
-    let output = $ p(parseJson($req))
+    var tmpReq: cstring # issues using cc:vcc
+    {.emit: """
+    tmpReq = (char*) req;
+    """.}
+    let output = $ p(parseJson($tmpReq))
     w.returnCb(seq, 0.cint, output.cstring)
   except:
     let

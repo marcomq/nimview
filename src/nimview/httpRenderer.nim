@@ -59,6 +59,7 @@ proc getAbsPath*(indexHtmlFile: string): (string, string) =
     result[1] = indexHtmlFile[separatorFound .. ^1]
   if (not os.isAbsolute(result[0])):
     result[0] = getCurrentAppDir() & "/" & indexHtmlFile
+  result[0] = result[0].replace("\\", "/")
 
 proc dispatchHttpRequest*(jsonMessage: JsonNode, headers: HttpHeaders): string =
   ## Modify this, if you want to add some authentication, input format validation
