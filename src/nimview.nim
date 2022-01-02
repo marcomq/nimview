@@ -40,9 +40,8 @@ when not defined(just_core):
   when compileWithWebview:
     import nimview/webviewRenderer
     export stopDesktop, evalJs
-    when not defined webview2:
-      export selectFolderDialog, selectFileDialog, setMinSize, setMaxSize, focus
-      export setBorderless, setFullScreen, setIcon, setColor
+    export selectFolderDialog, selectFileDialog, setMinSize, setMaxSize, focus
+    export setBorderless, setFullScreen, setIcon, setColor
 else:
   # Just core features. Disable httpserver, webview nimpy and exportpy
   macro exportpy(def: untyped): untyped =
