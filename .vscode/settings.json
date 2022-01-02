@@ -53,6 +53,7 @@
         "map": "cpp",
         "xtree": "cpp",
         "sstream": "cpp",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "*.idl": "cpp"
     }
 }

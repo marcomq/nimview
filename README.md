@@ -49,7 +49,7 @@ A lightweight cross platform UI library for Nim, C, C++ or Python. The main purp
 The target of this project was to have a simple, ultra lightweight cross platform, cross programming language UI layer for desktop, cloud and mobile applications. Nimview applications have just a few MB in static executable size and are targeted to be easy to write, easy to read, stable, secure and easy to test. The RAM consumption of basic Nimview applications is usually less than 20 MB on MS Windows.
 
 This project uses [Webview](https://github.com/oskca/webview) to render Desktop 
-applications and an integrated HttpServer for Development and Cloud.
+applications and an integrated HttpServer for Development and Cloud. It doesn't use the latest version, as the latest version stopped working with file urls.
 
 Nimview is an interface to interact with Nim/C/C++/Python code from UI Javascript in the same way for Webview desktop applications, web and mobile applications. It registers functions in the specific languages and also can mix Nim with any of the supported targets. 
 
