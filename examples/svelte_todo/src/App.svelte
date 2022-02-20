@@ -107,7 +107,7 @@
 </main>
 <style>
 :global(.ui-state-default) {
-	display:block;
+	list-style-type: none;
 }
 :global(.container ul) {
 	padding-left: 10px;
