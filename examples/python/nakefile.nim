@@ -25,8 +25,9 @@ proc buildPyLib() =
   let outputLib = buildDir / library & "." & pyDllExtension
   if outputLib.needsRefresh(srcFiles):
     os.removeDir(buildDir / "tmp_py")
-    execNim "c -d:release -d:noMain --threads:on --gc:orc --deepCopy:on --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
-      " --app:lib " & " "  & mainApp & " " # creates python lib, header file not usable
+    let winParams = when defined(windows): " --tlsEmulation:off --passL:-static " else: " "
+    execNim "c -d:release -d:noMain --threads:on --gc:orc --deepCopy:on --app:lib --nimcache=./" & buildDir & "/tmp_py --out:" & outputLib & 
+      " "  & winParams & mainApp & " " # creates python lib, header file not usable
     os.copyFile(outputLib, thisDir / "src" / library & "." & pyDllExtension)
 
 proc runTests() =
