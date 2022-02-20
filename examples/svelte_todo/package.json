@@ -33,6 +33,7 @@
     "svelte": "^3.42.4"
   },
   "dependencies": {
+    "@palsch/svelte-sortablejs": "^1.2.1",
     "bootstrap": "^4.6.0",
     "core-js": "^3.17.2",
     "jquery": "^3.6.0",

@@ -1,10 +1,15 @@
 <script>
 	import backend from "nimview"
-	import SortableList from './SortableList.svelte'
+    import SortableList from '@palsch/svelte-sortablejs'
 	
 	let currentItem = ""
 	let items = []
 	let mainInput
+	const sortableOptions = {
+        group: "items", 
+        animation: 100, 
+        easing: "cubic-bezier(1, 0, 0, 1)"
+    }
 
 	const addItem = () => {
 		items.push({id: Math.max(0, ...items.map(t => t.id)) + 1, text: currentItem, completed: false})
@@ -34,6 +39,9 @@
 		items = ev.detail
 		storeAll()
 	}
+	const getItemById = (id) => {
+        return items.find(item => item.id == id);
+    }
 	const getAll = async () => {
 		try {
 			let jsonResponse = await backend.getStoredVal("items")
@@ -64,9 +72,9 @@
 					</div>
 				</form>
 				{#if items.length > 0}
-					<SortableList items={items} key="id" on:sort={sortList} let:item let:index >
+					<SortableList {sortableOptions} on:orderChanged={sortList}  bind:items  idKey="id" let:item {getItemById} liClass="ui-state-default">
 						<label class="ui-state-default">
-							<input type="checkbox"  id="todo-{index}"
+							<input type="checkbox"  id="todo-{item.id}"
 								on:click={() => {
 									item.completed = !item.completed
 									storeAll()
@@ -98,6 +106,12 @@
 	</div>
 </main>
 <style>
+:global(.ui-state-default) {
+	display:block;
+}
+:global(.container ul) {
+	padding-left: 10px;
+}
 .row .col {
 	max-width: 600px;
 }
