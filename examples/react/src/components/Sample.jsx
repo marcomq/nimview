@@ -10,16 +10,10 @@ class Sample extends React.Component {
     }
   }
   renderItems = () => {
-    if (this.state.elements.length === 0) {
-      return
-        <p>No data available yet</p>
-    } 
-    else {
-      const elementItems = this.state.elements.map((item) =>
-        <div>{item.val}</div>
-      )
-      return elementItems
-    }
+    const elementItems = this.state.elements.map((item) =>
+      <div>{item.val}</div>
+    )
+    return elementItems
   }
 
   countDown = () => { 
