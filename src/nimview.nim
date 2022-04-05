@@ -266,9 +266,9 @@ when not defined(just_core):
     if stream.startsWith("data:"):
       return stream
     if (system.hostOS == "windows"): 
-      result = "data:text/html, " & stream.replace("%", uri.encodeUrl("%")) 
+      result = "data:text/html," & stream.replace("%", uri.encodeUrl("%")) 
     else:
-      result = "data:text/html;base64, " & base64.encode(stream)
+      result = "data:text/html;base64," & base64.encode(stream)
 
   proc startDesktop*(indexHtmlFile: string = nimviewSettings.indexHtmlFile, 
         title: string = nimviewSettings.title,
