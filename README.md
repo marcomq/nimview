@@ -7,6 +7,10 @@
 
 A lightweight cross platform UI library for Nim, C, C++ or Python. The main purpose is to simplify creation of online / offline applications based on a HTML/CSS/JS layer to be displayed with Webview or a browser. The application can even run on cloud and on desktop environments with the same binary application.
 
+## Status
+
+Currently, the project is not in active development anymore. There is [tauri](https://tauri.app/) (written in rust) that has similar goals and is much more advanced than nimview. Much more important - tauri is using webkit2 which supports state-of-the-art css and javascript. Nimview was still using webkit1 - which causes issues when using basic reactive Javascript on windows or when using modern css libraries. I will probably still review and merge PRs if you want to use nimview or if you think that those PRs are a good idea.
+
 ## Features
 - Compile to small single executable binary that also includes the UI
 - No network port will be opened by Nimview in Desktop mode
