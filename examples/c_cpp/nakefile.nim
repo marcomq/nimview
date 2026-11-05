@@ -12,19 +12,22 @@ let cDllExtension = when defined(windows): "dll" else: "so"
 
 os.createDir buildDir
 
+const webkitPkg = if gorgeEx("pkg-config --exists webkit2gtk-4.1").exitCode == 0: "webkit2gtk-4.1"
+                  else: "webkit2gtk-4.0"
+
 const webviewIncludes = when defined(windows): 
   "-DWEBVIEW_WINAPI=1 -mno-ms-bitfields -DWIN32_LEAN_AND_MEAN " 
 elif defined(macosx):
   "-DWEBVIEW_COCOA=1 -x objective-c"
 else:
-  "-DWEBVIEW_GTK=1 " & staticExec("pkg-config --cflags gtk+-3.0 webkit2gtk-4.0")
+  "-DWEBVIEW_GTK=1 " & staticExec("pkg-config --cflags gtk+-3.0 " & webkitPkg)
 
 const webviewlLibs = when defined(windows): 
   "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32" 
 elif defined(macosx):
   "-framework Cocoa -framework WebKit"
 else:
-  system.staticExec("pkg-config --libs gtk+-3.0 webkit2gtk-4.0") & " -ldl -pthread"
+  system.staticExec("pkg-config --libs gtk+-3.0 " & webkitPkg) & " -ldl -pthread"
 
 proc execShCmd(command: string) = 
   echo "running: " & command

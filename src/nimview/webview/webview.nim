@@ -1,9 +1,12 @@
 {.passC: "-DWEBVIEW_STATIC -DWEBVIEW_IMPLEMENTATION".}
 {.passC: "-I" & currentSourcePath().substr(0, high(currentSourcePath()) - 4) .}
 when defined(linux):
+  # webkit2gtk-4.0 is no longer shipped by current distributions; prefer the API compatible 4.1
+  const webkitPkg = if gorgeEx("pkg-config --exists webkit2gtk-4.1").exitCode == 0: "webkit2gtk-4.1"
+                    else: "webkit2gtk-4.0"
   {.passC: "-DWEBVIEW_GTK=1 " &
-          staticExec"pkg-config --cflags gtk+-3.0 webkit2gtk-4.0".}
-  {.passL: staticExec"pkg-config --libs gtk+-3.0 webkit2gtk-4.0".}
+          staticExec("pkg-config --cflags gtk+-3.0 " & webkitPkg).}
+  {.passL: staticExec("pkg-config --libs gtk+-3.0 " & webkitPkg).}
 elif defined(windows):
   {.passC: "-DWEBVIEW_WINAPI=1".}
   {.passL: "-lole32 -lcomctl32 -loleaut32 -luuid -lgdi32".}
@@ -11,7 +14,7 @@ elif defined(macosx):
   {.passC: "-DWEBVIEW_COCOA=1 -x objective-c".}
   {.passL: "-framework Cocoa -framework WebKit".}
 
-import tables, strutils
+import tables, strutils, locks
 import macros
 import json
 
@@ -52,6 +55,7 @@ type
 proc init*(w: Webview): cint {.importc: "webview_init", header: "webview.h".}
 proc loop*(w: Webview; blocking: cint): cint {.importc: "webview_loop", header: "webview.h".}
 proc eval*(w: Webview; js: cstring): cint {.importc: "webview_eval", header: "webview.h".}
+proc addInitJs*(w: Webview; js: cstring): cint {.importc: "webview_add_init_js", header: "webview.h".}
 proc injectCss*(w: Webview; css: cstring): cint {.importc: "webview_inject_css", header: "webview.h".}
 proc setTitle*(w: Webview; title: cstring) {.importc: "webview_set_title", header: "webview.h".}
 proc setColor*(w: Webview; r,g,b,a: uint8) {.importc: "webview_set_color", header: "webview.h".}
@@ -125,16 +129,47 @@ proc newWebView*(title="WebView", url="",
 # for dispatch
 
 var dispatchTable = newTable[int, DispatchFn]()
+var dispatchLock: Lock
+var dispatchCounter = 0
+initLock(dispatchLock)
 
 proc generalDispatchProc(w: Webview, arg: pointer) {.exportc.} =
   let idx = cast[int](arg)
-  let fn = dispatchTable[idx]
-  fn()
+  var fn: DispatchFn
+  withLock dispatchLock:
+    discard dispatchTable.pop(idx, fn)
+  if fn != nil:
+    fn()
 
 proc dispatch*(w: Webview, fn: DispatchFn) =
-  let idx = dispatchTable.len()+1
-  dispatchTable[idx] = fn
+  ## Not safe across threads with ORC, as the closure is a shared ref; use the DispatchCallFn overload.
+  var idx: int
+  withLock dispatchLock:
+    inc dispatchCounter
+    idx = dispatchCounter
+    dispatchTable[idx] = fn
   dispatch(w, generalDispatchProc, cast[pointer](idx))
+
+type DispatchCallFn* = proc(w: Webview, arg: string) {.nimcall, gcsafe.}
+
+var dispatchCallTable = initTable[int, (DispatchCallFn, string)]()
+
+proc generalDispatchCallProc(w: Webview, arg: pointer) {.exportc.} =
+  var call: (DispatchCallFn, string)
+  var found: bool
+  withLock dispatchLock:
+    found = dispatchCallTable.pop(cast[int](arg), call)
+  if found:
+    call[0](w, call[1])
+
+proc dispatch*(w: Webview, fn: DispatchCallFn, arg: string) =
+  ## Runs `fn(w, arg)` on the UI thread. Safe to call from any thread.
+  var idx: int
+  withLock dispatchLock:
+    inc dispatchCounter
+    idx = dispatchCounter
+    dispatchCallTable[idx] = (fn, arg)
+  dispatch(w, generalDispatchCallProc, cast[pointer](idx))
 
 proc dialog*(w :Webview, dlgType: DialogType, dlgFlag: int, title, arg: string, filter: string = ""): string =
   ## dialog() opens a system dialog of the given type and title. String
@@ -257,7 +292,7 @@ proc bindProc*[P, R](w: Webview, scope, name: string, p: (proc(param: P): R)) =
   # TODO eval jscode
   w.dispatch(proc() = 
     w.applyGtkWorkaround()
-    discard w.eval(jsTemplate%[name, scope]))
+    discard w.addInitJs(jsTemplate%[name, scope]))
 
 proc bindProcNoArg*(w: Webview, scope, name: string, p: proc()) =
   ## ugly hack or macro will fail
@@ -270,7 +305,7 @@ proc bindProcNoArg*(w: Webview, scope, name: string, p: proc()) =
   # TODO eval jscode
   w.dispatch(proc() = 
     w.applyGtkWorkaround()
-    discard w.eval(jsTemplateNoArg%[name, scope]))
+    discard w.addInitJs(jsTemplateNoArg%[name, scope]))
 
 proc bindProc*[P](w: Webview, scope, name: string, p: proc(arg:P)) =
   proc hook(hookParam: string): string =
@@ -290,7 +325,7 @@ proc bindProc*[P](w: Webview, scope, name: string, p: proc(arg:P)) =
   w.dispatch(proc() = 
     w.applyGtkWorkaround()
     let myArg = jsTemplateOnlyArg%[name, scope]
-    discard w.eval(myArg.cstring))
+    discard w.addInitJs(myArg.cstring))
 
 macro bindProcs*(w: Webview, scope: string, n: untyped): untyped =
   ## bind procs like:

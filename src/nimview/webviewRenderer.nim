@@ -4,7 +4,9 @@
 # git clone https://github.com/marcomq/nimview
 
 
-const useWebviewInThread* = compileOption("threads") and not defined useWebviewSingleThreaded
+# Cocoa only allows creating windows on the main thread.
+const useWebviewInThread* = compileOption("threads") and not defined(useWebviewSingleThreaded) and
+    not defined(macosx)
 when useWebviewInThread:
     import threadpool
 import ../nimview/webview/webview except debug
@@ -37,8 +39,10 @@ proc getInstance: ptr WebviewRenderer =
 proc computeMessageWebview(message: string)
 
 proc evalJs*(evalJsCode: string) =
-    getInstance().webview.dispatch(proc() =
-        discard getInstance().webview.eval(evalJsCode.cstring))
+    if getInstance().webview.isNil:
+        return
+    getInstance().webview.dispatch(proc(w: Webview, js: string) {.nimcall.} =
+        discard w.eval(js.cstring), evalJsCode)
 
 proc callFrontendJsEscapedWebview*(functionName: string, params: string) =
   ## "params" should be JS escaped values, separated by commas with surrounding quotes for string values
@@ -52,9 +56,17 @@ proc stopDesktop*() {.exportpy, exportc: "nimview_$1".} =
     ## Will stop the Desktop app - may trigger application exit.
     debug "stopping ..."
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.terminate()
-            dealloc(getInstance().webview))
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            w.terminate(), "")
+
+proc destroyDesktop() =
+    ## Must only be called after the webview loop has finished.
+    let w = getInstance().webview
+    if not w.isNil():
+        getInstance().webview = nil
+        when not defined(macosx):
+            w.exit() # Cocoa would terminate the whole app here
+        dealloc(w)
 
 proc runDesktop*(url: string, title: string, width: int, height: int, 
     resizable: bool, debug: bool, run: bool)  =  
@@ -78,7 +90,7 @@ proc runDesktop*(url: string, title: string, width: int, height: int,
             getInstance().webviewQueue.send("")
             getInstance().runBarrier.close()
             getInstance().initBarrier.close()
-            stopDesktop()
+            destroyDesktop()
 
 
 proc spawnDesktopThread*(url: string, title: string, width: int, height: int, 
@@ -100,7 +112,7 @@ proc runWebview*() =
             computeMessageWebview(message)
     else:
         getInstance().webview.run()
-        stopDesktop()
+        destroyDesktop()
 
 
 proc selectFolderDialog*(title: string): string  {.exportpy.} =
@@ -116,8 +128,8 @@ proc selectFileDialog*(title: string): string  {.exportpy.} =
         result = getInstance().webview.dialogOpen(title=if title != "" : title else: "Select File", flag=webview.dFlagFile)
 
 proc setIcon*(icon: string) {.exportpy.} = 
-    getInstance().webview.dispatch(proc() = 
-        getInstance().webview.setIcon(icon.cstring))
+    getInstance().webview.dispatch(proc(w: Webview, icon: string) {.nimcall.} =
+        w.setIcon(icon.cstring), icon)
     
 proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
     ## Use gtk mode without borders, only works on linux and only in desktop mode
@@ -128,34 +140,38 @@ proc setBorderless*(decorated: bool = false) {.exportc, exportpy.} =
 
 proc setFullscreen*(fullScreen: bool = true) {.exportc, exportpy.} =
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            discard getInstance().webview.setFullscreen(fullScreen))
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            discard w.setFullscreen(arg == "true"), $fullScreen)
 
 proc setColor*(r, g, b, alpha: uint8) {.exportc, exportpy.} =
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.setColor(r, g, b, alpha))
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            let c = arg.split(',')
+            w.setColor(c[0].parseInt.uint8, c[1].parseInt.uint8, c[2].parseInt.uint8, c[3].parseInt.uint8),
+            [$r, $g, $b, $alpha].join(","))
 
 proc setMaxSize*(width, height: int) {.exportpy.} =
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.setMaxSize(width.cint, height.cint))
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            let size = arg.split(',')
+            w.setMaxSize(size[0].parseInt.cint, size[1].parseInt.cint), $width & "," & $height)
     
 proc setMaxSize*(width, height: cint) {.exportc.} =
     setMaxSize(width.int, height.int)
 
 proc setMinSize*(width, height: int) {.exportpy.} =
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.setMinSize(width.cint, height.cint))
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            let size = arg.split(',')
+            w.setMinSize(size[0].parseInt.cint, size[1].parseInt.cint), $width & "," & $height)
     
 proc setMinSize*(width, height: cint) {.exportc.} =
     setMinSize(width.int, height.int)
 
 proc focus*(width, height: int) {.exportpy, exportc.} =
     if not getInstance().webview.isNil():
-        getInstance().webview.dispatch(proc() = 
-            getInstance().webview.focus())
+        getInstance().webview.dispatch(proc(w: Webview, arg: string) {.nimcall.} =
+            w.focus(), "")
 
 proc computeMessageWebview(message: string) {.used.} =
     info message

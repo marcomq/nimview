@@ -36,7 +36,8 @@ proc callFrontendJsEscapedHttp*(functionName: string, params: string) =
             log.error "Call frontend error: ", getCurrentExceptionMsg()
       else:
         deletable.add(idx)
-  for idx in deletable:
+  for i in countdown(deletable.high, 0):
+    let idx = deletable[i]
     when NimMinor >= 6 or NimMajor > 1:
       getInstance().connections.delete(idx..idx)
     else:
@@ -112,8 +113,9 @@ proc handleRequest(request: Request): Future[void] {.async.} =
       await request.respond(Http200, system.readFile(potentialFilename), newHttpHeaders(header))
     elif requestPath == "/ws":
       when not defined(just_core):
+        var ws: WebSocket
         try:
-          var ws = await newWebSocket(request)
+          ws = await newWebSocket(request)
           getInstance().connections.add(ws)
           while ws.readyState == ReadyState.Open:
             let packet = await ws.receiveStrPacket()
@@ -122,6 +124,10 @@ proc handleRequest(request: Request): Future[void] {.async.} =
           echo "Socket tried to use an unknown protocol: ", getCurrentExceptionMsg()
         except WebSocketError:
           echo "Socket error: ", getCurrentExceptionMsg()
+        finally:
+          let idx = getInstance().connections.find(ws)
+          if idx >= 0:
+            getInstance().connections.delete(idx)
     elif (request.body == ""):
         raise newException(ReqUnknownException, "404 - File not found")
     else:

@@ -20,12 +20,12 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: iffy/install-nim@v3.2.2
+      - uses: actions/checkout@v4
+      - uses: iffy/install-nim@v5
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update && sudo apt install -y gcc npm libwebkit2gtk-4.0-dev curl python3
+          sudo apt-get update && sudo apt install -y gcc npm libwebkit2gtk-4.1-dev curl python3
           
       - name: InstallMacOSDependencies
         if: runner.os == 'macOS'

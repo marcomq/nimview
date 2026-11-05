@@ -147,9 +147,13 @@ proc dispatchRequest*(request: string, value: string): string =
   let jsonRequest = parseJson("{\"request\":\"" & request & "\", \"data\": " & value & "}")
   result = dispatchJsonRequest(jsonRequest);
 
+var dispatchRequestResult {.threadvar.}: string
+var dispatchCommandLineArgResult {.threadvar.}: string
+
 proc dispatchRequest*(request, value: cstring): cstring {.exportc: "nimview_$1".} =
-  let stringResult = $dispatchRequest($request, $value)
-  result = stringResult.cstring
+  ## The returned string stays valid until the next call of this function in the same thread.
+  dispatchRequestResult = dispatchRequest($request, $value)
+  result = dispatchRequestResult.cstring
 
 proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
   ## Will handle previously logged request json and forward those to registered functions.
@@ -166,8 +170,9 @@ proc dispatchCommandLineArg*(escapedArgv: string): string  {.exportpy.} =
     warn "Error calling line arg: " & escapedArgv & ", " & getCurrentExceptionMsg()
 
 proc dispatchCommandLineArg*(escapedArgv: cstring): cstring {.exportc: "nimview_$1".} =
-  let stringResult = $dispatchCommandLineArg($escapedArgv)
-  result = stringResult.cstring
+  ## The returned string stays valid until the next call of this function in the same thread.
+  dispatchCommandLineArgResult = dispatchCommandLineArg($escapedArgv)
+  result = dispatchCommandLineArgResult.cstring
 
 proc readAndParseJsonCmdFile*(filename: string) {.exportpy.} =
   ## Will open, parse a file of previously logged requests and re-runs those requests.

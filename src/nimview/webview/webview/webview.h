@@ -98,6 +98,7 @@ struct webview_priv
   WebView *webview;
   id delegate;
   int should_exit;
+  NSMutableString *init_js;
 };
 #else
 #error "Define one of: WEBVIEW_GTK, WEBVIEW_COCOA or WEBVIEW_WINAPI"
@@ -176,6 +177,8 @@ struct webview_priv
   WEBVIEW_API int webview_init(struct webview *w);
   WEBVIEW_API int webview_loop(struct webview *w, int blocking);
   WEBVIEW_API int webview_eval(struct webview *w, const char *js);
+  /* Like webview_eval, but on Cocoa the script is also re-run for every new page before its scripts run. */
+  WEBVIEW_API int webview_add_init_js(struct webview *w, const char *js);
   WEBVIEW_API int webview_inject_css(struct webview *w, const char *css);
   WEBVIEW_API void webview_set_title(struct webview *w, const char *title);
   WEBVIEW_API void webview_set_icon(struct webview *w, const char *icon);
@@ -589,6 +592,11 @@ struct webview_priv
       g_main_context_iteration(NULL, TRUE);
     }
     return 0;
+  }
+
+  WEBVIEW_API int webview_add_init_js(struct webview *w, const char *js)
+  {
+    return webview_eval(w, js);
   }
 
   static gboolean webview_dispatch_wrapper(gpointer userdata)
@@ -1733,6 +1741,11 @@ struct webview_priv
     return 0;
   }
 
+  WEBVIEW_API int webview_add_init_js(struct webview *w, const char *js)
+  {
+    return webview_eval(w, js);
+  }
+
   WEBVIEW_API void webview_dispatch(struct webview *w, webview_dispatch_fn fn,
                                     void *arg)
   {
@@ -2110,6 +2123,12 @@ struct webview_priv
                                               id script, id frame)
   {
     [script setValue:self forKey:@"external"];
+    struct webview *w =
+        (struct webview *)objc_getAssociatedObject(self, "webview");
+    if (w != NULL && w->priv.init_js != nil)
+    {
+      [script evaluateWebScript:w->priv.init_js];
+    }
   }
 
   static void webview_run_input_open_panel(id self, SEL cmd, id webview,
@@ -2341,6 +2360,17 @@ struct webview_priv
     return 0;
   }
 
+  WEBVIEW_API int webview_add_init_js(struct webview *w, const char *js)
+  {
+    if (w->priv.init_js == nil)
+    {
+      w->priv.init_js = [[NSMutableString alloc] init];
+    }
+    [w->priv.init_js appendString:[NSString stringWithUTF8String:js]];
+    [w->priv.init_js appendString:@"\n"];
+    return webview_eval(w, js);
+  }
+
   WEBVIEW_API void webview_set_title(struct webview *w, const char *title)
   {
     NSString *nsTitle = [NSString stringWithUTF8String:title];
@@ -2516,6 +2546,17 @@ struct webview_priv
   WEBVIEW_API void webview_terminate(struct webview *w)
   {
     w->priv.should_exit = 1;
+    /* wake up a blocking webview_loop that waits for the next event */
+    NSEvent *wakeUp = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                         location:NSZeroPoint
+                                    modifierFlags:0
+                                        timestamp:0
+                                     windowNumber:0
+                                          context:nil
+                                          subtype:0
+                                            data1:0
+                                            data2:0];
+    [NSApp postEvent:wakeUp atStart:NO];
   }
   WEBVIEW_API void webview_exit(struct webview *w) { [NSApp terminate:NSApp]; }
   WEBVIEW_API void webview_print_log(const char *s) { NSLog(@"%s", s); }

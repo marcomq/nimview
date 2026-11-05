@@ -67,6 +67,13 @@ proc parseAny*[T](value: JsonNode): T =
   else: 
     result = value.to(T)
 
+template parseArg[T](value: JsonNode): untyped =
+  ## Like parseAny, but a cstring stays valid until the end of the calling statement.
+  when T is cstring:
+    parseAny[string](value).cstring
+  else:
+    parseAny[T](value)
+
 proc add*(request: string, callback: proc(values: JsonNode): string, jsSignature = "value") =
   ## This will register a function "callback" that can run on back-end.
   ## "add" will be performed with "value" each time the javascript client calls:
@@ -120,7 +127,7 @@ macro generateCExportsForParams(exportParams: typed): untyped {.used.} =
       signature &= ","
     functionName &= "_" & myType.strVal
     functionParams &= fmt"val{i}: {myType.strVal}"
-    callbackParams &= fmt"parseAny[{myType.strVal}](values[{i}])"
+    callbackParams &= fmt"parseArg[{myType.strVal}](values[{i}])"
     signature &= fmt"name({myType.strVal})"
   var procString: string 
   procString = &"""
@@ -180,7 +187,7 @@ when system.appType == "lib" or defined noMain:
 proc add*[T1, R](request: string, callback: proc(value1: T1): R) =
     add(request, proc (values: JsonNode): string = 
       if values.len > 0:
-        $callback(parseAny[T1](values[0]))
+        $callback(parseArg[T1](values[0]))
       else:
         raise newException(ServerException, "Called request '" & request & "' needs to contain at least 1 argument"),
       name(T1))
@@ -191,7 +198,7 @@ proc add*[T1](request: string, callback: proc(value1: T1): void) =
 proc add*[T1, T2, R](request: string, callback: proc(value1: T1, value2: T2): R) =
     add(request, proc (values: JsonNode): string = 
       if values.len > 1:
-        $callback(parseAny[T1](values[0]), parseAny[T2](values[1]))
+        $callback(parseArg[T1](values[0]), parseArg[T2](values[1]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 2 arguments"),
       name(T1) & ", " & name(T2))
@@ -202,7 +209,7 @@ proc add*[T1, T2](request: string, callback: proc(value1: T1, value2: T2): void)
 proc add*[T1, T2, T3, R](request: string, callback: proc(value1: T1, value2: T2, value3: T3): R) =
     add(request, proc (values: JsonNode): string = 
       if values.len > 2:
-        $callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]))
+        $callback(parseArg[T1](values[0]), parseArg[T2](values[1]), parseArg[T3](values[2]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 3 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3))
@@ -213,7 +220,7 @@ proc add*[T1, T2, T3](request: string, callback: proc(value1: T1, value2: T2, va
 proc add*[T1, T2, T3, T4, R](request: string, callback: proc(value1: T1, value2: T2, value3: T3, value4: T4): R) =
     add(request, proc (values: JsonNode): string = 
       if values.len > 3:
-        $callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]), parseAny[T4](values[3]))
+        $callback(parseArg[T1](values[0]), parseArg[T2](values[1]), parseArg[T3](values[2]), parseArg[T4](values[3]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 4 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4))
@@ -224,7 +231,7 @@ proc add*[T1, T2, T3, T4](request: string, callback: proc(value1: T1, value2: T2
 proc add*[T1, T2, T3, T4, T5, R](request: string, callback: proc(value1: T1, value2: T2, value3: T4, value4: T4, value5: T5): R) =
     add(request, proc (values: JsonNode): string = 
       if values.len > 4:
-        $callback(parseAny[T1](values[0]), parseAny[T2](values[1]), parseAny[T3](values[2]), parseAny[T4](values[3]), parseAny[T5](values[4]))
+        $callback(parseArg[T1](values[0]), parseArg[T2](values[1]), parseArg[T3](values[2]), parseArg[T4](values[3]), parseArg[T5](values[4]))
       else:
         raise newException(ServerException, "Called request '" & request & "' contains less than 5 arguments"),
       name(T1) & ", " & name(T2) & ", " & name(T3) & ", " & name(T4) & ", " & name(T5))

@@ -1,4 +1,4 @@
-version     = "0.4.2"
+version     = "0.4.3"
 author      = "Marco Mengelkoch"
 description = "Nim / Python / C library to run webview with HTML/JS as UI"
 license     = "MIT"
@@ -15,9 +15,9 @@ when defined(nimdistros):
   import distros
   # no foreignDep required for Windows 
   if detectOs(Ubuntu):
-    foreignDep "libwebkit2gtk-4.0-dev"
+    foreignDep "libwebkit2gtk-4.1-dev"
   elif detectOs(CentOS) or detectOs(RedHat) or detectOs(Fedora):
-    foreignDep "webkitgtk4-devel"
+    foreignDep "webkit2gtk4.1-devel"
   if not detectOs(Windows):
     echo "In case of trouble, you may need to install following dependencies:"
     echo ""

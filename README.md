@@ -344,7 +344,7 @@ The Desktop mode is using IE11 as platform, so there might be security issues wh
     avoid white-space in nim install folder name when using windows
     add path by running nim "finish" in the nim install directory, so you have nimble available
     restart or open new shell to have nimble available
-- linux: yum install gcc webkitgtk4-devel npm <or:> apt install gcc libwebkit2gtk-4.0-dev npm
+- linux: dnf install gcc webkit2gtk4.1-devel npm <or:> apt install gcc libwebkit2gtk-4.1-dev npm
 - windows: install node > 12.19  (https://nodejs.org/en/download/)
 - nimble install nimview
 - (optional for C/C++ on Windows: install gcc / make sure that minGW is in your path)
