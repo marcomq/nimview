@@ -87,7 +87,7 @@ proc buildDll() =
   if (thisDir / buildDir / "tmp_dll" / headerFile).needsRefresh(srcFiles()):
     os.removeDir(buildDir / "tmp_dll")
     execNim "c --threads:on --gc:orc --passC:-fpic -d:release --noMain:on -d:noMain --nimcache=./" & buildDir & "/tmp_dll" & 
-      " --app:lib --noLinking:on --header:" &  library & ".h --compileOnly:off " & " " & mainApp # creates header and compiled .o files
+      " --app:lib --noLinking:on --header:" &  library & ".h " & " " & mainApp # creates header and compiled .o files
     os.copyFile(nimviewPath() / "nimview.hpp", thisDir / buildDir / "tmp_dll/nimview.hpp")
     os.copyFile(thisDir / buildDir / "tmp_c" / headerFile,  thisDir / buildDir / "tmp_dll" / headerFile)
     os.copyFile(nimbaseDir() / "nimbase.h", thisDir / buildDir / "tmp_dll" / "nimbase.h")
