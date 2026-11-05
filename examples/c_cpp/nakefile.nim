@@ -38,6 +38,8 @@ proc nimbleDir(): string = parentDir(parentDir(os.findExe("nimble")))
 proc nimbaseDir(): string =
   result = parentDir(nimbleDir()) & "/lib"
   if (not os.fileExists(result & "/nimbase.h")):
+    result = parentDir(parentDir(nimexe)) & "/lib"
+  if (not os.fileExists(result & "/nimbase.h")):
     result = parentDir(parentDir(os.findExe("makelink"))) & "/lib"
   if (not os.fileExists(result & "/nimbase.h")):
     result = parentDir(parentDir(parentDir(parentDir(os.findExe("gcc"))))) & "/lib"
