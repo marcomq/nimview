@@ -13,7 +13,15 @@ std::string echoAndModify(const std::string& something) {
     return (something + " appended to string");
 }
 
+// Nim's std/cmdline expects the host to define these when built with --noMain
+extern "C" {
+    int cmdCount;
+    char** cmdLine;
+}
+
 int main(int argc, char* argv[]) {
+    cmdCount = argc;
+    cmdLine = argv;
     nimview::nimMain();
     nimview::add<std::string>("echoAndModify", echoAndModify);
     nimview::start("../dist/index.html", 8000, "localhost");

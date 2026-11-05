@@ -22,7 +22,13 @@ char* echoAndModify(char* something) {
     }
     return result;
 }
+// Nim's std/cmdline expects the host to define these when built with --noMain
+int cmdCount;
+char** cmdLine;
+
 int main(int argc, char* argv[]) {
+    cmdCount = argc;
+    cmdLine = argv;
     printf(" starting c code\n");
     NimMain();
     nimview_add_cstring_rstr("echoAndModify", echoAndModify, free);
