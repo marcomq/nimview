@@ -8,6 +8,7 @@
 #include "nimview.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 char* echoAndModify(char* something) {
     const char* appendString = " modified by C";

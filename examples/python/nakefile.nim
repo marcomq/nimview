@@ -1,12 +1,13 @@
 import nake
 import os, strutils, system
 
-let library = "nimview"
-let srcDir = "src"
-let mainApp = srcDir / "library.nim"
-let srcFiles = [mainApp]
-let buildDir = "out"
-let thisDir = system.currentSourcePath().parentDir() 
+# const, not let: nake runs tasks from a destructor, after global lets are freed
+const library = "nimview"
+const srcDir = "src"
+const mainApp = srcDir / "library.nim"
+const srcFiles = [mainApp]
+const buildDir = "out"
+const thisDir = system.currentSourcePath().parentDir()
 
 os.createDir buildDir
 
@@ -18,7 +19,7 @@ proc execNim(command: string) =
   echo "running: nim " & command
   execCmd nimexe & " " & command
 
-let pyDllExtension = when defined(windows): "pyd" else: "so"
+const pyDllExtension =when defined(windows): "pyd" else: "so"
 
 proc buildPyLib() = 
   ## creates python lib

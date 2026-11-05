@@ -22,6 +22,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       - uses: iffy/install-nim@v5
+        with:
+          # Nim 2.4.0 breaks --app:gui on Windows (MessageBoxA used before declared)
+          version: binary:2.2.14
       - name: InstallLinuxDependencies
         if: runner.os == 'Linux'
         run: |
